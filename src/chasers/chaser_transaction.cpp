@@ -137,8 +137,15 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         return;
     }
 
+    auto& query = archive();
+    std::vector<bool> stored(txs->size());
+    std::ranges::transform(*txs, stored.begin(), [&](const auto& tx) NOEXCEPT
+    {
+        return !tx->is_coinbase() && query.is_tx(tx->get_hash(false));
+    });
+
     size_t index{};
-    if (const auto ec = validate(index, *txs))
+    if (const auto ec = validate(index, *txs, stored))
     {
         handler(ec, index);
         return;
@@ -150,10 +157,12 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         return;
     }
 
-    auto& query = archive();
-    database::tx_links fresh(txs->size(), database::tx_link::terminal);
+    // Parents precede children, so a parent is archived before it is resolved.
     for (index = zero; index < txs->size(); ++index)
     {
+        if (stored.at(index))
+            continue;
+
         bool pooled{};
         database::tx_link link{};
         const auto& tx = *txs->at(index);
@@ -165,23 +174,14 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             return;
         }
 
-        if (!pooled)
-            fresh.at(index) = link;
-
-        fire(events::tx_archived, to_rate(tx));
-        notify(error::success, chases::transaction{ link });
-    }
-
-    // Package parents are resolved by hash, so the whole package precedes.
-    for (index = zero; index < txs->size(); ++index)
-    {
-        const database::tx_link link{ fresh.at(index) };
-        if (!link.is_terminal() && !query.set_pooled(link,
-            *txs->at(index), pool_))
+        if (!pooled && !query.set_pooled(link, tx, pool_))
         {
             handler(fault(error::transaction2), index);
             return;
         }
+
+        fire(events::tx_archived, to_rate(tx));
+        notify(error::success, chases::transaction{ link });
     }
 
     handler(error::success, {});
@@ -206,11 +206,17 @@ size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
 // validation
 // ----------------------------------------------------------------------------
 
-code chaser_transaction::validate(size_t& index,
-    const transaction_cptrs& txs) NOEXCEPT
+code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
+    const std::vector<bool>& stored) NOEXCEPT
 {
     if (txs.empty())
         return error::empty_package;
+
+    if (std::ranges::all_of(stored, std::identity{}))
+        return error::duplicate_transaction;
+
+    if (block::is_forward_reference(txs, false))
+        return system::error::forward_reference;
 
     if (block::is_internal_double_spend(txs, false))
         return system::error::block_internal_double_spend;
@@ -218,18 +224,22 @@ code chaser_transaction::validate(size_t& index,
     if (const auto ec = block::populate(txs, pool_, false))
         return ec;
 
-    for(const auto& tx: txs)
-        if (const auto ec = validate(*tx))
+    uint64_t fee{}, size{};
+    for (index = zero; index < txs.size(); ++index)
+    {
+        if (stored.at(index))
+            continue;
+
+        const auto& tx = *txs.at(index);
+        if (const auto ec = validate(tx))
             return ec;
 
-
-    uint64_t fee{}, size{};
-    for (const auto& tx: txs)
-    {
-        fee = ceilinged_add(fee, tx->fee());
+        fee = ceilinged_add(fee, tx.fee());
         size = ceilinged_add(size, possible_wide_cast<uint64_t>(
-            tx->virtual_size()));
+            tx.virtual_size()));
     }
+
+    index = zero;
 
     // Compared in satoshis per virtual kilobyte.
     const auto rate = node_settings().minimum_fee_rate_();

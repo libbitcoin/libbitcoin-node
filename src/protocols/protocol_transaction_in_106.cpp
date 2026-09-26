@@ -171,7 +171,8 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec,
         return;
 
     // A conflict with an unconfirmed tx is not misbehavior, as the peer
-    // cannot know what is held here. An unknown prevout is not misbehavior,
+    // cannot know what is held here, and a requested tx may be archived from
+    // another peer before it arrives. An unknown prevout is not misbehavior,
     // as announcement order is not constrained and orphans are not pooled.
     // A locked tx is final to a peer one block ahead, as locks are evaluated
     // against the presumed next block, so neither lock is misbehavior.
@@ -180,6 +181,7 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec,
     if (ec &&
         (ec != error::pooling_disabled) &&
         (ec != error::insufficient_fee) &&
+        (ec != error::duplicate_transaction) &&
         (ec != system::error::double_spend) &&
         (ec != system::error::absolute_time_locked) &&
         (ec != system::error::relative_time_locked) &&

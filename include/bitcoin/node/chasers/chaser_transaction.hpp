@@ -55,8 +55,8 @@ protected:
 private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
 
-    code validate(size_t& index,
-        const system::chain::transaction_cptrs& txs) NOEXCEPT;
+    code validate(size_t& index, const system::chain::transaction_cptrs& txs,
+        const std::vector<bool>& stored) NOEXCEPT;
     code validate(const system::chain::transaction& tx) NOEXCEPT;
 
     // These are protected by strand.
