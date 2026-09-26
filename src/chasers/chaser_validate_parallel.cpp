@@ -67,7 +67,7 @@ void chaser_validate::validate_block(const header_link& link,
             ec = error::validate5;
     }
 
-    if (!ec && !bypass)
+    if (!ec && !bypass && is_current_header(link))
     {
         const auto elapsed = network::logger::now() - start;
         fire(events::validate_usecs,
