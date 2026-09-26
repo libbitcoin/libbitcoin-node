@@ -55,7 +55,7 @@ void chaser_validate::validate_block(const header_link& link,
     {
         ec = error::validate3;
     }
-    else if ((ec = populate(bypass, *block, ctx)))
+    else if ((ec = populate(bypass, *block, link, ctx)))
     {
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
@@ -82,7 +82,7 @@ void chaser_validate::validate_block(const header_link& link,
 // ----------------------------------------------------------------------------
 
 code chaser_validate::populate(bool bypass, const chain::block& block,
-    const chain::context& ctx) NOEXCEPT
+    const header_link& link, const chain::context& ctx) NOEXCEPT
 {
     const auto& query = archive();
 
@@ -101,11 +101,37 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
             return ec;
 
         // Metadata identifies internal spends allowing confirmation bypass.
-        if (!query.populate_with_metadata(block))
+        if (!populate_metadata(block, link, ctx))
             return system::error::missing_previous_output;
     }
     
     return error::success;
+}
+
+// A tx pooled under a sufficient context takes its metadata from the pool.
+bool chaser_validate::populate_metadata(const chain::block& block,
+    const header_link& link, const chain::context& ctx) NOEXCEPT
+{
+    const auto& query = archive();
+    const auto& txs = *block.transactions_ptr();
+    const auto links = query.to_transactions(link);
+    if (links.size() != txs.size())
+        return query.populate_with_metadata(block);
+
+    pooled_tx pooled{};
+    const auto pool = database::context::from(ctx);
+    for (auto index = one; index < txs.size(); ++index)
+    {
+        const auto& tx = *txs.at(index);
+        const auto populated = query.populate_pooled(pooled, tx,
+            links.at(index), pool) ? query.populate_with_metadata(tx) :
+            query.populate_without_metadata(tx);
+
+        if (!populated)
+            return false;
+    }
+
+    return true;
 }
 
 code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
