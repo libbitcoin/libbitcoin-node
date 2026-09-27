@@ -33,6 +33,7 @@ using namespace system;
 using namespace system::chain;
 using namespace database;
 using namespace network;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
@@ -94,6 +95,7 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
 code chaser_check::start() NOEXCEPT
 {
     start_tracking();
+    compact_timer_ = std::make_shared<deadline>(log, strand());
     set_position(archive().get_fork());
     requested_ = advanced_ = position();
     const auto added = set_unassociated();
@@ -105,6 +107,9 @@ code chaser_check::start() NOEXCEPT
 
 void chaser_check::stopping(const code& ec) NOEXCEPT
 {
+    if (compact_timer_)
+        compact_timer_->stop();
+
     // Allow job completion as soon as all protocols are closed.
     stop_tracking();
     chaser::stopping(ec);
@@ -518,9 +523,28 @@ size_t chaser_check::set_unassociated() NOEXCEPT
     const auto previous = requested_;
     const auto step = ceilinged_add(position(), maximum_concurrency_);
     const auto span = std::min(step, maximum_height_);
-    const auto stop = position() < bypass_height_ ?
+    auto stop = position() < bypass_height_ ?
         std::min(span, bypass_height_) : span;
     size_t count{};
+
+    // Defer download of a current compact top block, awaiting its fill.
+    const auto timeout = node_settings().compact_timeout();
+    if (!is_zero(timeout.count()) && is_current_chain(false))
+    {
+        const auto top = query.get_top_candidate();
+        const auto link = query.to_candidate(top);
+        if (link != expired_ && query.is_compact(link) &&
+            !query.is_associated(link))
+        {
+            stop = std::min(stop, sub1(top));
+            if (link != deferred_)
+            {
+                deferred_ = link;
+                compact_timer_->start(BIND(handle_compact_timer, _1),
+                    duration_cast<deadline::duration>(timeout));
+            }
+        }
+    }
 
     while (true)
     {
@@ -544,6 +568,17 @@ size_t chaser_check::set_unassociated() NOEXCEPT
         << requested_ << ").");
 
     return count;
+}
+
+void chaser_check::handle_compact_timer(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (ec == network::error::operation_canceled || closed())
+        return;
+
+    expired_ = deferred_;
+    deferred_ = {};
+    do_headers({});
 }
 
 size_t chaser_check::get_inventory_size() const NOEXCEPT

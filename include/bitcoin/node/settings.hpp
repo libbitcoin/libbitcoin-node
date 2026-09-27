@@ -56,6 +56,7 @@ public:
     uint32_t maximum_concurrency;
     uint32_t silent_start_height;
     uint16_t sample_period_seconds;
+    uint16_t compact_timeout_seconds;
     uint32_t currency_window_minutes;
     ////uint64_t snapshot_bytes;
     ////uint32_t snapshot_valid;
@@ -72,6 +73,7 @@ public:
     virtual bool fee_estimate_enabled() const NOEXCEPT;
     virtual bool batch_signatures_enabled() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
+    virtual network::steady_clock::duration compact_timeout() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
     virtual network::processing_priority thread_priority_() const NOEXCEPT;
     virtual network::memory_priority memory_priority_() const NOEXCEPT;
