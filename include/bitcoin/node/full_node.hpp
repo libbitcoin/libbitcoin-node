@@ -68,6 +68,8 @@ public:
     /// Organize a proven header, milestone set if in milestone branch.
     virtual void organize(const system::chain::header::cptr& header,
         bool milestone, organize_handler&& handler) NOEXCEPT;
+    virtual void organize(const system::chain::header::cptr& header,
+        bool milestone, bool compact, organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,

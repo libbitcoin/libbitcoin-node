@@ -98,7 +98,7 @@ void chaser_header::organize(const header::cptr& header,
     if (closed())
         return;
 
-    POST(do_organize, header, false, false, false, std::move(handler));
+    POST(do_organize, header, false, false, false, false, std::move(handler));
 }
 
 void chaser_header::organize(const header::cptr& header, bool milestone,
@@ -107,7 +107,17 @@ void chaser_header::organize(const header::cptr& header, bool milestone,
     if (closed())
         return;
 
-    POST(do_organize, header, false, milestone, true, std::move(handler));
+    POST(do_organize, header, false, milestone, false, true, std::move(handler));
+}
+
+void chaser_header::organize(const header::cptr& header, bool milestone,
+    bool compact, organize_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_organize, header, false, milestone, compact, true,
+        std::move(handler));
 }
 
 void chaser_header::prioritize(const hash_digest& hash,
@@ -180,7 +190,7 @@ bool chaser_header::handle_chase(const code&, event_value value) NOEXCEPT
 }
 
 void chaser_header::do_organize(const header::cptr& header_ptr,
-    bool prioritized, bool milestone, bool proven,
+    bool prioritized, bool milestone, bool compact, bool proven,
     const organize_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -342,7 +352,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // Push new header as top of candidate chain.
     if (const auto ec = push_header(header, state->context(),
-        state->cumulative_work(), milestone))
+        state->cumulative_work(), milestone, compact))
     {
         handler(fault(ec), height);
         return;
@@ -414,7 +424,7 @@ void chaser_header::do_prioritize(const hash_digest& hash,
         return;
     }
 
-    do_organize(handle.mapped(), true, false, true, handler);
+    do_organize(handle.mapped(), true, false, false, true, handler);
 }
 
 // The greater of configured minimum work and candidate work less a window.
@@ -628,11 +638,12 @@ bool chaser_header::set_organized(const header_link& link,
 // Milestone is archived in the header and like checkpoint cannot change.
 // But unlike checkpointed, milestoned blocks may not be strong chain.
 code chaser_header::push_header(const header& header, const context& ctx,
-    const uint256_t& work, bool milestone) NOEXCEPT
+    const uint256_t& work, bool milestone, bool compact) NOEXCEPT
 {
     auto& query = archive();
     header_link link{};
-    const auto ec = query.set_code(link, header, ctx, work, milestone, false);
+    const auto ec = query.set_code(link, header, ctx, work, milestone,
+        compact);
     if (ec)
         return ec;
 
@@ -650,7 +661,7 @@ code chaser_header::push_header(const hash_digest& key) NOEXCEPT
     const auto& header_ptr = handle.mapped();
     const auto& state = header_ptr->get_state();
     return push_header(*header_ptr, state->context(),
-        state->cumulative_work(), false);
+        state->cumulative_work(), false, false);
 }
 
 void chaser_header::cache(const header::cptr& header,

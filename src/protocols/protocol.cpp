@@ -150,6 +150,12 @@ void protocol::organize(const system::chain::header::cptr& header,
     session_->organize(header, milestone, std::move(handler));
 }
 
+void protocol::organize(const system::chain::header::cptr& header,
+    bool milestone, bool compact, organize_handler&& handler) NOEXCEPT
+{
+    session_->organize(header, milestone, compact, std::move(handler));
+}
+
 void protocol::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {
