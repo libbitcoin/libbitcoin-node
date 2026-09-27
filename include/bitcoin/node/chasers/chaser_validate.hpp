@@ -72,6 +72,10 @@ protected:
         const header_link& link, const system::chain::context& ctx) NOEXCEPT;
     virtual bool populate_metadata(const system::chain::block& block,
         const header_link& link, const system::chain::context& ctx) NOEXCEPT;
+    virtual code validate_pooled(bool& pooled, const header_link& link,
+        const system::chain::context& ctx) NOEXCEPT;
+    virtual code complete_pooled(const header_link& link,
+        const system::chain::context& ctx) NOEXCEPT;
     virtual void complete_block(const code& ec, const header_link& link,
         size_t height, bool bypass, bool batched=false,
         bool capturing=false) NOEXCEPT;
