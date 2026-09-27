@@ -60,6 +60,80 @@ code protocol_peer::fault(const code& ec) NOEXCEPT
     return ec;
 }
 
+// Compact blocks (bip152 version 2).
+// ----------------------------------------------------------------------------
+
+// static
+siphash_key protocol_peer::to_compact_key(const chain::header& header,
+    uint64_t nonce) NOEXCEPT
+{
+    auto data = header.to_data();
+    extend(data, to_little_endian(nonce));
+    return to_siphash_key(split(sha256_hash(data)).first);
+}
+
+// static
+uint64_t protocol_peer::to_short_id(const siphash_key& key,
+    const hash_digest& wtxid) NOEXCEPT
+{
+    constexpr auto mask = unmask_right<uint64_t>(to_bits(mini_hash_size));
+    return bit_and(siphash(key, wtxid), mask);
+}
+
+// static
+uint64_t protocol_peer::from_mini(const mini_hash& id) NOEXCEPT
+{
+    data_array<sizeof(uint64_t)> bytes{};
+    std::copy(id.begin(), id.end(), bytes.begin());
+    return from_little_endian<uint64_t>(bytes);
+}
+
+// static
+mini_hash protocol_peer::to_mini(uint64_t id) NOEXCEPT
+{
+    mini_hash out{};
+    const auto bytes = to_little_endian(id);
+    std::copy_n(bytes.begin(), out.size(), out.begin());
+    return out;
+}
+
+network::messages::peer::compact_block::cptr protocol_peer::make_compact_block(
+    const database::header_link& link) const NOEXCEPT
+{
+    using namespace network::messages::peer;
+    const auto& query = archive();
+    const auto header = query.get_header(link);
+    const auto txs = query.to_transactions(link);
+    if (!header || txs.empty())
+        return {};
+
+    const auto coinbase = query.get_transaction(txs.front(), true);
+    const auto wtxids = query.get_wtxids(link);
+    if (!coinbase || wtxids.size() != txs.size())
+        return {};
+
+    const auto nonce = maybe_random::next<uint64_t>(0, max_uint64);
+    const auto key = to_compact_key(*header, nonce);
+
+    compact_block::short_id_list ids{};
+    ids.reserve(sub1(wtxids.size()));
+    for (auto it = std::next(wtxids.begin()); it != wtxids.end(); ++it)
+    {
+        if (*it == null_hash)
+            return {};
+
+        ids.push_back(to_mini(to_short_id(key, *it)));
+    }
+
+    return to_shared(compact_block
+    {
+        header,
+        nonce,
+        std::move(ids),
+        compact_block_items{ compact_block_item{ zero, coinbase } }
+    });
+}
+
 // Announcements.
 // ----------------------------------------------------------------------------
 
