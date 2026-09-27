@@ -24,11 +24,14 @@
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70001.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70012.hpp>
+#include <bitcoin/node/protocols/protocol_block_out_70014.hpp>
 #include <bitcoin/node/protocols/protocol_filter_out_70015.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
+#include <bitcoin/node/protocols/protocol_header_in_70014.hpp>
 #include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
+#include <bitcoin/node/protocols/protocol_header_out_70014.hpp>
 #include <bitcoin/node/protocols/protocol_observer.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 #include <bitcoin/node/protocols/protocol_performer.hpp>

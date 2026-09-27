@@ -77,11 +77,14 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/protocols/protocol_block_out_106.cpp \
     ${srcdir}/../../src/protocols/protocol_block_out_70001.cpp \
     ${srcdir}/../../src/protocols/protocol_block_out_70012.cpp \
+    ${srcdir}/../../src/protocols/protocol_block_out_70014.cpp \
     ${srcdir}/../../src/protocols/protocol_filter_out_70015.cpp \
     ${srcdir}/../../src/protocols/protocol_header_in_31800.cpp \
     ${srcdir}/../../src/protocols/protocol_header_in_70012.cpp \
+    ${srcdir}/../../src/protocols/protocol_header_in_70014.cpp \
     ${srcdir}/../../src/protocols/protocol_header_out_31800.cpp \
     ${srcdir}/../../src/protocols/protocol_header_out_70012.cpp \
+    ${srcdir}/../../src/protocols/protocol_header_out_70014.cpp \
     ${srcdir}/../../src/protocols/protocol_observer.cpp \
     ${srcdir}/../../src/protocols/protocol_peer.cpp \
     ${srcdir}/../../src/protocols/protocol_performer.cpp \
@@ -157,11 +160,14 @@ include_bitcoin_node_protocols_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_out_106.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_out_70001.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_out_70012.hpp \
+    ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_out_70014.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_filter_out_70015.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_header_in_31800.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_header_in_70012.hpp \
+    ${srcdir}/../../include/bitcoin/node/protocols/protocol_header_in_70014.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_header_out_31800.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_header_out_70012.hpp \
+    ${srcdir}/../../include/bitcoin/node/protocols/protocol_header_out_70014.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_observer.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_peer.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_performer.hpp \
