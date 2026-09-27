@@ -225,9 +225,9 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     for (size_t index{}; index < txs->size(); ++index)
     {
         const auto& tx = *txs->at(index);
-        if (const auto link = to_stored(tx); !link.is_terminal())
+        if (const auto stored = to_stored(tx); !stored.is_terminal())
         {
-            links.at(index) = link;
+            links.at(index) = stored;
             continue;
         }
 
