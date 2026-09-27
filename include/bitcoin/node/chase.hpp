@@ -117,7 +117,7 @@ enum class chase
     checked,
 
     /// A downloaded block has failed check.
-    /// Issued by 'block_in_31800' and handled by 'organize'.
+    /// Issued by 'block_in_31800', 'transaction' and handled by 'organize'.
     unchecked,
 
     /// A downloaded window is completed by check.

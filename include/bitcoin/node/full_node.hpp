@@ -83,6 +83,11 @@ public:
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
 
+    /// Validate and archive the unarchived txs of an identified compact block
+    /// in block order, returning the tx link of each (in submission order).
+    virtual void submit_compact(const system::chain::transactions_cptr& txs,
+        const database::header_link& link, compact_handler&& handler) NOEXCEPT;
+
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,

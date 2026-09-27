@@ -119,6 +119,15 @@ void chaser_transaction::submit(const transactions_cptr& txs, bool test,
     POST(do_submit, txs, test, std::move(handler));
 }
 
+void chaser_transaction::submit_compact(const transactions_cptr& txs,
+    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_submit_compact, txs, link, std::move(handler));
+}
+
 // private
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     const submit_handler& handler) NOEXCEPT
@@ -188,8 +197,92 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     handler(error::success, {});
 }
 
+// private
+void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
+    const database::header_link& link,
+    const compact_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped, {}, {});
+        return;
+    }
+
+    auto& query = archive();
+    chain::context ctx{};
+    if (!query.get_context(ctx, link))
+    {
+        handler(fault(error::transaction3), {}, {});
+        return;
+    }
+
+    // Txs are an arbitrary subset of the block, so block checks are deferred to
+    // validation. Each is archived before the next, so in block order a parent
+    // is resolved from the store.
+    database::tx_links links(txs->size());
+    for (size_t index{}; index < txs->size(); ++index)
+    {
+        const auto& tx = *txs->at(index);
+        if (const auto link = to_stored(tx); !link.is_terminal())
+        {
+            links.at(index) = link;
+            continue;
+        }
+
+        // An identified block with an invalid tx is invalid.
+        if (const auto ec = validate(tx, ctx))
+        {
+            if (!query.set_block_unconfirmable(link))
+            {
+                handler(fault(error::transaction4), index, {});
+                return;
+            }
+
+            LOGR("Compact block failed check [" << ctx.height << "] "
+                << ec.message());
+            notify(error::success, chases::unchecked{ link });
+            fire(events::block_unconfirmable, ctx.height);
+            handler(ec, index, {});
+            return;
+        }
+
+        bool pooled{};
+        database::tx_link tx_fk{};
+
+        // Disk full may leave txs partly archived, resolves by resubmit.
+        if (const auto ec = query.set_code(tx_fk, pooled, tx))
+        {
+            handler(fault(ec), index, {});
+            return;
+        }
+
+        links.at(index) = tx_fk;
+        if (!pooled && !tx.is_coinbase() && !query.set_pooled(tx_fk, tx, ctx))
+        {
+            handler(fault(error::transaction2), index, {});
+            return;
+        }
+    }
+
+    handler(error::success, {}, links);
+}
+
 // utility
 // ----------------------------------------------------------------------------
+
+// The stored instance of the tx with matching witness, or terminal.
+database::tx_link chaser_transaction::to_stored(
+    const chain::transaction& tx) const NOEXCEPT
+{
+    const auto& query = archive();
+    for (const auto& link: query.to_duplicates(tx.get_hash(false)))
+        if (query.is_witness_match(link, tx))
+            return link;
+
+    return {};
+}
 
 // The fee and size are recomputed here, as they are for the package rate and
 // for block fees, so the rate could instead be cached on the transaction.
@@ -267,6 +360,23 @@ code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
 
     // Script validation is the most costly, so it follows the guards.
     if (!ec) ec = tx.connect(pool_);
+    return ec;
+}
+
+// A block tx is under proof of work, so it is not subject to policy (fee
+// rate, guards) and may conflict with unconfirmed txs.
+code chaser_transaction::validate(const chain::transaction& tx,
+    const chain::context& ctx) NOEXCEPT
+{
+    code ec{};
+    if (!ec) ec = tx.check();
+    if (!ec) ec = tx.check(ctx);
+    if (ec || tx.is_coinbase())
+        return ec;
+
+    archive().populate_with_metadata(tx);
+    ec = tx.accept(ctx);
+    if (!ec) ec = tx.connect(ctx);
     return ec;
 }
 

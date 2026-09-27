@@ -69,6 +69,12 @@ void session::submit(const transactions_cptr& txs, bool test,
     node_.submit(txs, test, std::move(handler));
 }
 
+void session::submit_compact(const transactions_cptr& txs,
+    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+{
+    node_.submit_compact(txs, link, std::move(handler));
+}
+
 void session::get_minimum_work(work_handler&& handler) NOEXCEPT
 {
     node_.get_minimum_work(std::move(handler));

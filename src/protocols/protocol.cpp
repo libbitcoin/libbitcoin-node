@@ -173,6 +173,12 @@ void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
     session_->submit(txs, test, std::move(handler));
 }
 
+void protocol::submit_compact(const system::chain::transactions_cptr& txs,
+    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+{
+    session_->submit_compact(txs, link, std::move(handler));
+}
+
 void protocol::subscribe_chase(event_notifier&& handler) NOEXCEPT
 {
     // This is a shared instance multiply-derived from network::protocol.
