@@ -110,14 +110,13 @@ void chaser_header::organize(const header::cptr& header, bool milestone,
     POST(do_organize, header, false, milestone, false, true, std::move(handler));
 }
 
-void chaser_header::organize(const header::cptr& header, bool milestone,
-    bool compact, organize_handler&& handler) NOEXCEPT
+void chaser_header::organize_compact(const header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
 {
     if (closed())
         return;
 
-    POST(do_organize, header, false, milestone, compact, true,
-        std::move(handler));
+    POST(do_organize, header, false, false, true, false, std::move(handler));
 }
 
 void chaser_header::prioritize(const hash_digest& hash,
