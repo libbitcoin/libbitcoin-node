@@ -60,6 +60,11 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else
     {
+        // TODO: a current block that is not fully pooled revalidates all of
+        // its txs, including those sufficiently pooled. A better fallback
+        // would validate only the insufficiently pooled txs, relying on the
+        // pool for the others (as validate_pooled does for all txs).
+
         // TODO: implement allocator parameter resulting in full allocation to
         // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
         const auto block = query.get_block(link, node_witness_);
@@ -68,7 +73,7 @@ void chaser_validate::validate_block(const header_link& link,
         {
             ec = error::validate2;
         }
-        else if ((ec = populate(bypass, *block, link, ctx)))
+        else if ((ec = populate(bypass, *block, ctx)))
         {
             if (!query.set_block_unconfirmable(link))
                 ec = error::validate4;
@@ -96,7 +101,7 @@ void chaser_validate::validate_block(const header_link& link,
 // ----------------------------------------------------------------------------
 
 code chaser_validate::populate(bool bypass, const chain::block& block,
-    const header_link& link, const chain::context& ctx) NOEXCEPT
+    const chain::context& ctx) NOEXCEPT
 {
     const auto& query = archive();
 
@@ -115,37 +120,11 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
             return ec;
 
         // Metadata identifies internal spends allowing confirmation bypass.
-        if (!populate_metadata(block, link, ctx))
+        if (!query.populate_with_metadata(block))
             return system::error::missing_previous_output;
     }
     
     return error::success;
-}
-
-// A tx pooled under a sufficient context takes its metadata from the pool.
-bool chaser_validate::populate_metadata(const chain::block& block,
-    const header_link& link, const chain::context& ctx) NOEXCEPT
-{
-    const auto& query = archive();
-    const auto& txs = *block.transactions_ptr();
-    const auto links = query.to_transactions(link);
-    if (links.size() != txs.size())
-        return query.populate_with_metadata(block);
-
-    pooled_tx pooled{};
-    const auto pool = database::context::from(ctx);
-    for (auto index = one; index < txs.size(); ++index)
-    {
-        const auto& tx = *txs.at(index);
-        const auto populated = query.populate_pooled(pooled, tx,
-            links.at(index), pool) ? query.populate_with_metadata(tx) :
-            query.populate_without_metadata(tx);
-
-        if (!populated)
-            return false;
-    }
-
-    return true;
 }
 
 // A block with all txs pooled under a sufficient context requires only block
@@ -178,7 +157,7 @@ code chaser_validate::complete_pooled(const header_link& link,
         if (!block)
             return error::validate2;
 
-        if (populate(bypass, *block, link, ctx))
+        if (populate(bypass, *block, ctx))
             return error::validate11;
 
         if (const auto ec = validate(batched, capturing, bypass, *block, link,
