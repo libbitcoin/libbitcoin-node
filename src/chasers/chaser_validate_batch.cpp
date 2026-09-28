@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #include <atomic>
+#include <format>
 #include <thread>
 #include <bitcoin/node/define.hpp>
 
@@ -264,8 +265,8 @@ std::string chaser_validate::log_rate(const std::string& name,
     size_t signatures, size_t milliseconds) const NOEXCEPT
 {
     const auto rate = (signatures * 1000u) / greater(milliseconds, one);
-    return (boost_format("%1% (%2% / %3% ms) = %4% sps") %
-        name % signatures % (milliseconds) % rate).str();
+    return std::format("{} ({} / {} ms) = {} sps", name, signatures,
+        milliseconds, rate);
 }
 
 // Turnstile.
