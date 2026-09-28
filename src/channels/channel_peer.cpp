@@ -32,6 +32,12 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 void channel_peer::set_announced(const hash_digest& hash) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    if (is_zero(announcement_cache_))
+        return;
+
+    if (announced_.size() == announcement_cache_)
+        announced_.pop_front();
+
     announced_.push_back(hash);
 }
 
