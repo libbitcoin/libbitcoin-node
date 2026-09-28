@@ -95,8 +95,10 @@ else()
 endif()
 
 find_package( libbitcoin-database 4.0.0 REQUIRED )
+set( libbitcoin_database_VERSION ${libbitcoin-database_VERSION} )
 
 find_package( libbitcoin-network 4.0.0 REQUIRED )
+set( libbitcoin_network_VERSION ${libbitcoin-network_VERSION} )
 
 find_package( Boost 1.86.0 REQUIRED
   COMPONENTS
