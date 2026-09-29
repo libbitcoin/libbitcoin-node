@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "p2p_setup_fixture.hpp"
+#include <chrono>
+#include <thread>
 
 BOOST_FIXTURE_TEST_SUITE(functional_p2p_tests, p2p_setup_fixture)
 
@@ -69,6 +71,112 @@ struct p2p_checkpoint_setup_fixture
             config.bitcoin.checkpoints = { { header2()->hash(), 2 } };
             config.bitcoin.milestone = { header1()->hash(), 1 };
         })
+    {
+    }
+};
+
+// A current compact node with block 1 archived as unconfirmable.
+struct p2p_unconfirmable_setup_fixture
+  : p2p_compact_setup_fixture
+{
+    static bool unconfirmable(node::query& query) NOEXCEPT
+    {
+        const auto& header = *header1();
+        const system::settings bitcoin{ system::chain::selection::mainnet };
+        const auto& genesis = bitcoin.genesis_block.header();
+        const database::context context{ 0, 1, genesis.timestamp() };
+        return query.set(header, context, genesis.proof() + header.proof(), false) && query.set_block_unconfirmable(query.to_header(header.hash()));
+    }
+
+    inline p2p_unconfirmable_setup_fixture()
+      : p2p_compact_setup_fixture(unconfirmable)
+    {
+    }
+};
+
+static const system::settings& regtest() NOEXCEPT
+{
+    static const system::settings instance{ system::chain::selection::regtest };
+    return instance;
+}
+
+// Mine a regtest header (minimal proof of work) extending previous.
+static system::chain::header::cptr mine(const system::hash_digest& previous, uint32_t timestamp)
+{
+    const auto& bitcoin = regtest();
+    for (uint32_t nonce{};; ++nonce)
+    {
+        const auto header = std::make_shared<const system::chain::header>(4u, previous, system::null_hash, timestamp, bitcoin.proof_of_work_limit, nonce);
+        if (!header->check(bitcoin.timestamp_limit_seconds, bitcoin.proof_of_work_limit, false))
+            return header;
+    }
+}
+
+// A regtest chain of 4001 headers above genesis (index is height less one).
+static const system::chain::header_cptrs& chain()
+{
+    static const auto instance = []()
+    {
+        const auto& genesis = regtest().genesis_block.header();
+        system::chain::header_cptrs out{};
+        auto previous = genesis.hash();
+        auto timestamp = genesis.timestamp();
+        while (out.size() < 4001u)
+        {
+            out.push_back(mine(previous, ++timestamp));
+            previous = out.back()->hash();
+        }
+
+        return out;
+    }();
+
+    return instance;
+}
+
+// Headers message of the chain headers at heights [first, first + count).
+static headers segment(size_t first, size_t count)
+{
+    const auto begin = std::next(chain().begin(), first - 1u);
+    return { { begin, std::next(begin, count) } };
+}
+
+// A current regtest node, the sample budget configured by expected headers.
+struct p2p_regtest_setup_fixture
+  : p2p_setup_fixture
+{
+    inline p2p_regtest_setup_fixture(uint64_t expected=0)
+      : p2p_setup_fixture({}, [=](configuration& config)
+        {
+            config.bitcoin = regtest();
+            config.node.currency_window_minutes = 0;
+            config.database.header.expected = expected;
+        })
+    {
+    }
+
+    /// Wait (bounded) for the candidate chain to reach height.
+    bool candidate(size_t height)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (query_.get_top_candidate() == height)
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+};
+
+// A current regtest node with a sample budget of two.
+struct p2p_regtest_sampled_setup_fixture
+  : p2p_regtest_setup_fixture
+{
+    inline p2p_regtest_sampled_setup_fixture()
+      : p2p_regtest_setup_fixture(4000)
     {
     }
 };
@@ -460,6 +568,90 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__checkpoint__proven_and_ar
     const auto archived = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
     BOOST_REQUIRE(archived);
     BOOST_REQUIRE(archived->start_hashes.front() == header2()->hash());
+}
+
+BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable__stopped, p2p_unconfirmable_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    receive(get_headers::command);
+
+    const headers message{ { header1(), header2() } };
+    send(message, level::headers_protocol);
+    receive(get_headers::command);
+
+    send(message, level::headers_protocol);
+    send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
+
+    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable_parent__stopped, p2p_compact_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    receive(get_headers::command);
+
+    const headers message{ { header1() } };
+    send(message, level::headers_protocol);
+    receive(get_headers::command);
+
+    const system::chain::block& genesis = config_.bitcoin.genesis_block;
+    BOOST_REQUIRE(query_.set_block_unconfirmable(query_.to_header(genesis.hash())));
+    send(message, level::headers_protocol);
+    send(get_headers{ { header1()->hash() }, system::null_hash }, level::headers_protocol);
+
+    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__full_messages__proven_and_archived, p2p_regtest_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    receive(get_headers::command);
+
+    send(segment(1, 2000), level::headers_protocol);
+    const auto next = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
+    BOOST_REQUIRE(next);
+    BOOST_REQUIRE(next->start_hashes.front() == chain().at(1999)->hash());
+
+    send(segment(2001, 1), level::headers_protocol);
+    const auto proven = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
+    BOOST_REQUIRE(proven);
+    BOOST_REQUIRE(proven->start_hashes.front() == config_.bitcoin.genesis_block.hash());
+
+    send(segment(1, 2000), level::headers_protocol);
+    const auto collected = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
+    BOOST_REQUIRE(collected);
+    BOOST_REQUIRE(collected->start_hashes.front() == chain().at(1999)->hash());
+
+    send(segment(2001, 1), level::headers_protocol);
+    const auto archived = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
+    BOOST_REQUIRE(archived);
+    BOOST_REQUIRE(archived->start_hashes.front() == chain().at(2000)->hash());
+    BOOST_REQUIRE(candidate(2001));
+}
+
+BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__sample_budget__proven_and_archived, p2p_regtest_sampled_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    receive(get_headers::command);
+
+    send(segment(1, 2000), level::headers_protocol);
+    receive(get_headers::command);
+    send(segment(2001, 2000), level::headers_protocol);
+    receive(get_headers::command);
+    send(segment(4001, 1), level::headers_protocol);
+    const auto proven = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
+    BOOST_REQUIRE(proven);
+    BOOST_REQUIRE(proven->start_hashes.front() == config_.bitcoin.genesis_block.hash());
+
+    send(segment(1, 2000), level::headers_protocol);
+    receive(get_headers::command);
+    send(segment(2001, 2000), level::headers_protocol);
+    receive(get_headers::command);
+    send(segment(4001, 1), level::headers_protocol);
+    const auto archived = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
+    BOOST_REQUIRE(archived);
+    BOOST_REQUIRE(archived->start_hashes.front() == chain().at(4000)->hash());
+    BOOST_REQUIRE(candidate(4001));
 }
 
 // inv (in, 31800)
