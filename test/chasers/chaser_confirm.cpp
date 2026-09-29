@@ -18,6 +18,7 @@
  */
 #include "../test.hpp"
 #include <chrono>
+#include <ctime>
 #include <future>
 #include <thread>
 
@@ -82,6 +83,14 @@ static const chain::block& confirm_e2()
 {
     static const auto instance = confirm_block(confirm_d1(), 2, { confirm_coinbase(23), confirm_spend(confirm_d1()) });
     return instance;
+}
+
+static chain::block confirm_recent()
+{
+    const auto& genesis = confirm_genesis().header();
+    const auto coinbase = confirm_coinbase(31);
+    const chain::header header{ 1u, genesis.hash(), sha256::merkle_root({ coinbase.hash(false) }), static_cast<uint32_t>(std::time(nullptr) - 55), genesis.bits(), 1u };
+    return { header, { coinbase } };
 }
 
 static bool confirm_store(node::query& query, const chain::block& block, uint32_t height)
@@ -352,6 +361,38 @@ struct confirm_unfiltered_fixture
     }
 };
 
+struct confirm_windowed_fixture
+  : chaser_confirm_setup_fixture
+{
+    confirm_windowed_fixture()
+      : chaser_confirm_setup_fixture([](node::query&) { return true; }, [](configuration& config)
+        {
+            config.bitcoin.checkpoints.clear();
+            config.node.currency_window_minutes = 1;
+        })
+    {
+    }
+
+    bool subscribe(const std::shared_ptr<std::promise<void>>& heard, chase awaited)
+    {
+        const auto subscribed = std::make_shared<std::promise<void>>();
+        auto subscription = subscribed->get_future();
+        node_.subscribe_chase([heard, awaited](const code&, event_value value) NOEXCEPT
+        {
+            if (to_chase(value) != awaited)
+                return true;
+
+            heard->set_value();
+            return false;
+        }, [subscribed](const code&, auto) NOEXCEPT
+        {
+            subscribed->set_value();
+        });
+
+        return subscription.wait_for(std::chrono::seconds(10)) == std::future_status::ready;
+    }
+};
+
 struct confirm_confirmable_fixture
   : chaser_confirm_setup_fixture
 {
@@ -475,6 +516,18 @@ BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__valid_candidate_without_filter_bo
     BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
     BOOST_REQUIRE(stated(confirm_d1(), database::error::block_valid));
     BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_confirm__bump__recent_confirmable_candidate__organized_stale, confirm_windowed_fixture)
+{
+    const auto block = confirm_recent();
+    const auto heard = std::make_shared<std::promise<void>>();
+    auto hearing = heard->get_future();
+    BOOST_REQUIRE(subscribe(heard, chase::stale));
+    BOOST_REQUIRE(confirm_store(query_, block, 1) && query_.push_candidate(link(block)) && query_.set_block_confirmable(link(block)));
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BOOST_REQUIRE(confirmed(block, 1));
+    BOOST_REQUIRE(hearing.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__confirmable_candidate__organized, confirm_confirmable_fixture)

@@ -169,6 +169,11 @@ static bool validate_a1_candidate_x1_valid(node::query& query)
     return validate_a1_candidate(query) && validate_store(query, validate_x1(), 1) && query.set_block_valid(query.to_header(validate_x1().hash()));
 }
 
+static bool validate_overspent_x1_valid(node::query& query)
+{
+    return validate_overspent(query) && validate_store(query, validate_x1(), 1) && query.set_block_valid(query.to_header(validate_x1().hash()));
+}
+
 static bool validate_confirmable_missing(node::query& query)
 {
     return validate_missing(query) && query.set_block_confirmable(query.to_header(validate_a1().hash()));
@@ -190,6 +195,25 @@ static void validate_filter_full(configuration& config)
     config.bitcoin.checkpoints.clear();
     config.database.filter_tx.headroom = max_uint64;
 }
+
+static void validate_current(configuration& config)
+{
+    config.bitcoin.checkpoints.clear();
+    config.node.currency_window_minutes = 0;
+}
+
+static void validate_current_state_full(configuration& config)
+{
+    validate_current(config);
+    config.database.state.headroom = max_uint64;
+}
+
+static void validate_current_filter_full(configuration& config)
+{
+    validate_current(config);
+    config.database.filter_tx.headroom = max_uint64;
+}
+
 
 struct chaser_validate_setup_fixture
 {
@@ -224,6 +248,7 @@ struct chaser_validate_setup_fixture
             auto settings = config_.database;
             settings.state.headroom = database::settings{}.state.headroom;
             settings.filter_tx.headroom = database::settings{}.filter_tx.headroom;
+
             node::store store{ settings };
             node::query query{ store };
             BOOST_REQUIRE(!store.create([](auto, auto) {}));
@@ -454,6 +479,34 @@ struct validate_filter_full_fixture
     }
 };
 
+struct validate_current_overspent_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_current_overspent_fixture()
+      : chaser_validate_setup_fixture(validate_overspent, validate_current)
+    {
+    }
+};
+
+struct validate_current_overspent_state_full_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_current_overspent_state_full_fixture()
+      : chaser_validate_setup_fixture(validate_overspent_x1_valid, validate_current_state_full, true)
+    {
+    }
+};
+
+struct validate_current_filter_full_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_current_filter_full_fixture()
+      : chaser_validate_setup_fixture(validate_a1_candidate, validate_current_filter_full, true)
+    {
+    }
+};
+
+
 BOOST_AUTO_TEST_SUITE(chaser_validate_tests)
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__start__unvalidated_candidates__confirmable, validate_unvalidated_fixture)
@@ -596,5 +649,26 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__start__filter_full__suspended, validate
     BOOST_REQUIRE(query_.is_full());
     BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
 }
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__current_overspent_coinbase__unconfirmable, validate_current_overspent_fixture)
+{
+    BOOST_REQUIRE(stated(validate_overspent1(), database::error::block_unconfirmable));
+    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__current_overspent_coinbase_state_full__suspended, validate_current_overspent_state_full_fixture)
+{
+    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
+    BOOST_REQUIRE(query_.is_full());
+    BOOST_REQUIRE_EQUAL(state(validate_overspent1()), database::error::unvalidated);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__current_filter_full__suspended, validate_current_filter_full_fixture)
+{
+    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
+    BOOST_REQUIRE(query_.is_full());
+    BOOST_REQUIRE_EQUAL(state(validate_a1()), database::error::unvalidated);
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
