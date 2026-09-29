@@ -172,26 +172,48 @@ void protocol_header_in_70014::collect(const compact_block& message,
         return;
     }
 
-    const auto& items = message.transactions;
-    const auto& ids = message.short_ids;
-    const auto count = ids.size() + items.size();
-    if (is_zero(count) || (count > chain::max_block_weight))
-    {
-        stop(network::error::protocol_violation);
-        return;
-    }
-
     fill block{};
     block.link = link;
     block.height = ctx.height;
     block.header = message.header_ptr;
     block.hash = message.header_ptr->get_hash();
     block.key = to_compact_key(*message.header_ptr, message.nonce);
+
+    if (!decode(block, message))
+    {
+        stop(network::error::protocol_violation);
+        return;
+    }
+
+    if (!scan(block))
+    {
+        stop(fault(error::protocol2));
+        return;
+    }
+
+    fill_.emplace(std::move(block));
+    if (fill_->missing.empty())
+        identify();
+    else
+        request();
+}
+
+// Prefilled txs by differentially encoded index, short ids in the remaining
+// positions (bip152).
+bool protocol_header_in_70014::decode(fill& block,
+    const compact_block& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& items = message.transactions;
+    const auto& ids = message.short_ids;
+    const auto count = ids.size() + items.size();
+    if (is_zero(count) || (count > chain::max_block_weight))
+        return false;
+
     block.short_ids.resize(count);
     block.txs.resize(count);
     block.links.assign(count, database::tx_link::terminal);
 
-    // Prefilled indexes are differentially encoded (bip152).
     size_t position{};
     for (size_t item{}; item < items.size(); ++item)
     {
@@ -201,42 +223,42 @@ void protocol_header_in_70014::collect(const compact_block& message,
             ceilinged_add(add1(position), offset);
 
         if ((position >= count) || !prefilled.transaction_ptr)
-        {
-            stop(network::error::protocol_violation);
-            return;
-        }
+            return false;
 
         block.txs.at(position) = prefilled.transaction_ptr;
         block.unpooled.push_back(position);
     }
 
-    // Short ids occupy the remaining positions in order.
-    std::vector<uint64_t> short_ids{};
-    std::vector<size_t> positions{};
-    short_ids.reserve(ids.size());
-    positions.reserve(ids.size());
     auto id = ids.begin();
     for (position = zero; position < count; ++position)
+        if (!block.txs.at(position))
+            block.short_ids.at(position) = from_mini(*id++);
+
+    return true;
+}
+
+// Pooled txs by short id, the remaining positions are missing.
+bool protocol_header_in_70014::scan(fill& block) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    std::vector<uint64_t> short_ids{};
+    std::vector<size_t> positions{};
+    for (size_t position{}; position < block.txs.size(); ++position)
     {
         if (block.txs.at(position))
             continue;
 
-        const auto value = from_mini(*id++);
-        block.short_ids.at(position) = value;
-        short_ids.push_back(value);
+        short_ids.push_back(block.short_ids.at(position));
         positions.push_back(position);
     }
 
     database::tx_links links{};
-    if (query.get_compact_links(links, short_ids, block.key))
-    {
-        stop(fault(error::protocol2));
-        return;
-    }
+    if (archive().get_compact_links(links, short_ids, block.key))
+        return false;
 
     for (size_t index{}; index < positions.size(); ++index)
     {
-        position = positions.at(index);
+        const auto position = positions.at(index);
         if (links.at(index) == database::tx_link::terminal)
         {
             block.missing.push_back(position);
@@ -249,26 +271,27 @@ void protocol_header_in_70014::collect(const compact_block& message,
     }
 
     std::sort(block.unpooled.begin(), block.unpooled.end());
-    fill_.emplace(std::move(block));
-    if (fill_->missing.empty())
-    {
-        identify();
-        return;
-    }
+    return true;
+}
 
-    // Requested indexes are differentially encoded (bip152).
-    get_compact_transactions request{ fill_->hash, {} };
-    request.indexes.reserve(fill_->missing.size());
+// Requested indexes are differentially encoded (bip152).
+void protocol_header_in_70014::request() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& missing = fill_->missing;
+    get_compact_transactions message{ fill_->hash, {} };
+    message.indexes.reserve(missing.size());
+
     size_t previous{};
-    for (size_t index{}; index < fill_->missing.size(); ++index)
+    for (size_t index{}; index < missing.size(); ++index)
     {
-        position = fill_->missing.at(index);
-        request.indexes.push_back(is_zero(index) ? position :
+        const auto position = missing.at(index);
+        message.indexes.push_back(is_zero(index) ? position :
             position - add1(previous));
         previous = position;
     }
 
-    SEND(std::move(request), handle_send, _1);
+    SEND(std::move(message), handle_send, _1);
 }
 
 // Inbound (blocktxn).
@@ -326,57 +349,12 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
 void protocol_header_in_70014::identify() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
     auto& block = *fill_;
-    const auto count = block.txs.size();
 
-    // The coinbase is not pooled, so it is always in hand.
-    const auto& first = block.txs.front();
-    if (!first)
-    {
-        fill_.reset();
-        stop(fault(error::protocol2));
-        return;
-    }
-
-    hashes txids(count), wtxids(count);
-    for (size_t position{}; position < count; ++position)
-    {
-        if (const auto& tx = block.txs.at(position); tx)
-        {
-            txids.at(position) = tx->get_hash(false);
-            wtxids.at(position) = tx->get_hash(true);
-            continue;
-        }
-
-        const auto& link = block.links.at(position);
-        txids.at(position) = query.get_tx_key(link);
-        wtxids.at(position) = query.get_wtxid(link);
-        if ((txids.at(position) == null_hash) ||
-            (wtxids.at(position) == null_hash))
-        {
-            fill_.reset();
-            stop(fault(error::protocol2));
-            return;
-        }
-    }
-
-    // Malleated64 is a non-coinbase first tx and all txs of 64 bytes.
-    auto malleated64 = !first->is_coinbase();
-    for (size_t position{}; malleated64 && position < count; ++position)
-    {
-        size_t light{}, heavy{};
-        const auto& tx = block.txs.at(position);
-        malleated64 = tx ? (tx->serialized_size(false) == two * hash_size) :
-            (query.get_tx_sizes(light, heavy, block.links.at(position)) &&
-                (light == two * hash_size));
-    }
-
-    const auto segregated = !std::equal(txids.begin(), txids.end(),
-        wtxids.begin());
-
+    hashes txids{}, wtxids{};
     chain::context ctx{};
-    if (!query.get_context(ctx, block.link))
+    if (!to_hashes(txids, wtxids, block) ||
+        !archive().get_context(ctx, block.link))
     {
         fill_.reset();
         stop(fault(error::protocol2));
@@ -385,9 +363,12 @@ void protocol_header_in_70014::identify() NOEXCEPT
 
     // An unidentified block leaves evidence, resolved when the block archives.
     code ec{};
+    const auto& first = *block.txs.front();
     const auto& root = block.header->merkle_root();
-    if ((ec = chain::block::identify(root, txids, malleated64)) ||
-        (ec = chain::block::identify(ctx, *first, wtxids, segregated)))
+    const auto segregated = !std::equal(txids.begin(), txids.end(),
+        wtxids.begin());
+    if ((ec = chain::block::identify(root, txids, is_malleated64(block))) ||
+        (ec = chain::block::identify(ctx, first, wtxids, segregated)))
     {
         LOGR("Compact block [" << encode_hash(block.hash) << "] from ["
             << opposite() << "] " << ec.message());
@@ -406,6 +387,56 @@ void protocol_header_in_70014::identify() NOEXCEPT
     submit_compact(unpooled, block.links, block.link,
         BIND(handle_submit_compact, _1, _2, block.hash, block.height));
     fill_.reset();
+}
+
+// The coinbase is not pooled, so it is always in hand.
+bool protocol_header_in_70014::to_hashes(hashes& txids, hashes& wtxids,
+    const fill& block) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+    const auto count = block.txs.size();
+    if (!block.txs.front())
+        return false;
+
+    txids.resize(count);
+    wtxids.resize(count);
+    for (size_t position{}; position < count; ++position)
+    {
+        if (const auto& tx = block.txs.at(position); tx)
+        {
+            txids.at(position) = tx->get_hash(false);
+            wtxids.at(position) = tx->get_hash(true);
+            continue;
+        }
+
+        const auto& link = block.links.at(position);
+        txids.at(position) = query.get_tx_key(link);
+        wtxids.at(position) = query.get_wtxid(link);
+        if ((txids.at(position) == null_hash) ||
+            (wtxids.at(position) == null_hash))
+            return false;
+    }
+
+    return true;
+}
+
+// A non-coinbase first tx and all txs of 64 bytes.
+bool protocol_header_in_70014::is_malleated64(const fill& block) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+    auto malleated = !block.txs.front()->is_coinbase();
+    for (size_t at{}; malleated && at < block.txs.size(); ++at)
+    {
+        size_t light{}, heavy{};
+        const auto& tx = block.txs.at(at);
+        malleated = tx ? (tx->serialized_size(false) == two * hash_size) :
+            (query.get_tx_sizes(light, heavy, block.links.at(at)) &&
+                (light == two * hash_size));
+    }
+
+    return malleated;
 }
 
 // not stranded

@@ -80,8 +80,15 @@ protected:
         const system::hash_digest& hash, size_t height) NOEXCEPT;
 
 private:
+    bool decode(fill& block, const compact_block& message) NOEXCEPT;
+    bool scan(fill& block) NOEXCEPT;
+    bool to_hashes(system::hashes& txids, system::hashes& wtxids,
+        const fill& block) NOEXCEPT;
+    bool is_malleated64(const fill& block) NOEXCEPT;
+
     void collect(const compact_block& message,
         const database::header_link& link) NOEXCEPT;
+    void request() NOEXCEPT;
     void identify() NOEXCEPT;
     void resolve() NOEXCEPT;
 
