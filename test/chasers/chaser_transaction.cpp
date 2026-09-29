@@ -154,7 +154,7 @@ struct chaser_transaction_fee_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            config.node.minimum_fee_rate = 0.00001;
+            config.node.minimum_fee_rate = 0.0000152587890625;
         })
     {
     }
@@ -458,7 +458,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__fee_f
     const auto payload = receive(peer::fee_filter::command);
     const auto message = peer::fee_filter::deserialize(node_version->value, payload);
     BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->minimum_fee, 1'000u);
+    BOOST_REQUIRE_EQUAL(message->minimum_fee, 1'526u);
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__no_fee_filter, chaser_transaction_pooling_setup_fixture)
