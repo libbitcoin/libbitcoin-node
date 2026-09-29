@@ -326,20 +326,52 @@ void protocol_header_in_70014::identify() NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
     auto& block = *fill_;
+    const auto count = block.txs.size();
 
-    // Pooled txs are materialized to identify the block.
-    const auto txs = std::make_shared<chain::transaction_cptrs>(block.txs);
-    for (size_t position{}; position < txs->size(); ++position)
+    // The coinbase is not pooled, so it is always in hand.
+    const auto& first = block.txs.front();
+    if (!first)
     {
-        auto& tx = txs->at(position);
-        if (!tx && !((tx = query.get_transaction(block.links.at(position),
-            true))))
+        fill_.reset();
+        stop(fault(error::protocol2));
+        return;
+    }
+
+    hashes txids(count), wtxids(count);
+    for (size_t position{}; position < count; ++position)
+    {
+        if (const auto& tx = block.txs.at(position); tx)
+        {
+            txids.at(position) = tx->hash(false);
+            wtxids.at(position) = tx->hash(true);
+            continue;
+        }
+
+        const auto& link = block.links.at(position);
+        txids.at(position) = query.get_tx_key(link);
+        wtxids.at(position) = query.get_wtxid(link);
+        if ((txids.at(position) == null_hash) ||
+            (wtxids.at(position) == null_hash))
         {
             fill_.reset();
             stop(fault(error::protocol2));
             return;
         }
     }
+
+    // Malleated64 is a non-coinbase first tx and all txs of 64 bytes.
+    auto malleated64 = !first->is_coinbase();
+    for (size_t position{}; malleated64 && position < count; ++position)
+    {
+        size_t light{}, heavy{};
+        const auto& tx = block.txs.at(position);
+        malleated64 = tx ? (tx->serialized_size(false) == two * hash_size) :
+            (query.get_tx_sizes(light, heavy, block.links.at(position)) &&
+                (light == two * hash_size));
+    }
+
+    const auto segregated = !std::equal(txids.begin(), txids.end(),
+        wtxids.begin());
 
     chain::context ctx{};
     if (!query.get_context(ctx, block.link))
@@ -351,18 +383,15 @@ void protocol_header_in_70014::identify() NOEXCEPT
 
     // An unidentified block leaves evidence, resolved when the block archives.
     code ec{};
-    const chain::block candidate{ block.header, txs };
-    if ((ec = candidate.identify()) || (ec = candidate.identify(ctx)))
+    const auto& root = block.header->merkle_root();
+    if ((ec = chain::block::identify(root, txids, malleated64)) ||
+        (ec = chain::block::identify(ctx, *first, wtxids, segregated)))
     {
         LOGR("Compact block [" << encode_hash(block.hash) << "] from ["
             << opposite() << "] " << ec.message());
 
         evidence_link_ = block.link;
-        evidence_.clear();
-        evidence_.reserve(txs->size());
-        for (const auto& tx: *txs)
-            evidence_.push_back(tx->hash(true));
-
+        evidence_ = std::move(wtxids);
         fill_.reset();
         return;
     }
@@ -370,7 +399,7 @@ void protocol_header_in_70014::identify() NOEXCEPT
     const auto unpooled = std::make_shared<chain::transaction_cptrs>();
     unpooled->reserve(block.unpooled.size());
     for (const auto position: block.unpooled)
-        unpooled->push_back(txs->at(position));
+        unpooled->push_back(block.txs.at(position));
 
     submit_compact(unpooled, block.links, block.link,
         BIND(handle_submit_compact, _1, _2, block.hash, block.height));
