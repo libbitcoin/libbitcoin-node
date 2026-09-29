@@ -59,9 +59,52 @@ static chain::transaction::cptr spend(uint64_t value) NOEXCEPT
     return spend(parent().hash(false), value);
 }
 
+static chain::transaction::cptr spend_relative(const hash_digest& hash, uint64_t value, uint32_t sequence) NOEXCEPT
+{
+    return std::make_shared<const chain::transaction>(chain::transaction
+    {
+        2u,
+        chain::inputs{ { chain::point{ hash, 0u }, chain::script{}, sequence } },
+        chain::outputs{ { value, chain::script{ chain::operations{ { chain::opcode::push_positive_1 } } } } },
+        0u
+    });
+}
+
 static chain::transactions_cptr package(const chain::transaction_cptrs& txs) NOEXCEPT
 {
     return std::make_shared<const chain::transaction_cptrs>(txs);
+}
+
+static peer::inventory announcement(size_t count, uint8_t tag) NOEXCEPT
+{
+    peer::inventory message{};
+    message.items.reserve(count);
+    for (size_t index = 0; index < count; ++index)
+    {
+        hash_digest hash{};
+        hash.at(0) = tag;
+        hash.at(1) = static_cast<uint8_t>(index);
+        hash.at(2) = static_cast<uint8_t>(index >> 8);
+        hash.at(3) = static_cast<uint8_t>(index >> 16);
+        message.items.emplace_back(type_id::transaction, hash);
+    }
+
+    return message;
+}
+
+static bool stored_parent(node::query& query) NOEXCEPT
+{
+    return query.set(parent());
+}
+
+// Mainnet block 1 archived as a header without txs.
+static bool stored_header(node::query& query) NOEXCEPT
+{
+    const system::settings bitcoin{ chain::selection::mainnet };
+    const auto& genesis = bitcoin.genesis_block.header();
+    const auto& header1 = p2p_compact_setup_fixture::block1().header();
+    const database::context context1{ 0, 1, genesis.timestamp() };
+    return query.set(parent()) && query.set(header1, context1, genesis.proof() + header1.proof(), false);
 }
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -71,11 +114,8 @@ struct chaser_transaction_setup_fixture
 {
     using result = std::pair<code, size_t>;
 
-    inline chaser_transaction_setup_fixture(const configurator& configure={})
-      : p2p_setup_fixture([](node::query& query)
-        {
-            return query.set(parent());
-        }, configure)
+    inline chaser_transaction_setup_fixture(const configurator& configure={}, const initializer& setup=stored_parent)
+      : p2p_setup_fixture(setup, configure)
     {
     }
 
@@ -88,6 +128,32 @@ struct chaser_transaction_setup_fixture
         });
 
         return promise.get_future().get();
+    }
+
+    result submit_compact(const chain::transactions_cptr& txs, const database::tx_links& links, const database::header_link& link)
+    {
+        std::promise<result> promise{};
+        node_.submit_compact(txs, links, link, [&](const code& ec, size_t index) NOEXCEPT
+        {
+            promise.set_value({ ec, index });
+        });
+
+        return promise.get_future().get();
+    }
+
+    bool suspended()
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (node_.suspended())
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
     }
 
     bool archived(const hash_digest& hash)
@@ -118,6 +184,37 @@ struct chaser_transaction_setup_fixture
             if (message.first == peer::pong::command)
                 return false;
         }
+    }
+
+    // The payload of the command if received before the pong of a subsequent
+    // ping, otherwise empty.
+    data_chunk receive_before_pong(const std::string& command)
+    {
+        send(peer::ping{ 42 }, node_version->value);
+        while (true)
+        {
+            auto message = receive();
+            if (message.first == command)
+                return std::move(message.second);
+
+            if (message.first == peer::pong::command)
+                return {};
+        }
+    }
+
+    // Wait (bounded) for the command, pinging until it is received.
+    data_chunk await_before_pong(const std::string& command)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            auto payload = receive_before_pong(command);
+            if (!payload.empty())
+                return payload;
+        }
+
+        return {};
     }
 };
 
@@ -169,6 +266,132 @@ struct chaser_transaction_no_witness_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.provide_witness = false;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_relative_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_relative_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.bitcoin.bip9_bit0_active_checkpoint = { config.bitcoin.genesis_block.hash(), 0 };
+        })
+    {
+    }
+};
+
+struct chaser_transaction_header_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_header_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+        }, stored_header)
+    {
+    }
+};
+
+// A pooling node on a store reopened unable to grow the configured table.
+struct chaser_transaction_full_setup_fixture
+{
+    DELETE_COPY_MOVE(chaser_transaction_full_setup_fixture);
+
+    using result = std::pair<code, size_t>;
+    using configurator = std::function<void(configuration&)>;
+
+    static configuration configure(const configurator& configurer)
+    {
+        configuration config{ chain::selection::mainnet };
+        config.database.path = TEST_DIRECTORY;
+        config.network.path = TEST_DIRECTORY;
+        config.network.inbound.connections = 0;
+        config.network.inbound.binds.clear();
+        config.network.outbound.connections = 0;
+        config.network.outbound.seeds.clear();
+        config.network.enable_relay = true;
+        config.node.currency_window_minutes = 0;
+        configurer(config);
+        return config;
+    }
+
+    chaser_transaction_full_setup_fixture(const configurator& configurer)
+      : config_{ configure(configurer) }, store_{ config_.database }, query_{ store_ }, node_{ query_, config_, log_ }
+    {
+        test::clear(test::directory);
+        auto settings = config_.database;
+        settings.tx.headroom = database::settings{}.tx.headroom;
+        settings.spends.headroom = database::settings{}.spends.headroom;
+        node::store store{ settings };
+        node::query query{ store };
+        BOOST_REQUIRE(!store.create([](auto, auto) NOEXCEPT {}));
+        BOOST_REQUIRE(query.initialize(config_.bitcoin.genesis_block));
+        BOOST_REQUIRE(query.set(parent()));
+        BOOST_REQUIRE(!store.close([](auto, auto) NOEXCEPT {}));
+        BOOST_REQUIRE(!store_.open([](auto, auto) NOEXCEPT {}));
+
+        std::promise<code> started{};
+        node_.start([&](const code& ec) NOEXCEPT { started.set_value(ec); });
+        auto ec = started.get_future().get();
+        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+
+        std::promise<code> running{};
+        node_.run([&](const code& ec) NOEXCEPT { running.set_value(ec); });
+        ec = running.get_future().get();
+        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+    }
+
+    ~chaser_transaction_full_setup_fixture()
+    {
+        node_.close();
+        const auto ec = store_.close([](auto, auto) {});
+        BOOST_WARN_MESSAGE(!ec, ec.message());
+        test::clear(test::directory);
+    }
+
+    result submit(const chain::transactions_cptr& txs)
+    {
+        std::promise<result> promise{};
+        node_.submit(txs, false, [&](const code& ec, size_t index) NOEXCEPT
+        {
+            promise.set_value({ ec, index });
+        });
+
+        return promise.get_future().get();
+    }
+
+    configuration config_;
+    node::store store_;
+    node::query query_;
+    network::logger log_{};
+    full_node node_;
+};
+
+struct chaser_transaction_full_tx_setup_fixture
+  : chaser_transaction_full_setup_fixture
+{
+    inline chaser_transaction_full_tx_setup_fixture()
+      : chaser_transaction_full_setup_fixture([](configuration& config)
+        {
+            config.database.tx.headroom = max_uint64;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_full_spends_setup_fixture
+  : chaser_transaction_full_setup_fixture
+{
+    inline chaser_transaction_full_spends_setup_fixture()
+      : chaser_transaction_full_setup_fixture([](configuration& config)
+        {
+            config.database.spends.headroom = max_uint64;
         })
     {
     }
@@ -320,6 +543,52 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__sufficient_fee__success, cha
     BOOST_REQUIRE_EQUAL(result.first, node::error::success);
 }
 
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_relative_lock__relative_time_locked, chaser_transaction_relative_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend_relative(first->hash(false), parent_value, 1);
+    const auto result = submit(package({ first, second }));
+    BOOST_REQUIRE_EQUAL(result.first, system::error::relative_time_locked);
+    BOOST_REQUIRE(!query_.is_tx(first->hash(false)));
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__tx_table_full__tx_tx_allocate_suspended, chaser_transaction_full_tx_setup_fixture)
+{
+    const auto result = submit(package({ spend(parent_value) }));
+    BOOST_REQUIRE_EQUAL(result.first, database::error::tx_tx_allocate);
+    BOOST_REQUIRE_EQUAL(result.second, zero);
+    BOOST_REQUIRE(node_.suspended());
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__spends_table_full__transaction2_suspended, chaser_transaction_full_spends_setup_fixture)
+{
+    const auto result = submit(package({ spend(parent_value) }));
+    BOOST_REQUIRE_EQUAL(result.first, node::error::transaction2);
+    BOOST_REQUIRE_EQUAL(result.second, zero);
+    BOOST_REQUIRE(node_.suspended());
+}
+
+// do_bump
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__suspended_pooling_disabled, chaser_transaction_pooling_setup_fixture)
+{
+    BOOST_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
+    node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
+    BOOST_REQUIRE(suspended());
+    BOOST_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::pooling_disabled);
+}
+
+// submit_compact
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__invalid_tx_link__integrity_suspended, chaser_transaction_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto result = submit_compact(package({}), { database::tx_link{ 42 } }, link);
+    BOOST_REQUIRE_EQUAL(result.first, database::error::integrity);
+    BOOST_REQUIRE(node_.suspended());
+    BOOST_REQUIRE(!query_.is_associated(link));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(protocol_transaction_tests)
@@ -420,6 +689,33 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_overspen
 
     send(peer::transaction{ tx }, node_version->value);
     BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__block_only__no_get_data, chaser_transaction_pooling_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(peer::inventory{ { { type_id::block, one_hash } } }, node_version->value);
+    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__excessive_backlog__stopped, chaser_transaction_pooling_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(announcement(peer::max_inventory, 1), node_version->value);
+    send(announcement(1, 2), node_version->value);
+    send(announcement(1, 3), node_version->value);
+    send(peer::ping{ 42 }, node_version->value);
+    BOOST_REQUIRE_THROW(receive(peer::pong::command), boost::system::system_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped, chaser_transaction_pooling_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(peer::not_found{ { { type_id::block, one_hash } } }, node_version->value);
+    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70013__stopped, chaser_transaction_fee_setup_fixture)
@@ -554,12 +850,53 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__unknown_tx_not_found
     BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__unknown_tx_106__stopped, chaser_transaction_pooling_setup_fixture)
+BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__block_then_stored_tx__transaction, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::bip35, true));
+    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
-    send(peer::get_data{ { { type_id::transaction, one_hash } } }, peer::level::bip35);
-    BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
+    const chain::block& genesis = config_.bitcoin.genesis_block;
+    send(peer::get_data{ { { type_id::block, genesis.hash() }, { type_id::transaction, parent().hash(false) } } }, node_version->value);
+
+    const auto message = peer::transaction::deserialize(node_version->value, receive_before_pong(peer::transaction::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE(message->transaction_ptr->hash(false) == parent().hash(false));
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70001__not_announced, chaser_transaction_pooling_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(0, peer::level::bip37, true));
+    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
+    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70013__stopped_suspended, chaser_transaction_pooling_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
+    BOOST_REQUIRE(suspended());
+
+    send(peer::ping{ 42 }, node_version->value);
+    BOOST_REQUIRE_THROW(receive(peer::pong::command), boost::system::system_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__stale_event__became_current__fee_filter, chaser_transaction_relay_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto initial = peer::fee_filter::deserialize(node_version->value, await_before_pong(peer::fee_filter::command));
+    BOOST_REQUIRE(initial);
+    BOOST_REQUIRE_EQUAL(initial->minimum_fee, config_.bitcoin.max_money());
+
+    config_.node.currency_window_minutes = 0;
+    node_.notify(node::error::success, chases::stale{});
+
+    const auto current = peer::fee_filter::deserialize(node_version->value, await_before_pong(peer::fee_filter::command));
+    BOOST_REQUIRE(current);
+    BOOST_REQUIRE_EQUAL(current->minimum_fee, 0u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

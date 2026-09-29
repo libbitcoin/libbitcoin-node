@@ -524,4 +524,68 @@ BOOST_AUTO_TEST_CASE(estimator__push__below_minimum_rate__not_counted)
     BOOST_REQUIRE_EQUAL(instance->history().small[0].total, 0u);
 }
 
+// query
+
+struct estimator_query_setup_fixture
+{
+    DELETE_COPY_MOVE(estimator_query_setup_fixture);
+
+    static database::settings configure() NOEXCEPT
+    {
+        database::settings settings{};
+        settings.path = TEST_DIRECTORY;
+        return settings;
+    }
+
+    estimator_query_setup_fixture()
+      : settings_{ configure() }, store_{ settings_ }, query_{ store_ }
+    {
+        BOOST_REQUIRE(test::clear(test::directory));
+        const auto ec = store_.create([](auto, auto) NOEXCEPT {});
+        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+        BOOST_REQUIRE(query_.initialize(system::settings{ chain::selection::mainnet }.genesis_block));
+    }
+
+    ~estimator_query_setup_fixture()
+    {
+        const auto ec = store_.close([](auto, auto) NOEXCEPT {});
+        BOOST_WARN_MESSAGE(!ec, ec.message());
+        test::clear(test::directory);
+    }
+
+    const database::settings settings_;
+    node::store store_;
+    node::query query_;
+    const std::atomic_bool cancel_{};
+};
+
+BOOST_FIXTURE_TEST_CASE(estimator__initialize__query_zero_count__true_height_unchanged, estimator_query_setup_fixture)
+{
+    const auto instance = acessor::create();
+    BOOST_REQUIRE(instance->initialize(cancel_, query_, 0));
+    BOOST_REQUIRE_EQUAL(instance->top_height(), 0u);
+}
+
+BOOST_FIXTURE_TEST_CASE(estimator__initialize__query_count_exceeds_chain__false, estimator_query_setup_fixture)
+{
+    const auto instance = acessor::create();
+    BOOST_REQUIRE(!instance->initialize(cancel_, query_, 2));
+    BOOST_REQUIRE_EQUAL(instance->top_height(), 0u);
+}
+
+BOOST_FIXTURE_TEST_CASE(estimator__push__query_maximum_top_height__false, estimator_query_setup_fixture)
+{
+    const auto instance = acessor::create();
+    instance->history().top_height = max_size_t;
+    BOOST_REQUIRE(!instance->push(query_));
+    BOOST_REQUIRE_EQUAL(instance->top_height(), max_size_t);
+}
+
+BOOST_FIXTURE_TEST_CASE(estimator__pop__query_zero_top_height__false, estimator_query_setup_fixture)
+{
+    const auto instance = acessor::create();
+    BOOST_REQUIRE(!instance->pop(query_));
+    BOOST_REQUIRE_EQUAL(instance->top_height(), 0u);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -42,8 +42,31 @@ struct chaser_estimate_setup_fixture
         return query.set(block1, context1, work1, false, true) && query.push_candidate(query.to_header(block1.hash())) && query.push_confirmed(query.to_header(block1.hash()), true);
     }
 
-    inline chaser_estimate_setup_fixture(uint16_t horizon)
-      : p2p_setup_fixture(confirm1, [=](configuration& config)
+    // A block 1 with a tx that spends a missing prevout.
+    static const chain::block& unpopulated1() NOEXCEPT
+    {
+        static const system::settings bitcoin{ chain::selection::mainnet };
+        static const chain::transaction coinbase{ 1u, chain::inputs{ { chain::point{ null_hash, chain::point::null_index }, chain::script{ data_chunk{ 0x01, 0x01 }, false }, max_uint32 } }, chain::outputs{ { bitcoin.initial_subsidy(), chain::script{ data_chunk{ 0x51 }, false } } }, 0u };
+        static const chain::transaction spend{ 1u, chain::inputs{ { chain::point{ hash_digest{ 0x42 }, 0u }, chain::script{}, max_uint32 } }, chain::outputs{ { 1u, chain::script{ data_chunk{ 0x51 }, false } } }, 0u };
+        static const auto& genesis = bitcoin.genesis_block.header();
+        static const chain::header header{ 1u, genesis.hash(), sha256::merkle_root({ coinbase.hash(false), spend.hash(false) }), add1(genesis.timestamp()), genesis.bits(), 0u };
+        static const chain::block instance{ header, chain::transactions{ coinbase, spend } };
+        return instance;
+    }
+
+    // A faulted store: confirmed block 1 has a tx whose prevout is missing.
+    static bool unpopulated(node::query& query) NOEXCEPT
+    {
+        const system::settings bitcoin{ chain::selection::mainnet };
+        const auto& genesis = bitcoin.genesis_block.header();
+        const auto& block1 = unpopulated1();
+        const database::context context1{ 0, 1, genesis.timestamp() };
+        const auto work1 = genesis.proof() + block1.header().proof();
+        return query.set(block1, context1, work1, false, true) && query.push_candidate(query.to_header(block1.hash())) && query.push_confirmed(query.to_header(block1.hash()), true);
+    }
+
+    inline chaser_estimate_setup_fixture(uint16_t horizon, const initializer& setup=confirm1)
+      : p2p_setup_fixture(setup, [=](configuration& config)
         {
             config.node.fee_estimate_horizon = horizon;
         })
@@ -100,6 +123,40 @@ struct chaser_estimate_setup_fixture
         const database::context context2{ 0, 2, block1.header().timestamp() };
         const auto work2 = genesis.proof() + block1.header().proof() + block2.header().proof();
         return query_.set(block2, context2, work2, false, true) && query_.push_candidate(query_.to_header(block2.hash())) && query_.push_confirmed(query_.to_header(block2.hash()), true);
+    }
+
+    bool store_header2()
+    {
+        const system::settings bitcoin{ chain::selection::mainnet };
+        const auto& genesis = bitcoin.genesis_block.header();
+        const auto& header1 = p2p_compact_setup_fixture::block1().header();
+        const auto& header2 = p2p_compact_setup_fixture::block2().header();
+        const database::context context2{ 0, 2, header1.timestamp() };
+        return query_.set(header2, context2, genesis.proof() + header1.proof() + header2.proof(), false);
+    }
+
+    bool suspended()
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (node_.suspended())
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+};
+
+struct chaser_estimate_unpopulated_setup_fixture
+  : chaser_estimate_setup_fixture
+{
+    inline chaser_estimate_unpopulated_setup_fixture()
+      : chaser_estimate_setup_fixture(2, unpopulated)
+    {
     }
 };
 
@@ -175,6 +232,48 @@ BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__es
     notify_reorganized(block2.hash());
     notify_reorganized(block2.hash());
     BOOST_REQUIRE_EQUAL(estimate(1, estimator::mode::basic).first, node::error::estimate_false);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__top_height__not_initialized__zero, chaser_estimate_enabled_setup_fixture)
+{
+    const node::chaser_estimate instance{ node_ };
+    BOOST_REQUIRE(!instance.initialized());
+    BOOST_REQUIRE_EQUAL(instance.top_height(), zero);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__block__missing_prevout_confirmed__suspended_premature, chaser_estimate_unpopulated_setup_fixture)
+{
+    notify_block(unpopulated1().hash());
+    BOOST_REQUIRE(suspended());
+    BOOST_REQUIRE_EQUAL(estimate(1, estimator::mode::basic).first, node::error::estimate_premature);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
+{
+    notify_block(p2p_compact_setup_fixture::block1().hash());
+    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+
+    node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
+    BOOST_REQUIRE(suspended());
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspended, chaser_estimate_enabled_setup_fixture)
+{
+    notify_block(p2p_compact_setup_fixture::block1().hash());
+    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+
+    BOOST_REQUIRE(store_header2());
+    notify_organized(p2p_compact_setup_fixture::block2().hash());
+    BOOST_REQUIRE(suspended());
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
+{
+    notify_block(p2p_compact_setup_fixture::block1().hash());
+    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+
+    node_.notify(node::error::success, chases::reorganized{ node::header_t{ 42 } });
+    BOOST_REQUIRE(suspended());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
