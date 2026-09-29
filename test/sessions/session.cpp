@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "../test.hpp"
+#include "../functional/p2p_setup_fixture.hpp"
 #include <future>
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -224,6 +225,55 @@ BOOST_AUTO_TEST_CASE(session__channel_counts__no_connections__zero)
     BOOST_REQUIRE_EQUAL(session_.channel_count(), 0u);
     BOOST_REQUIRE_EQUAL(session_.inbound_channel_count(), 0u);
     BOOST_REQUIRE_EQUAL(session_.address_count(), 0u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(session_peer_tests, p2p_setup_fixture)
+
+using namespace network::messages::peer;
+
+BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip130_network_peer__pong)
+{
+    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    send(ping{ 42 }, level::bip130);
+    const auto message = pong::deserialize(level::bip130, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+}
+
+BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__headers_network_peer__genesis_block)
+{
+    BOOST_REQUIRE(handshake(service::node_network, level::headers_protocol));
+
+    const system::chain::block& genesis = config_.bitcoin.genesis_block;
+    const get_data get{ { { inventory_item::type_id::block, genesis.hash() } } };
+    send(get, level::headers_protocol);
+    BOOST_REQUIRE(receive(block::command) == genesis.to_data(false));
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(session_peer_relay_tests, p2p_relay_setup_fixture)
+
+using namespace network::messages::peer;
+
+BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip37_relay_peer__pong)
+{
+    BOOST_REQUIRE(handshake(0, level::bip37, true));
+    send(ping{ 42 }, level::bip37);
+    const auto message = pong::deserialize(level::bip37, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+}
+
+BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip31_relay_peer__pong)
+{
+    BOOST_REQUIRE(handshake(0, level::bip31, true));
+    send(ping{ 42 }, level::bip31);
+    const auto message = pong::deserialize(level::bip31, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
