@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
+#include <format>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -157,8 +158,8 @@ std::string chaser_validate::log_ratio(const std::string& name,
         return name;
 
     const auto ratio = (100.0 * numerator) / denominator;
-    return (boost_format("%1% (%2% / %3%) = %4$.4f%%") %
-        name % numerator % denominator % ratio).str();
+    return std::format("{} ({} / {}) = {:.4f}%", name, numerator,
+        denominator, ratio);
 }
 
 void chaser_validate::log_captures() const NOEXCEPT

@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_PEER_HPP
 #define LIBBITCOIN_NODE_CHANNELS_CHANNEL_PEER_HPP
 
+#include <deque>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -41,7 +42,7 @@ public:
       : node::channel(log, socket, identifier, config),
         network::channel_peer(log, socket, identifier, config.network, options),
         witness_(config.node.require_witness),
-        announced_(config.node.announcement_cache),
+        announcement_cache_(config.node.announcement_cache),
         network::tracker<channel_peer>(log)
     {
     }
@@ -60,12 +61,12 @@ protected:
     }
 
 private:
-    // This is thread safe (const).
+    // These are thread safe (const).
     const bool witness_;
+    const size_t announcement_cache_;
 
     // This is protected by strand.
-    // boost::circular_buffer is included by network.
-    boost::circular_buffer<system::hash_digest> announced_;
+    std::deque<system::hash_digest> announced_{};
 };
 
 } // namespace node
