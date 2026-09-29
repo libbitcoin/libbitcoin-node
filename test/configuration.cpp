@@ -32,4 +32,11 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE_EQUAL(instance.bitcoin.first_version, 1u);
 }
 
+BOOST_AUTO_TEST_CASE(configuration__initialize__mainnet__success_peer_identifier_mainnet_magic)
+{
+    node::configuration instance(chain::selection::mainnet);
+    BOOST_REQUIRE(!instance.initialize());
+    BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, 0xd9b4bef9_u32);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

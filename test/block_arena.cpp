@@ -221,6 +221,38 @@ BOOST_AUTO_TEST_CASE(block_arena__assign__always__nulls_memory_map)
     BOOST_REQUIRE_EQUAL(copy.get_size(), zero);
 }
 
+BOOST_AUTO_TEST_CASE(block_arena__move_assign__always__nulls_memory_map)
+{
+    constexpr auto multiple = 42u;
+    accessor instance{ multiple };
+    system::data_chunk value{ 0x00 };
+    auto address = value.data();
+    instance.set_memory_map(address);
+    instance.set_offset(1);
+    instance.set_total(2);
+    instance.set_size(3);
+
+    accessor target{ 7 };
+    target = std::move(instance);
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
+    BOOST_REQUIRE_EQUAL(target.get_memory_map(), address);
+    BOOST_REQUIRE_EQUAL(target.get_multiple(), multiple);
+    BOOST_REQUIRE_EQUAL(target.get_offset(), 1u);
+    BOOST_REQUIRE_EQUAL(target.get_total(), 2u);
+    BOOST_REQUIRE_EQUAL(target.get_size(), 3u);
+}
+
+// malloc_/free_
+
+BOOST_AUTO_TEST_CASE(block_arena__start__default_malloc__detached_link_size_released)
+{
+    block_arena instance{ 2 };
+    const auto memory = instance.start(9);
+    BOOST_REQUIRE(!is_null(memory));
+    BOOST_REQUIRE_EQUAL(instance.detach(), link_size);
+    BOOST_REQUIRE_NO_THROW(instance.release(memory));
+}
+
 // start
 
 BOOST_AUTO_TEST_CASE(block_arena__start__multiple_overflow__throws_allocation_exception)

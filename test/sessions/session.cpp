@@ -17,12 +17,215 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "../test.hpp"
+#include <future>
 
-BOOST_AUTO_TEST_SUITE(session_tests)
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-BOOST_AUTO_TEST_CASE(session_test)
+class session_accessor
+  : public node::session
 {
-    BOOST_REQUIRE(true);
+public:
+    session_accessor(full_node& node) NOEXCEPT
+      : node::session(node)
+    {
+    }
+};
+
+// A running full node without peer connections, and a session over it.
+struct session_setup_fixture
+{
+    DELETE_COPY_MOVE(session_setup_fixture);
+
+    session_setup_fixture()
+      : config_{ system::chain::selection::mainnet },
+        store_
+        {
+            [&]() NOEXCEPT -> const database::settings&
+            {
+                config_.database.path = TEST_DIRECTORY;
+                config_.network.path = TEST_DIRECTORY;
+                config_.network.inbound.connections = 0;
+                config_.network.outbound.connections = 0;
+                config_.network.outbound.seeds.clear();
+                return config_.database;
+            }()
+        },
+        query_{ store_ },
+        node_{ query_, config_, log_ },
+        session_{ node_ }
+    {
+        BOOST_REQUIRE(test::clear(test::directory));
+        const auto ec = store_.create([](auto, auto) NOEXCEPT {});
+        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+        BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
+
+        std::promise<code> started{};
+        node_.start([&](const code& ec) NOEXCEPT
+        {
+            started.set_value(ec);
+        });
+
+        BOOST_REQUIRE(!started.get_future().get());
+
+        std::promise<code> running{};
+        node_.run([&](const code& ec) NOEXCEPT
+        {
+            running.set_value(ec);
+        });
+
+        BOOST_REQUIRE(!running.get_future().get());
+    }
+
+    ~session_setup_fixture()
+    {
+        node_.close();
+        const auto ec = store_.close([](auto, auto) NOEXCEPT {});
+        BOOST_WARN_MESSAGE(!ec, ec.message());
+        test::clear(test::directory);
+    }
+
+protected:
+    configuration config_;
+    node::store store_;
+    node::query query_;
+    network::logger log_{};
+    full_node node_;
+    session_accessor session_;
+};
+
+static const system::chain::header orphan
+{
+    1u,
+    system::hash_digest{ 0x42 },
+    system::null_hash,
+    0u,
+    0u,
+    0u
+};
+
+BOOST_FIXTURE_TEST_SUITE(session_tests, session_setup_fixture)
+
+// organizers
+
+BOOST_AUTO_TEST_CASE(session__organize__orphan__orphan_header)
+{
+    std::promise<code> promise{};
+    session_.organize(system::to_shared(orphan), [&](const code& ec, size_t) NOEXCEPT
+    {
+        promise.set_value(ec);
+    });
+
+    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
+}
+
+BOOST_AUTO_TEST_CASE(session__organize__milestone_orphan__orphan_header)
+{
+    std::promise<code> promise{};
+    session_.organize(system::to_shared(orphan), false, [&](const code& ec, size_t) NOEXCEPT
+    {
+        promise.set_value(ec);
+    });
+
+    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
+}
+
+BOOST_AUTO_TEST_CASE(session__prioritize__unknown__not_found)
+{
+    std::promise<code> promise{};
+    session_.prioritize(orphan.hash(), [&](const code& ec, size_t) NOEXCEPT
+    {
+        promise.set_value(ec);
+    });
+
+    BOOST_REQUIRE_EQUAL(promise.get_future().get(), database::error::not_found);
+}
+
+BOOST_AUTO_TEST_CASE(session__submit__relay_disabled__pooling_disabled)
+{
+    std::promise<code> promise{};
+    const auto txs = system::to_shared<const system::chain::transaction_cptrs>();
+    session_.submit(txs, false, [&](const code& ec, size_t) NOEXCEPT
+    {
+        promise.set_value(ec);
+    });
+
+    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::pooling_disabled);
+}
+
+BOOST_AUTO_TEST_CASE(session__estimate__disabled__estimate_disabled)
+{
+    std::promise<code> promise{};
+    session_.estimate(1, estimator::mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
+    {
+        promise.set_value(ec);
+    });
+
+    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::estimate_disabled);
+}
+
+// events
+
+BOOST_AUTO_TEST_CASE(session__notify_one__subscribed__notified)
+{
+    std::promise<object_key> keyed{};
+    std::promise<code> notified{};
+    boost::asio::post(node_.strand(), [&]() NOEXCEPT
+    {
+        keyed.set_value(session_.subscribe_chase([&](const code& ec, event_value value) NOEXCEPT
+        {
+            if (to_chase(value) != chase::template_)
+                return true;
+
+            notified.set_value(ec);
+            return false;
+        }));
+    });
+
+    session_.notify_one(keyed.get_future().get(), error::orphan_header, chases::template_{ 42 });
+    BOOST_REQUIRE_EQUAL(notified.get_future().get(), error::orphan_header);
+}
+
+// suspensions
+
+BOOST_AUTO_TEST_CASE(session__fault__node_error__suspended)
+{
+    BOOST_REQUIRE(!session_.suspended());
+    session_.fault(error::orphan_header);
+    BOOST_REQUIRE(session_.suspended());
+}
+
+BOOST_AUTO_TEST_CASE(session__resume__suspended__resumed)
+{
+    session_.suspend(error::orphan_header);
+    BOOST_REQUIRE(session_.suspended());
+    BOOST_REQUIRE(session_.resume());
+    BOOST_REQUIRE(!session_.suspended());
+}
+
+// properties
+
+BOOST_AUTO_TEST_CASE(session__database_settings__always__node_database_settings)
+{
+    BOOST_REQUIRE_EQUAL(&session_.database_settings(), &node_.database_settings());
+}
+
+BOOST_AUTO_TEST_CASE(session__is_current_time__zero__false)
+{
+    BOOST_REQUIRE(!session_.is_current_time(0));
+}
+
+BOOST_AUTO_TEST_CASE(session__start_time__always__node_start_time)
+{
+    BOOST_REQUIRE_EQUAL(session_.start_time(), node_.start_time());
+}
+
+BOOST_AUTO_TEST_CASE(session__channel_counts__no_connections__zero)
+{
+    BOOST_REQUIRE_EQUAL(session_.channel_count(), 0u);
+    BOOST_REQUIRE_EQUAL(session_.inbound_channel_count(), 0u);
+    BOOST_REQUIRE_EQUAL(session_.address_count(), 0u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+BC_POP_WARNING()
