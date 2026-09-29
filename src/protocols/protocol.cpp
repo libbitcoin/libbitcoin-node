@@ -174,9 +174,10 @@ void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
 }
 
 void protocol::submit_compact(const system::chain::transactions_cptr& txs,
-    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+    const database::tx_links& links, const database::header_link& link,
+    submit_handler&& handler) NOEXCEPT
 {
-    session_->submit_compact(txs, link, std::move(handler));
+    session_->submit_compact(txs, links, link, std::move(handler));
 }
 
 void protocol::subscribe_chase(event_notifier&& handler) NOEXCEPT

@@ -37,8 +37,6 @@ public:
     protocol_header_in_70014(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_header_in_70012(session, channel),
-        top_checkpoint_height_(
-            session->system_settings().top_checkpoint().height()),
         network::tracker<protocol_header_in_70014>(session->log)
     {
     }
@@ -77,20 +75,15 @@ protected:
     virtual void do_organize_compact(const code& ec,
         const compact_block::cptr& message) NOEXCEPT;
     virtual void handle_submit_compact(const code& ec, size_t index,
-        const database::tx_links& links,
-        const std::shared_ptr<fill>& block) NOEXCEPT;
+        const system::hash_digest& hash, size_t height) NOEXCEPT;
     virtual void do_submit_compact(const code& ec,
-        const database::tx_links& links,
-        const std::shared_ptr<fill>& block) NOEXCEPT;
+        const system::hash_digest& hash, size_t height) NOEXCEPT;
 
 private:
     void collect(const compact_block& message,
         const database::header_link& link) NOEXCEPT;
     void identify() NOEXCEPT;
     void resolve() NOEXCEPT;
-
-    // This is thread safe.
-    const size_t top_checkpoint_height_;
 
     // These are protected by strand.
     bool compact_{};

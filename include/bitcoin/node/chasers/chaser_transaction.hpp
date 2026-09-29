@@ -43,10 +43,11 @@ public:
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
 
-    /// Validate and archive the unarchived txs of an identified compact block
-    /// in block order, returning the tx link of each (in submission order).
+    /// Validate, archive and associate the txs of an identified compact block,
+    /// in block order, the txs filling the terminal links.
     virtual void submit_compact(const system::chain::transactions_cptr& txs,
-        const database::header_link& link, compact_handler&& handler) NOEXCEPT;
+        const database::tx_links& links, const database::header_link& link,
+        submit_handler&& handler) NOEXCEPT;
 
 protected:
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
@@ -55,8 +56,8 @@ protected:
         bool test, const submit_handler& handler) NOEXCEPT;
     virtual void do_submit_compact(
         const system::chain::transactions_cptr& txs,
-        const database::header_link& link,
-        const compact_handler& handler) NOEXCEPT;
+        const database::tx_links& links, const database::header_link& link,
+        const submit_handler& handler) NOEXCEPT;
 
     /// Recompute the pool context, closing the pool if not current.
     virtual void do_bump() NOEXCEPT;

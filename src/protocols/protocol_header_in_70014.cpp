@@ -372,70 +372,45 @@ void protocol_header_in_70014::identify() NOEXCEPT
     for (const auto position: block.unpooled)
         unpooled->push_back(txs->at(position));
 
-    const auto pending = std::make_shared<fill>(std::move(block));
+    submit_compact(unpooled, block.links, block.link,
+        BIND(handle_submit_compact, _1, _2, block.hash, block.height));
     fill_.reset();
-    submit_compact(unpooled, pending->link,
-        BIND(handle_submit_compact, _1, _2, _3, pending));
 }
 
 // not stranded
 void protocol_header_in_70014::handle_submit_compact(const code& ec, size_t,
-    const database::tx_links& links, const std::shared_ptr<fill>& block) NOEXCEPT
+    const hash_digest& hash, size_t height) NOEXCEPT
 {
     // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    POST(do_submit_compact, ec, links, block);
+    POST(do_submit_compact, ec, hash, height);
 }
 
 void protocol_header_in_70014::do_submit_compact(const code& ec,
-    const database::tx_links& links, const std::shared_ptr<fill>& block) NOEXCEPT
+    const hash_digest& hash, size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped())
         return;
 
+    // Another channel may have completed the block.
+    if (ec == error::duplicate_block)
+        return;
+
     // The tx chaser marks an identified block with an invalid tx unconfirmable.
     if (ec)
     {
-        LOGR("Compact block [" << encode_hash(block->hash) << ":"
-            << block->height << "] from [" << opposite() << "] "
-            << ec.message());
+        LOGR("Compact block [" << encode_hash(hash) << ":" << height
+            << "] from [" << opposite() << "] " << ec.message());
         stop(ec);
         return;
     }
 
-    if (links.size() != block->unpooled.size())
-    {
-        stop(fault(error::protocol2));
-        return;
-    }
-
-    for (size_t index{}; index < links.size(); ++index)
-        block->links.at(block->unpooled.at(index)) = links.at(index);
-
-    // Another channel may have completed the block.
-    auto& query = archive();
-    if (query.is_associated(block->link))
-        return;
-
-    const auto strong = block->height <= top_checkpoint_height_;
-    if (const auto code = query.set_code(block->link, block->links, strong))
-    {
-        LOGF("Failure storing compact block [" << encode_hash(block->hash)
-            << ":" << block->height << "] from [" << opposite() << "] "
-            << code.message());
-        stop(fault(code));
-        return;
-    }
-
-    LOGP("Compact block [" << encode_hash(block->hash) << ":"
-        << block->height << "] from [" << opposite() << "].");
-
-    notify(error::success, chases::checked{ block->height });
-    fire(events::block_archived, block->height);
+    LOGP("Compact block [" << encode_hash(hash) << ":" << height
+        << "] from [" << opposite() << "].");
 }
 
 // Evidence.

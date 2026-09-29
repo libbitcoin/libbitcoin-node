@@ -120,12 +120,13 @@ void chaser_transaction::submit(const transactions_cptr& txs, bool test,
 }
 
 void chaser_transaction::submit_compact(const transactions_cptr& txs,
-    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+    const database::tx_links& links, const database::header_link& link,
+    submit_handler&& handler) NOEXCEPT
 {
     if (closed())
         return;
 
-    POST(do_submit_compact, txs, link, std::move(handler));
+    POST(do_submit_compact, txs, links, link, std::move(handler));
 }
 
 // private
@@ -199,35 +200,52 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
 // private
 void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
-    const database::header_link& link,
-    const compact_handler& handler) NOEXCEPT
+    const database::tx_links& links, const database::header_link& link,
+    const submit_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (closed())
     {
-        handler(network::error::service_stopped, {}, {});
+        handler(network::error::service_stopped, {});
         return;
     }
 
     auto& query = archive();
+    if (query.is_associated(link))
+    {
+        handler(error::duplicate_block, {});
+        return;
+    }
+
     chain::context ctx{};
     if (!query.get_context(ctx, link))
     {
-        handler(fault(error::transaction3), {}, {});
+        handler(fault(error::transaction3), {});
         return;
     }
 
     // Txs are an arbitrary subset of the block, so block checks are deferred to
     // validation. Each is archived before the next, so in block order a parent
     // is resolved from the store.
-    database::tx_links links(txs->size());
-    for (size_t index{}; index < txs->size(); ++index)
+    size_t index{};
+    auto filled = links;
+    for (auto& fk: filled)
     {
+        if (fk != database::tx_link::terminal)
+            continue;
+
+        if (index >= txs->size())
+        {
+            handler(error::transaction5, index);
+            return;
+        }
+
         const auto& tx = *txs->at(index);
         if (const auto stored = to_stored(tx); !stored.is_terminal())
         {
-            links.at(index) = stored;
+            fk = stored;
+            ++index;
             continue;
         }
 
@@ -236,7 +254,7 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         {
             if (!query.set_block_unconfirmable(link))
             {
-                handler(fault(error::transaction4), index, {});
+                handler(fault(error::transaction4), index);
                 return;
             }
 
@@ -244,7 +262,7 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
                 << ec.message());
             notify(error::success, chases::unchecked{ link });
             fire(events::block_unconfirmable, ctx.height);
-            handler(ec, index, {});
+            handler(ec, index);
             return;
         }
 
@@ -254,19 +272,36 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         // Disk full may leave txs partly archived, resolves by resubmit.
         if (const auto ec = query.set_code(tx_fk, pooled, tx))
         {
-            handler(fault(ec), index, {});
+            handler(fault(ec), index);
             return;
         }
 
-        links.at(index) = tx_fk;
+        fk = tx_fk;
         if (!pooled && !tx.is_coinbase() && !query.set_pooled(tx_fk, tx, ctx))
         {
-            handler(fault(error::transaction2), index, {});
+            handler(fault(error::transaction2), index);
             return;
         }
+
+        ++index;
     }
 
-    handler(error::success, {}, links);
+    if (index != txs->size())
+    {
+        handler(error::transaction5, index);
+        return;
+    }
+
+    const auto strong = is_under_checkpoint(ctx.height);
+    if (const auto ec = query.set_code(link, filled, strong))
+    {
+        handler(fault(ec), {});
+        return;
+    }
+
+    notify(error::success, chases::checked{ ctx.height });
+    fire(events::block_archived, ctx.height);
+    handler(error::success, {});
 }
 
 // utility

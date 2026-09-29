@@ -194,9 +194,10 @@ void full_node::submit(const system::chain::transactions_cptr& txs, bool test,
 }
 
 void full_node::submit_compact(const system::chain::transactions_cptr& txs,
-    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+    const database::tx_links& links, const database::header_link& link,
+    submit_handler&& handler) NOEXCEPT
 {
-    chaser_transaction_.submit_compact(txs, link, std::move(handler));
+    chaser_transaction_.submit_compact(txs, links, link, std::move(handler));
 }
 
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT
