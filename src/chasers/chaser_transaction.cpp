@@ -225,6 +225,14 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    constexpr auto terminal = database::tx_link::terminal;
+    const auto count = std::ranges::count(links, terminal);
+    if (possible_narrow_sign_cast<size_t>(count) != txs->size())
+    {
+        handler(error::transaction5, {});
+        return;
+    }
+
     // Txs are an arbitrary subset of the block, so block checks are deferred to
     // validation. Each is archived before the next, so in block order a parent
     // is resolved from the store.
@@ -232,14 +240,8 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     auto filled = links;
     for (auto& fk: filled)
     {
-        if (fk != database::tx_link::terminal)
+        if (fk != terminal)
             continue;
-
-        if (index >= txs->size())
-        {
-            handler(error::transaction5, index);
-            return;
-        }
 
         const auto& tx = *txs->at(index);
         if (const auto stored = to_stored(tx); !stored.is_terminal())
@@ -284,12 +286,6 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         }
 
         ++index;
-    }
-
-    if (index != txs->size())
-    {
-        handler(error::transaction5, index);
-        return;
     }
 
     const auto strong = is_under_checkpoint(ctx.height);
