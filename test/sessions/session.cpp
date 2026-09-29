@@ -18,6 +18,7 @@
  */
 #include "../test.hpp"
 #include "../functional/p2p_setup_fixture.hpp"
+#include <fstream>
 #include <future>
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -29,6 +30,42 @@ public:
     session_accessor(full_node& node) NOEXCEPT
       : node::session(node)
     {
+    }
+};
+
+class session_protocol_accessor
+  : public node::protocol
+{
+public:
+    explicit session_protocol_accessor(const node::session::ptr& session)
+      : node::protocol(session, {})
+    {
+    }
+
+    using node::protocol::connect;
+};
+
+class session_broadcaster
+  : public network::session
+{
+public:
+    explicit session_broadcaster(full_node& node) NOEXCEPT
+      : network::session(node, 42)
+    {
+    }
+
+protected:
+    void attach_handshake(const network::channel::ptr&, network::result_handler&&) NOEXCEPT override
+    {
+    }
+
+    void attach_protocols(const network::channel::ptr&) NOEXCEPT override
+    {
+    }
+
+    network::channel::ptr create_channel(const network::socket::ptr&) NOEXCEPT override
+    {
+        return {};
     }
 };
 
@@ -92,6 +129,156 @@ protected:
     network::logger log_{};
     full_node node_;
     session_accessor session_;
+};
+
+// A running full node with one outbound connection to a cached loopback host.
+struct session_outbound_setup_fixture
+{
+    DELETE_COPY_MOVE(session_outbound_setup_fixture);
+
+    session_outbound_setup_fixture()
+      : config_{ system::chain::selection::mainnet },
+        store_
+        {
+            [&]() NOEXCEPT -> const database::settings&
+            {
+                config_.database.path = TEST_DIRECTORY;
+                config_.network.path = TEST_DIRECTORY;
+                config_.network.inbound.connections = 0;
+                config_.network.outbound.connections = 1;
+                config_.network.outbound.connect_batch_size = 1;
+                config_.network.outbound.host_pool_capacity = 1;
+                config_.network.outbound.seeds.clear();
+                return config_.database;
+            }()
+        },
+        query_{ store_ },
+        node_{ query_, config_, log_ }
+    {
+        using namespace network::messages::peer;
+        BOOST_REQUIRE(test::clear(test::directory));
+        const auto ec = store_.create([](auto, auto) NOEXCEPT {});
+        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+        BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
+
+        const auto services = std::to_string(service::node_network | service::node_witness);
+        std::ofstream{ config_.network.file() } << "127.0.0.1:65115/0/" << services << std::endl;
+
+        std::promise<code> started{};
+        node_.start([&](const code& ec) NOEXCEPT
+        {
+            started.set_value(ec);
+        });
+
+        BOOST_REQUIRE(!started.get_future().get());
+
+        std::promise<code> running{};
+        node_.run([&](const code& ec) NOEXCEPT
+        {
+            running.set_value(ec);
+        });
+
+        BOOST_REQUIRE(!running.get_future().get());
+    }
+
+    ~session_outbound_setup_fixture()
+    {
+        node_.close();
+        const auto ec = store_.close([](auto, auto) NOEXCEPT {});
+        BOOST_WARN_MESSAGE(!ec, ec.message());
+        test::clear(test::directory);
+    }
+
+    /// Accept the outbound connection and read the command of its first message.
+    std::string accept()
+    {
+        using namespace network::messages::peer;
+        acceptor_.accept(socket_);
+        system::data_array<heading::size()> head{};
+        boost::asio::read(socket_, boost::asio::buffer(head));
+        const auto message = heading::deserialize(head);
+        BOOST_REQUIRE(message);
+        return message->command;
+    }
+
+    /// Future code of the next notification of the event.
+    std::future<code> subscribe(chase event)
+    {
+        const auto promise = std::make_shared<std::promise<code>>();
+        node_.subscribe_chase([=](const code& ec, event_value value) NOEXCEPT
+        {
+            if (to_chase(value) != event)
+                return true;
+
+            promise->set_value(ec);
+            return false;
+        }, [](const code&, object_key) NOEXCEPT {});
+
+        return promise->get_future();
+    }
+
+protected:
+    using tcp = boost::asio::ip::tcp;
+    boost::asio::io_context io_{};
+    tcp::acceptor acceptor_{ io_, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65115 } };
+    tcp::socket socket_{ io_ };
+    configuration config_;
+    node::store store_;
+    node::query query_;
+    network::logger log_{};
+    full_node node_;
+};
+
+// A running full node with an inbound test peer, and a broadcaster over it.
+struct session_broadcast_setup_fixture
+  : p2p_setup_fixture
+{
+    using target = network::diagnostics::target;
+
+    /// Broadcast diagnostics to the target group, capture into the sink.
+    code diagnose(const network::diagnostics::sink::ptr& sink, target group)
+    {
+        std::promise<code> promise{};
+        const auto broadcaster = std::make_shared<session_broadcaster>(node_);
+        broadcaster->broadcast<network::diagnostics>(std::make_shared<network::diagnostics>(std::make_shared<network::diagnostics::race>([&](const code& ec) NOEXCEPT { promise.set_value(ec); }), sink, group), 0);
+        return promise.get_future().get();
+    }
+
+    /// Broadcast a terminator to the identified channel.
+    code terminate(uint64_t identifier)
+    {
+        std::promise<code> promise{};
+        const auto broadcaster = std::make_shared<session_broadcaster>(node_);
+        broadcaster->broadcast<network::terminator>(std::make_shared<network::terminator>(std::make_shared<network::terminator::race>([&](const code& ec) NOEXCEPT { promise.set_value(ec); }), network::error::channel_dropped, identifier), 0);
+        return promise.get_future().get();
+    }
+};
+
+// A node that does not provide blocks.
+struct session_peer_blockless_setup_fixture
+  : p2p_setup_fixture
+{
+    inline session_peer_blockless_setup_fixture()
+      : p2p_setup_fixture({}, [](configuration& config)
+        {
+            config.node.provide_blocks = false;
+        })
+    {
+    }
+};
+
+// A relaying node with maximum protocol below bip37.
+struct session_peer_bip31_relay_setup_fixture
+  : p2p_setup_fixture
+{
+    inline session_peer_bip31_relay_setup_fixture()
+      : p2p_setup_fixture({}, [](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.network.protocol_maximum = network::messages::peer::level::bip31;
+        })
+    {
+    }
 };
 
 static const system::chain::header orphan
@@ -257,6 +444,145 @@ BOOST_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
 
     BOOST_REQUIRE(promise.get_future().get());
 }
+
+BOOST_AUTO_TEST_CASE(protocol__connect__listening_endpoint__version_received)
+{
+    using namespace network::messages::peer;
+    using tcp = boost::asio::ip::tcp;
+    boost::asio::io_context io{};
+    tcp::acceptor acceptor{ io, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65116 } };
+    tcp::socket socket{ io };
+    session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
+    protocol.connect(network::config::endpoint{ "127.0.0.1:65116" });
+    acceptor.accept(socket);
+
+    system::data_array<heading::size()> head{};
+    boost::asio::read(socket, boost::asio::buffer(head));
+    const auto message = heading::deserialize(head);
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->command, version::command);
+}
+
+BOOST_AUTO_TEST_CASE(protocol__connect__refused_endpoint__handler_error)
+{
+    std::promise<code> promise{};
+    session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
+    protocol.connect(network::config::endpoint{ "127.0.0.1:65117" }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
+    {
+        promise.set_value(ec);
+        return false;
+    });
+
+    BOOST_REQUIRE(promise.get_future().get());
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(session_outbound_tests, session_outbound_setup_fixture)
+
+using namespace network::messages::peer;
+
+BOOST_AUTO_TEST_CASE(session_outbound__start__cached_host__version_received)
+{
+    BOOST_REQUIRE_EQUAL(accept(), version::command);
+}
+
+BOOST_AUTO_TEST_CASE(session_outbound__handle_chase__stale__handled)
+{
+    BOOST_REQUIRE_EQUAL(accept(), version::command);
+    auto future = subscribe(chase::template_);
+    node_.notify(error::success, chases::stale{});
+    node_.notify(error::success, chases::template_{ 0 });
+    BOOST_REQUIRE(future.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+    BOOST_REQUIRE_EQUAL(future.get(), error::success);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(session_broadcast_tests, session_broadcast_setup_fixture)
+
+using namespace network::messages::peer;
+
+BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__inbound__peer_captured)
+{
+    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    send(ping{ 42 }, level::bip130);
+    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+
+    const auto sink = std::make_shared<network::diagnostics::sink>();
+    BOOST_REQUIRE(!diagnose(sink, target::inbound));
+    BOOST_REQUIRE_EQUAL(sink->captured().size(), 1u);
+    BOOST_REQUIRE(sink->captured().front().group == target::inbound);
+    BOOST_REQUIRE_EQUAL(sink->captured().front().peer_version, level::bip130);
+    BOOST_REQUIRE_EQUAL(sink->captured().front().peer_services, service::node_network);
+    BOOST_REQUIRE_EQUAL(sink->captured().front().peer_user_agent, "/test/");
+}
+
+BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__manual__none_captured)
+{
+    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    send(ping{ 42 }, level::bip130);
+    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+
+    const auto sink = std::make_shared<network::diagnostics::sink>();
+    BOOST_REQUIRE(!diagnose(sink, target::manual));
+    BOOST_REQUIRE(sink->captured().empty());
+}
+
+BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__identified__stopped)
+{
+    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    send(ping{ 42 }, level::bip130);
+    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+
+    const auto sink = std::make_shared<network::diagnostics::sink>();
+    BOOST_REQUIRE(!diagnose(sink, target::all));
+    BOOST_REQUIRE_EQUAL(sink->captured().size(), 1u);
+    BOOST_REQUIRE(!terminate(sink->captured().front().identifier));
+}
+
+BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__unidentified__operation_failed)
+{
+    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    send(ping{ 42 }, level::bip130);
+    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+
+    const auto sink = std::make_shared<network::diagnostics::sink>();
+    BOOST_REQUIRE(!diagnose(sink, target::all));
+    BOOST_REQUIRE_EQUAL(sink->captured().size(), 1u);
+    BOOST_REQUIRE_EQUAL(terminate(add1(sink->captured().front().identifier)), network::error::operation_failed);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(session_peer_blockless_tests, session_peer_blockless_setup_fixture)
+
+using namespace network::messages::peer;
+
+BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__blocks_not_provided__pong)
+{
+    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    send(ping{ 42 }, level::bip130);
+    const auto message = pong::deserialize(level::bip130, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(session_peer_bip31_relay_tests, session_peer_bip31_relay_setup_fixture)
+
+using namespace network::messages::peer;
+
+BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip37_relay_peer_bip31_node__pong)
+{
+    BOOST_REQUIRE(handshake(0, level::bip37, true));
+    send(ping{ 42 }, level::bip31);
+    const auto message = pong::deserialize(level::bip31, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_FIXTURE_TEST_SUITE(session_peer_tests, p2p_setup_fixture)

@@ -396,6 +396,36 @@ BOOST_AUTO_TEST_CASE(full_node__notify__block_after_prune__not_suspended)
     BOOST_REQUIRE(!node_.suspended());
 }
 
+BOOST_AUTO_TEST_CASE(full_node__notify__snap_primary_file__suspended)
+{
+    const auto primary = std::filesystem::path{ TEST_DIRECTORY } / database::schema::dir::primary;
+    BOOST_REQUIRE(initialize());
+    BOOST_REQUIRE(!start());
+    BOOST_REQUIRE(!run());
+    BOOST_REQUIRE(test::create(primary));
+    auto future = subscribe(chase::suspend);
+    node_.notify(error::success, chases::snap{ 0 });
+    BOOST_REQUIRE(ready(future));
+    BOOST_REQUIRE_EQUAL(future.get(), error::suspended_channel);
+    BOOST_REQUIRE(node_.suspended());
+    BOOST_REQUIRE(!std::filesystem::is_directory(primary));
+}
+
+BOOST_AUTO_TEST_CASE(full_node__notify__block_primary_file__suspended)
+{
+    const auto primary = std::filesystem::path{ TEST_DIRECTORY } / database::schema::dir::primary;
+    BOOST_REQUIRE(initialize());
+    BOOST_REQUIRE(!start());
+    BOOST_REQUIRE(!run());
+    BOOST_REQUIRE(test::create(primary));
+    auto future = subscribe(chase::suspend);
+    node_.notify(error::success, chases::block{ 0 });
+    BOOST_REQUIRE(ready(future));
+    BOOST_REQUIRE_EQUAL(future.get(), error::suspended_channel);
+    BOOST_REQUIRE(node_.suspended());
+    BOOST_REQUIRE(!std::filesystem::is_directory(primary));
+}
+
 BOOST_AUTO_TEST_CASE(full_node__notify__space_not_full__not_suspended)
 {
     BOOST_REQUIRE(initialize());
