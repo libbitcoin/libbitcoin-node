@@ -43,7 +43,7 @@ void protocol_header_out_70012::start() NOEXCEPT
     if (started())
         return;
 
-    // Events subscription is deferred, in handle_receive_send_headers.
+    // Events subscription is deferred until announcement is requested.
     SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
     protocol_header_out_31800::start();
 }
@@ -115,6 +115,24 @@ bool protocol_header_out_70012::do_announce(header_t link) NOEXCEPT
     return true;
 }
 
+void protocol_header_out_70012::announce() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (announcing_)
+        return;
+
+    // Events subscription is asynchronous, events may be missed.
+    announcing_ = true;
+    subscribe_chase(BIND(handle_chase, _1, _2));
+}
+
+bool protocol_header_out_70012::announce_headers() const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    return announce_headers_;
+}
+
 // Inbound (send_headers).
 // ----------------------------------------------------------------------------
 
@@ -126,8 +144,8 @@ bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Events subscription is asynchronous, events may be missed.
-    subscribe_chase(BIND(handle_chase, _1, _2));
+    announce_headers_ = true;
+    announce();
     return false;
 }
 

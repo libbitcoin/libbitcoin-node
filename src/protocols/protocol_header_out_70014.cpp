@@ -55,7 +55,8 @@ bool protocol_header_out_70014::do_announce(header_t link) NOEXCEPT
     BC_ASSERT(stranded());
 
     if (!high_bandwidth_)
-        return protocol_header_out_70012::do_announce(link);
+        return !announce_headers() ||
+            protocol_header_out_70012::do_announce(link);
 
     if (stopped())
         return false;
@@ -67,7 +68,8 @@ bool protocol_header_out_70014::do_announce(header_t link) NOEXCEPT
 
     const auto message = make_compact_block(link);
     if (!message)
-        return protocol_header_out_70012::do_announce(link);
+        return !announce_headers() ||
+            protocol_header_out_70012::do_announce(link);
 
     LOGN("Announce compact ..." << encode_hash(hash).substr(hash_size - 8, 8)
         << " to [" << opposite() << "].");
@@ -88,7 +90,11 @@ bool protocol_header_out_70014::handle_receive_send_compact(const code& ec,
 
     // Only version 2 is supported, the peer may change bandwidth mode.
     if (message->compact_version == send_compact::compact_version_2)
+    {
         high_bandwidth_ = message->high_bandwidth;
+        if (high_bandwidth_)
+            announce();
+    }
 
     return true;
 }

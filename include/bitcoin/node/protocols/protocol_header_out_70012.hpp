@@ -52,8 +52,19 @@ protected:
     /// Process block announcement.
     virtual bool do_announce(header_t link) NOEXCEPT;
 
+    /// Subscribe to block events for announcement (once).
+    virtual void announce() NOEXCEPT;
+
+    /// The peer has requested headers announcement.
+    bool announce_headers() const NOEXCEPT;
+
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::peer::send_headers::cptr& message) NOEXCEPT;
+
+private:
+    // These are protected by strand.
+    bool announcing_{};
+    bool announce_headers_{};
 };
 
 } // namespace node
