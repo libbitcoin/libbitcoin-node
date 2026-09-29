@@ -134,4 +134,47 @@ struct p2p_unassociated_setup_fixture
     }
 };
 
+// A node with compact blocks enabled and a chain that is always current.
+// A candidate above the confirmed top precludes the store prune, which
+// suspends the network (dropping the test peer) when the chain coalesces.
+struct p2p_compact_setup_fixture
+  : p2p_setup_fixture
+{
+    using condition = std::function<bool()>;
+
+    /// Mainnet blocks 1 and 2 (coinbase only).
+    static const system::chain::block& block1() NOEXCEPT;
+    static const system::chain::block& block2() NOEXCEPT;
+
+    inline p2p_compact_setup_fixture(const initializer& setup={},
+        uint16_t compact_timeout=max_uint16)
+      : p2p_setup_fixture(setup, [=](configuration& config)
+        {
+            config.network.enable_compact = true;
+            config.node.currency_window_minutes = 0;
+            config.node.compact_timeout_seconds = compact_timeout;
+            config.bitcoin.minimum_work = {};
+        })
+    {
+    }
+
+    /// Wait (bounded) for the condition to be satisfied.
+    bool await(const condition& satisfied);
+
+    /// Wait (bounded) for the block to be associated in the store.
+    bool associated(const system::hash_digest& hash);
+};
+
+// A compact node with blocks 1 and 2 as unassociated candidates.
+struct p2p_compact_candidate_setup_fixture
+  : p2p_compact_setup_fixture
+{
+    static bool candidate(node::query& query) NOEXCEPT;
+
+    inline p2p_compact_candidate_setup_fixture()
+      : p2p_compact_setup_fixture(candidate, 0)
+    {
+    }
+};
+
 #endif
