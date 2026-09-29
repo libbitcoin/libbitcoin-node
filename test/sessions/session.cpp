@@ -227,6 +227,36 @@ BOOST_AUTO_TEST_CASE(session__channel_counts__no_connections__zero)
     BOOST_REQUIRE_EQUAL(session_.address_count(), 0u);
 }
 
+// methods
+
+BOOST_AUTO_TEST_CASE(session__connect__listening_endpoint__version_received)
+{
+    using namespace network::messages::peer;
+    using tcp = boost::asio::ip::tcp;
+    boost::asio::io_context io{};
+    tcp::acceptor acceptor{ io, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65113 } };
+    tcp::socket socket{ io };
+    session_.connect(network::config::endpoint{ "127.0.0.1:65113" });
+    acceptor.accept(socket);
+
+    system::data_array<heading::size()> head{};
+    boost::asio::read(socket, boost::asio::buffer(head));
+    const auto message = heading::deserialize(head);
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->command, version::command);
+}
+
+BOOST_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
+{
+    std::promise<code> promise{};
+    session_.connect(network::config::endpoint{ "127.0.0.1:65114" }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
+    {
+        promise.set_value(ec);
+        return false;
+    });
+
+    BOOST_REQUIRE(promise.get_future().get());
+}
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_FIXTURE_TEST_SUITE(session_peer_tests, p2p_setup_fixture)
