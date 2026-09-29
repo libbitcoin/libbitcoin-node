@@ -88,6 +88,25 @@ static const chain::block& validate_x1()
     return instance;
 }
 
+static const chain::block& validate_a3()
+{
+    static const auto instance = validate_block(validate_a2(), 3, { validate_coinbase(6, validate_subsidy) });
+    return instance;
+}
+
+static const chain::block& validate_immature1()
+{
+    static const auto coinbase = validate_coinbase(7, validate_subsidy);
+    static const auto instance = validate_block(validate_genesis(), 1, { coinbase, validate_spend(chain::point{ coinbase.hash(false), 0 }, validate_subsidy) });
+    return instance;
+}
+
+static const chain::block& validate_coinbases1()
+{
+    static const auto instance = validate_block(validate_genesis(), 1, { validate_coinbase(8, validate_subsidy), validate_coinbase(9, validate_subsidy) });
+    return instance;
+}
+
 static bool validate_store(node::query& query, const chain::block& block, uint32_t height)
 {
     const auto& genesis = validate_genesis().header();
@@ -130,9 +149,46 @@ static bool validate_staged(node::query& query)
     return validate_noncandidate(query) && query.set_prevalid(query.to_header(validate_x1().hash()));
 }
 
+static bool validate_a1_candidate(node::query& query)
+{
+    return validate_candidate(query, validate_a1(), 1);
+}
+
+static bool validate_immature(node::query& query)
+{
+    return validate_candidate(query, validate_immature1(), 1);
+}
+
+static bool validate_coinbases(node::query& query)
+{
+    return validate_candidate(query, validate_coinbases1(), 1);
+}
+
+static bool validate_a1_candidate_x1_valid(node::query& query)
+{
+    return validate_a1_candidate(query) && validate_store(query, validate_x1(), 1) && query.set_block_valid(query.to_header(validate_x1().hash()));
+}
+
+static bool validate_confirmable_missing(node::query& query)
+{
+    return validate_missing(query) && query.set_block_confirmable(query.to_header(validate_a1().hash()));
+}
+
 static void validate_uncheckpointed(configuration& config)
 {
     config.bitcoin.checkpoints.clear();
+}
+
+static void validate_state_full(configuration& config)
+{
+    config.bitcoin.checkpoints.clear();
+    config.database.state.headroom = max_uint64;
+}
+
+static void validate_filter_full(configuration& config)
+{
+    config.bitcoin.checkpoints.clear();
+    config.database.filter_tx.headroom = max_uint64;
 }
 
 struct chaser_validate_setup_fixture
@@ -158,14 +214,32 @@ struct chaser_validate_setup_fixture
         return config;
     }
 
-    chaser_validate_setup_fixture(const initializer& setup, const configurator& configurer)
+    chaser_validate_setup_fixture(const initializer& setup, const configurator& configurer, bool full = false)
       : config_{ configure(configurer) }, store_{ config_.database }, query_{ store_ }, node_{ query_, config_, log_ }
     {
         test::clear(test::directory);
-        auto ec = store_.create([](auto, auto) {});
-        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-        BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
-        BOOST_REQUIRE(setup(query_));
+        code ec{};
+        if (full)
+        {
+            auto settings = config_.database;
+            settings.state.headroom = database::settings{}.state.headroom;
+            settings.filter_tx.headroom = database::settings{}.filter_tx.headroom;
+            node::store store{ settings };
+            node::query query{ store };
+            BOOST_REQUIRE(!store.create([](auto, auto) {}));
+            BOOST_REQUIRE(query.initialize(config_.bitcoin.genesis_block));
+            BOOST_REQUIRE(setup(query));
+            BOOST_REQUIRE(!store.close([](auto, auto) {}));
+            ec = store_.open([](auto, auto) {});
+            BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+        }
+        else
+        {
+            ec = store_.create([](auto, auto) {});
+            BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+            BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
+            BOOST_REQUIRE(setup(query_));
+        }
 
         std::promise<code> started{};
         node_.start([&](const code& ec) NOEXCEPT { started.set_value(ec); });
@@ -334,6 +408,52 @@ struct validate_windowed_fixture
     }
 };
 
+
+struct validate_immature_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_immature_fixture()
+      : chaser_validate_setup_fixture(validate_immature, validate_uncheckpointed)
+    {
+    }
+};
+
+struct validate_coinbases_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_coinbases_fixture()
+      : chaser_validate_setup_fixture(validate_coinbases, validate_uncheckpointed)
+    {
+    }
+};
+
+struct validate_missing_state_full_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_missing_state_full_fixture()
+      : chaser_validate_setup_fixture(validate_confirmable_missing, validate_state_full, true)
+    {
+    }
+};
+
+struct validate_state_full_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_state_full_fixture()
+      : chaser_validate_setup_fixture(validate_a1_candidate_x1_valid, validate_state_full, true)
+    {
+    }
+};
+
+struct validate_filter_full_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_filter_full_fixture()
+      : chaser_validate_setup_fixture(validate_a1_candidate, validate_filter_full, true)
+    {
+    }
+};
+
 BOOST_AUTO_TEST_SUITE(chaser_validate_tests)
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__start__unvalidated_candidates__confirmable, validate_unvalidated_fixture)
@@ -431,6 +551,50 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__regressed__confirmed_candidates__unchan
     node_.notify(node::error::success, chases::checked{ 1 });
     BOOST_REQUIRE(stated(validate_a2(), database::error::block_confirmable));
     BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), 2u);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__bump__unfull_new_candidate__confirmable, validate_unvalidated_fixture)
+{
+    BOOST_REQUIRE(confirmed(2));
+    BOOST_REQUIRE(validate_candidate(query_, validate_a3(), 3));
+    node_.notify(node::error::success, chases::unfull{});
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BOOST_REQUIRE(stated(validate_a3(), database::error::block_confirmable));
+    BOOST_REQUIRE(confirmed(3));
+}
+
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__immature_internal_spend__unconfirmable, validate_immature_fixture)
+{
+    BOOST_REQUIRE(stated(validate_immature1(), database::error::block_unconfirmable));
+    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__extra_coinbases__unconfirmable, validate_coinbases_fixture)
+{
+    BOOST_REQUIRE(stated(validate_coinbases1(), database::error::block_unconfirmable));
+    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__missing_prevout_state_full__suspended, validate_missing_state_full_fixture)
+{
+    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
+    BOOST_REQUIRE(query_.is_full());
+    BOOST_REQUIRE_EQUAL(state(validate_missing2()), database::error::unvalidated);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__state_full__suspended, validate_state_full_fixture)
+{
+    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
+    BOOST_REQUIRE(query_.is_full());
+    BOOST_REQUIRE_EQUAL(state(validate_a1()), database::error::unvalidated);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__filter_full__suspended, validate_filter_full_fixture)
+{
+    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
+    BOOST_REQUIRE(query_.is_full());
+    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
