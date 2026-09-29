@@ -55,8 +55,6 @@ typedef std::function<void(const code&, uint64_t)> estimate_handler;
 typedef std::function<void(const code&, const uint256_t&)> work_handler;
 typedef std::function<void(const code&, size_t)> organize_handler;
 typedef std::function<void(const code&, size_t)> submit_handler;
-typedef std::function<void(const code&, size_t,
-    const database::tx_links&)> compact_handler;
 typedef database::store<database::mmap> store;
 typedef database::query<store> query;
 
