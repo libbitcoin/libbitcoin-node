@@ -54,6 +54,7 @@ settings::settings() NOEXCEPT
     silent_start_height{ 0xffffffff_u32 },
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
+    compact_timeout_seconds{ 10 },
     currency_window_minutes{ 1440 }
 {
 }
@@ -141,6 +142,11 @@ bool settings::batch_signatures_enabled() const NOEXCEPT
 network::steady_clock::duration settings::sample_period() const NOEXCEPT
 {
     return network::seconds(sample_period_seconds);
+}
+
+network::steady_clock::duration settings::compact_timeout() const NOEXCEPT
+{
+    return network::seconds(compact_timeout_seconds);
 }
 
 network::wall_clock::duration settings::currency_window() const NOEXCEPT

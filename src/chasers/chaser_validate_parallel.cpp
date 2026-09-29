@@ -39,35 +39,49 @@ void chaser_validate::validate_block(const header_link& link,
 
     code ec{};
     chain::context ctx{};
-    bool batched{}, capturing{};
+    bool batched{}, capturing{}, pooled{};
     auto& query = archive();
     const auto start = network::logger::now();
+    const auto current = !bypass && is_current_header(link);
 
-    // TODO: implement allocator parameter resulting in full allocation to
-    // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
-    const auto block = query.get_block(link, node_witness_);
-
-    if (!block)
-    {
-        ec = error::validate2;
-    }
-    else if (!query.get_context(ctx, link))
+    if (!query.get_context(ctx, link))
     {
         ec = error::validate3;
     }
-    else if ((ec = populate(bypass, *block, link, ctx)))
+    else if (current && ((ec = validate_pooled(pooled, link, ctx))))
     {
-        if (!query.set_block_unconfirmable(link))
-            ec = error::validate4;
+        if (!node::error::error_category::contains(ec) &&
+            !query.set_block_unconfirmable(link))
+            ec = error::validate12;
     }
-    else if ((ec = validate(batched, capturing, bypass, *block, link,
-        ctx)))
+    else if (pooled)
     {
-        if (!query.set_block_unconfirmable(link))
-            ec = error::validate5;
+        ec = complete_pooled(link, ctx);
+    }
+    else
+    {
+        // TODO: implement allocator parameter resulting in full allocation to
+        // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
+        const auto block = query.get_block(link, node_witness_);
+
+        if (!block)
+        {
+            ec = error::validate2;
+        }
+        else if ((ec = populate(bypass, *block, ctx)))
+        {
+            if (!query.set_block_unconfirmable(link))
+                ec = error::validate4;
+        }
+        else if ((ec = validate(batched, capturing, bypass, *block, link,
+            ctx)))
+        {
+            if (!query.set_block_unconfirmable(link))
+                ec = error::validate5;
+        }
     }
 
-    if (!ec && !bypass && is_current_header(link))
+    if (!ec && current)
     {
         const auto elapsed = network::logger::now() - start;
         fire(events::validate_usecs,
@@ -82,7 +96,7 @@ void chaser_validate::validate_block(const header_link& link,
 // ----------------------------------------------------------------------------
 
 code chaser_validate::populate(bool bypass, const chain::block& block,
-    const header_link& link, const chain::context& ctx) NOEXCEPT
+    const chain::context& ctx) NOEXCEPT
 {
     const auto& query = archive();
 
@@ -101,37 +115,53 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
             return ec;
 
         // Metadata identifies internal spends allowing confirmation bypass.
-        if (!populate_metadata(block, link, ctx))
+        if (!query.populate_with_metadata(block))
             return system::error::missing_previous_output;
     }
     
     return error::success;
 }
 
-// A tx pooled under a sufficient context takes its metadata from the pool.
-bool chaser_validate::populate_metadata(const chain::block& block,
-    const header_link& link, const chain::context& ctx) NOEXCEPT
+// A block with all txs pooled under a sufficient context requires only block
+// checks, performed by the store. Insufficiency implies full validation.
+code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
+    const chain::context& ctx) NOEXCEPT
 {
-    const auto& query = archive();
-    const auto& txs = *block.transactions_ptr();
-    const auto links = query.to_transactions(link);
-    if (links.size() != txs.size())
-        return query.populate_with_metadata(block);
+    const auto ec = archive().validate_pooled(link, ctx, subsidy_interval_,
+        initial_subsidy_);
 
-    pooled_tx pooled{};
-    const auto pool = database::context::from(ctx);
-    for (auto index = one; index < txs.size(); ++index)
+    pooled = !ec;
+    if (!ec || ec == database::error::unvalidated)
+        return error::success;
+
+    // Store codes are faults, consensus codes imply block invalidity.
+    return database::error::error_category::contains(ec) ?
+        error::validate11 : ec;
+}
+
+// A pooled block is valid, so is produced only as required for filters.
+code chaser_validate::complete_pooled(const header_link& link,
+    const chain::context& ctx) NOEXCEPT
+{
+    auto& query = archive();
+    if (filter_ || (ctx.height >= silent_start_height_))
     {
-        const auto& tx = *txs.at(index);
-        const auto populated = query.populate_pooled(pooled, tx,
-            links.at(index), pool) ? query.populate_with_metadata(tx) :
-            query.populate_without_metadata(tx);
+        bool batched{}, capturing{};
+        constexpr auto bypass = true;
+        const auto block = query.get_block(link, node_witness_);
+        if (!block)
+            return error::validate2;
 
-        if (!populated)
-            return false;
+        if (populate(bypass, *block, ctx))
+            return error::validate11;
+
+        if (const auto ec = validate(batched, capturing, bypass, *block, link,
+            ctx))
+            return ec;
     }
 
-    return true;
+    // Valid must be set after set_prevouts, set_filter_body, and set_silent.
+    return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
 code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,

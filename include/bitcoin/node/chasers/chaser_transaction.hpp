@@ -43,11 +43,20 @@ public:
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
 
+    /// Validate and archive the unarchived txs of an identified compact block
+    /// in block order, returning the tx link of each (in submission order).
+    virtual void submit_compact(const system::chain::transactions_cptr& txs,
+        const database::header_link& link, compact_handler&& handler) NOEXCEPT;
+
 protected:
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_submit(const system::chain::transactions_cptr& txs,
         bool test, const submit_handler& handler) NOEXCEPT;
+    virtual void do_submit_compact(
+        const system::chain::transactions_cptr& txs,
+        const database::header_link& link,
+        const compact_handler& handler) NOEXCEPT;
 
     /// Recompute the pool context, closing the pool if not current.
     virtual void do_bump() NOEXCEPT;
@@ -58,6 +67,10 @@ private:
     code validate(size_t& index, const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored) NOEXCEPT;
     code validate(const system::chain::transaction& tx) NOEXCEPT;
+    code validate(const system::chain::transaction& tx,
+        const system::chain::context& ctx) NOEXCEPT;
+    database::tx_link to_stored(
+        const system::chain::transaction& tx) const NOEXCEPT;
 
     // These are protected by strand.
     system::chain::context pool_{};

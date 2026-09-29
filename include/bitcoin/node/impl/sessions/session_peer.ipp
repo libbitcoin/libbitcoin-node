@@ -108,10 +108,19 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     // Configured to relay transactions (currency is signalled by fee_filter).
     const auto txs_in_out = relay;
 
+    // Compact blocks can be disabled, independent of version.
+    const auto compact = this->network_settings().enable_compact &&
+        peer->is_negotiated(level::bip152);
+
     // Peer advertises chain (blocks in), headers-first requires 31800.
     if (peer->is_peer_service(service::node_network))
     {
-        if (peer->is_negotiated(level::bip130))
+        if (compact)
+        {
+            channel->attach<protocol_header_in_70014>(self)->start();
+            channel->attach<protocol_block_in_31800>(self)->start();
+        }
+        else if (peer->is_negotiated(level::bip130))
         {
             channel->attach<protocol_header_in_70012>(self)->start();
             channel->attach<protocol_block_in_31800>(self)->start();
@@ -126,7 +135,12 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     // Blocks are ready (blocks out).
     if (blocks_out)
     {
-        if (peer->is_negotiated(level::bip130))
+        if (compact)
+        {
+            channel->attach<protocol_header_out_70014>(self)->start();
+            channel->attach<protocol_block_out_70014>(self)->start();
+        }
+        else if (peer->is_negotiated(level::bip130))
         {
             channel->attach<protocol_header_out_70012>(self)->start();
             channel->attach<protocol_block_out_70012>(self)->start();

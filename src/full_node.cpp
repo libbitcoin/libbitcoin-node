@@ -170,6 +170,12 @@ void full_node::organize(const system::chain::header::cptr& header,
     chaser_header_.organize(header, milestone, std::move(handler));
 }
 
+void full_node::organize_compact(const system::chain::header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
+{
+    chaser_header_.organize_compact(header, std::move(handler));
+}
+
 void full_node::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {
@@ -185,6 +191,12 @@ void full_node::submit(const system::chain::transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {
     chaser_transaction_.submit(txs, test, std::move(handler));
+}
+
+void full_node::submit_compact(const system::chain::transactions_cptr& txs,
+    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.submit_compact(txs, link, std::move(handler));
 }
 
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT

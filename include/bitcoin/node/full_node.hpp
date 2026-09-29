@@ -68,6 +68,9 @@ public:
     /// Organize a proven header, milestone set if in milestone branch.
     virtual void organize(const system::chain::header::cptr& header,
         bool milestone, organize_handler&& handler) NOEXCEPT;
+    /// Validate and organize an unproven header announced by compact block.
+    virtual void organize_compact(const system::chain::header::cptr& header,
+        organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,
@@ -80,6 +83,11 @@ public:
     /// The package is only validated when test, so nothing is archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
+
+    /// Validate and archive the unarchived txs of an identified compact block
+    /// in block order, returning the tx link of each (in submission order).
+    virtual void submit_compact(const system::chain::transactions_cptr& txs,
+        const database::header_link& link, compact_handler&& handler) NOEXCEPT;
 
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;

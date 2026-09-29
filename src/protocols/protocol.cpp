@@ -150,6 +150,12 @@ void protocol::organize(const system::chain::header::cptr& header,
     session_->organize(header, milestone, std::move(handler));
 }
 
+void protocol::organize_compact(const system::chain::header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
+{
+    session_->organize_compact(header, std::move(handler));
+}
+
 void protocol::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {
@@ -165,6 +171,12 @@ void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {
     session_->submit(txs, test, std::move(handler));
+}
+
+void protocol::submit_compact(const system::chain::transactions_cptr& txs,
+    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+{
+    session_->submit_compact(txs, link, std::move(handler));
 }
 
 void protocol::subscribe_chase(event_notifier&& handler) NOEXCEPT

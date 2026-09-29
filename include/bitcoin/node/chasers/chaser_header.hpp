@@ -55,6 +55,9 @@ public:
     /// Organize a proven header, milestone set if in milestone branch.
     virtual void organize(const system::chain::header::cptr& header,
         bool milestone, organize_handler&& handler) NOEXCEPT;
+    /// Validate and organize an unproven header announced by compact block.
+    virtual void organize_compact(const system::chain::header::cptr& header,
+        organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,
@@ -75,7 +78,7 @@ protected:
 
     /// Organize a discovered header, prioritized accepts a tied branch.
     virtual void do_organize(const system::chain::header::cptr& header,
-        bool prioritized, bool milestone, bool proven,
+        bool prioritized, bool milestone, bool compact, bool proven,
         const organize_handler& handler) NOEXCEPT;
 
     /// Reorganize following block unconfirmability.
@@ -103,7 +106,8 @@ private:
     code push_header(const system::hash_digest& key) NOEXCEPT;
     code push_header(const system::chain::header& header,
         const system::chain::context& ctx, const uint256_t& work,
-        bool milestone) NOEXCEPT;
+        bool milestone,
+        bool compact) NOEXCEPT;
     void cache(const system::chain::header::cptr& header,
         const chain_state::cptr& state) NOEXCEPT;
 

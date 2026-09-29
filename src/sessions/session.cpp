@@ -51,6 +51,12 @@ void session::organize(const header::cptr& header, bool milestone,
     node_.organize(header, milestone, std::move(handler));
 }
 
+void session::organize_compact(const header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
+{
+    node_.organize_compact(header, std::move(handler));
+}
+
 void session::prioritize(const hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {
@@ -61,6 +67,12 @@ void session::submit(const transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {
     node_.submit(txs, test, std::move(handler));
+}
+
+void session::submit_compact(const transactions_cptr& txs,
+    const database::header_link& link, compact_handler&& handler) NOEXCEPT
+{
+    node_.submit_compact(txs, link, std::move(handler));
 }
 
 void session::get_minimum_work(work_handler&& handler) NOEXCEPT
