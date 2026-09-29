@@ -58,6 +58,48 @@ static bool confirmed(node::query& query)
         query.push_candidate(query.to_header(header2.hash()));
 }
 
+// The block 1 header with the block 1 coinbase and a spend of it.
+static const chain::block& paired()
+{
+    const auto& coinbase = *p2p_compact_setup_fixture::block1().transactions_ptr()->front();
+    static const chain::block instance
+    {
+        p2p_compact_setup_fixture::block1().header(),
+        chain::transactions
+        {
+            coinbase,
+            chain::transaction
+            {
+                1u,
+                chain::inputs{ chain::input{ chain::point{ coinbase.hash(false), 0u }, chain::script{}, max_uint32 } },
+                chain::outputs{ chain::output{ 0u, chain::script{} } },
+                0u
+            }
+        }
+    };
+
+    return instance;
+}
+
+static bool archive(node::query& query, const chain::block& block)
+{
+    const auto& genesis = mainnet.genesis_block.header();
+    const database::context context{ 0, 1, genesis.timestamp() };
+    return query.set(block, context, genesis.proof() + block.header().proof(), false, false);
+}
+
+struct protocol_paired_setup_fixture
+  : p2p_compact_setup_fixture
+{
+    inline protocol_paired_setup_fixture()
+      : p2p_compact_setup_fixture([](node::query& query)
+        {
+            return archive(query, paired());
+        })
+    {
+    }
+};
+
 struct protocol_filter_setup_fixture
   : p2p_setup_fixture
 {
@@ -124,6 +166,8 @@ public:
     using node::protocol::suspend;
     using node::protocol::resume;
     using node::protocol::prioritize;
+    using node::protocol::organize;
+    using node::protocol::estimate;
 };
 
 struct protocol_setup_fixture
@@ -191,6 +235,45 @@ BOOST_AUTO_TEST_CASE(protocol__prioritize__unknown__not_found)
     });
 
     BOOST_REQUIRE_EQUAL(result.get_future().get(), database::error::not_found);
+}
+
+BOOST_AUTO_TEST_CASE(protocol__organize__block1_header__height_one)
+{
+    BOOST_REQUIRE(handshake(0, level::bip35));
+
+    std::promise<std::pair<code, size_t>> result{};
+    accessor.organize(p2p_compact_setup_fixture::block1().header_ptr(), [&](const code& ec, size_t height) NOEXCEPT
+    {
+        result.set_value({ ec, height });
+    });
+
+    const auto organized = result.get_future().get();
+    BOOST_REQUIRE_EQUAL(organized.first, node::error::success);
+    BOOST_REQUIRE_EQUAL(organized.second, one);
+}
+
+BOOST_AUTO_TEST_CASE(protocol__organize__block1_header_not_milestone__height_one)
+{
+    std::promise<std::pair<code, size_t>> result{};
+    accessor.organize(p2p_compact_setup_fixture::block1().header_ptr(), false, [&](const code& ec, size_t height) NOEXCEPT
+    {
+        result.set_value({ ec, height });
+    });
+
+    const auto organized = result.get_future().get();
+    BOOST_REQUIRE_EQUAL(organized.first, node::error::success);
+    BOOST_REQUIRE_EQUAL(organized.second, one);
+}
+
+BOOST_AUTO_TEST_CASE(protocol__estimate__default__disabled)
+{
+    std::promise<code> result{};
+    accessor.estimate(1, estimator::mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
+    {
+        result.set_value(ec);
+    });
+
+    BOOST_REQUIRE_EQUAL(result.get_future().get(), node::error::estimate_disabled);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -351,6 +434,20 @@ BOOST_AUTO_TEST_CASE(protocol_block_out_70014__get_compact_transactions__unknown
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
     BOOST_REQUIRE(message);
     BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_block_out_70014__get_compact_transactions__second__expected, protocol_paired_setup_fixture)
+{
+    BOOST_REQUIRE(handshake());
+
+    const auto& block = paired();
+    send(get_compact_transactions{ block.hash(), { 1 } }, node_version->value);
+
+    const auto message = compact_transactions::deserialize(node_version->value, receive(compact_transactions::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE(message->block_hash == block.hash());
+    BOOST_REQUIRE_EQUAL(message->transaction_ptrs.size(), one);
+    BOOST_REQUIRE(message->transaction_ptrs.front()->hash(false) == block.transactions_ptr()->back()->hash(false));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
