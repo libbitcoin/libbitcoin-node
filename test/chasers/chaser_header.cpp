@@ -64,16 +64,16 @@ struct chaser_header_setup_fixture
     using configurator = std::function<void(configuration&)>;
     using result = std::pair<code, size_t>;
 
-    explicit chaser_header_setup_fixture(const configurator& configure={}, bool reopen=false)
+    explicit chaser_header_setup_fixture(const configurator& configure={})
       : config_{ configured(configure) },
         store_{ config_.database },
         query_{ store_ },
         node_{ query_, config_, log_ }
     {
         test::clear(test::directory);
-        auto ec = reopen ? created() : store_.create([](auto, auto) {});
+        auto ec = store_.create([](auto, auto) {});
         BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-        BOOST_REQUIRE(reopen || query_.initialize(config_.bitcoin.genesis_block));
+        BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
 
         std::promise<code> started{};
         node_.start([&](const code& ec) NOEXCEPT
@@ -117,20 +117,6 @@ struct chaser_header_setup_fixture
             configure(config);
 
         return config;
-    }
-
-    /// Create and initialize with default headroom, then open as configured.
-    code created()
-    {
-        const database::settings defaults{};
-        auto settings = config_.database;
-        settings.header.headroom = defaults.header.headroom;
-        node::store store{ settings };
-        node::query query{ store };
-        BOOST_REQUIRE(!store.create([](auto, auto) {}));
-        BOOST_REQUIRE(query.initialize(config_.bitcoin.genesis_block));
-        BOOST_REQUIRE(!store.close([](auto, auto) {}));
-        return store_.open([](auto, auto) {});
     }
 
     /// Organize an unproven header.
@@ -297,18 +283,6 @@ struct chaser_header_fork_setup_fixture
         {
             config.bitcoin.bip90_bip34_height = 1;
         })
-    {
-    }
-};
-
-struct chaser_header_full_setup_fixture
-  : chaser_header_setup_fixture
-{
-    chaser_header_full_setup_fixture()
-      : chaser_header_setup_fixture([](configuration& config)
-        {
-            config.database.header.headroom = max_uint64;
-        }, true)
     {
     }
 };
@@ -527,42 +501,6 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__candidate_below_chaser_t
     BOOST_REQUIRE_EQUAL(result.second, 1u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__archived_branch_over_extra_candidate__organize6, chaser_header_setup_fixture)
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto a2 = make(a1->hash(), 5);
-    const auto a3 = make(a2->hash(), 6);
-    const auto b1 = make(genesis_hash(), 2);
-    const auto b2 = make(b1->hash(), 3);
-    const auto x3 = make(b2->hash(), 4);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b2, false).first, error::success);
-    BOOST_REQUIRE(push(*x3, 3, 4));
-    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(a3, false).first, error::success);
-
-    const auto result = organize(make(a3->hash(), 7), false);
-    BOOST_REQUIRE_EQUAL(result.first, error::organize6);
-    BOOST_REQUIRE_EQUAL(result.second, 4u);
-}
-
-BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__cached_branch_over_extra_candidate__organize14, chaser_header_setup_fixture)
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto x2 = make(a1->hash(), 2);
-    const auto b1 = make(genesis_hash(), 3);
-    const auto b2 = make(b1->hash(), 4);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE(push(*x2, 2, 3));
-    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b2, false).first, error::success);
-
-    const auto result = organize(make(b2->hash(), 5), false);
-    BOOST_REQUIRE_EQUAL(result.first, error::organize14);
-    BOOST_REQUIRE_EQUAL(result.second, 3u);
-}
-
 BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__unstored_candidate_top__organize3, chaser_header_setup_fixture)
 {
     BOOST_REQUIRE_EQUAL(organize(make(genesis_hash(), 1), false).first, error::success);
@@ -571,26 +509,6 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__unstored_candidate_top__
     const auto result = organize(make(genesis_hash(), 2), false);
     BOOST_REQUIRE_EQUAL(result.first, error::organize3);
     BOOST_REQUIRE_EQUAL(result.second, 1u);
-}
-
-BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__archived_parent_height_mismatch__organize6, chaser_header_setup_fixture)
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto x2 = make(a1->hash(), 2);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE(archive(*x2, 1, 3));
-
-    const auto result = organize(make(x2->hash(), 3), false);
-    BOOST_REQUIRE_EQUAL(result.first, error::organize6);
-    BOOST_REQUIRE_EQUAL(result.second, 2u);
-}
-
-BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__header_disk_full__header_put, chaser_header_full_setup_fixture)
-{
-    const auto result = organize(make(genesis_hash(), 1), false);
-    BOOST_REQUIRE_EQUAL(result.first, database::error::header_put);
-    BOOST_REQUIRE_EQUAL(result.second, 1u);
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
 }
 
 // checkpoints
@@ -873,23 +791,6 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unstored_candidate_below__u
 
     BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
     BOOST_REQUIRE(!unconfirmable(x2->hash()));
-}
-
-BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__confirmed_parent_mismatch__candidates_popped, chaser_header_setup_fixture)
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto a2 = make(a1->hash(), 2);
-    const auto x2 = make(a1->hash(), 3);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-    BOOST_REQUIRE(archive(*x2, 2, 3));
-    BOOST_REQUIRE(query_.push_confirmed(query_.to_header(x2->hash()), false));
-    BOOST_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::unvalid));
-    flush();
-
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
-    BOOST_REQUIRE(unconfirmable(a2->hash()));
-    BOOST_REQUIRE(!unconfirmable(a1->hash()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

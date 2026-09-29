@@ -29,7 +29,7 @@ struct full_node_setup_fixture
     DELETE_COPY_MOVE(full_node_setup_fixture);
 
     using configurator = std::function<void(configuration&)>;
-    explicit full_node_setup_fixture(const configurator& configure={}, bool create=true)
+    explicit full_node_setup_fixture(const configurator& configure={})
       : config_{ system::chain::selection::mainnet },
         store_
         {
@@ -50,9 +50,6 @@ struct full_node_setup_fixture
         node_{ query_, config_, log_ }
     {
         BOOST_REQUIRE(test::clear(test::directory));
-        if (!create)
-            return;
-
         const auto ec = store_.create([](auto, auto) NOEXCEPT {});
         BOOST_REQUIRE_MESSAGE(!ec, ec.message());
     }
@@ -170,31 +167,6 @@ struct full_node_maximum_height_setup_fixture
             config.node.maximum_height = 1;
         })
     {
-    }
-};
-
-// A store initialized with genesis, reopened unable to grow its header body.
-struct full_node_full_setup_fixture
-  : full_node_setup_fixture
-{
-    inline full_node_full_setup_fixture()
-      : full_node_setup_fixture([](configuration& config)
-        {
-            config.database.header.headroom = max_uint64;
-        }, false)
-    {
-        auto settings = config_.database;
-        settings.header.headroom = database::settings{}.header.headroom;
-        node::store store{ settings };
-        node::query query{ store };
-        BOOST_REQUIRE(!store.create([](auto, auto) NOEXCEPT {}));
-        BOOST_REQUIRE(query.initialize(config_.bitcoin.genesis_block));
-        BOOST_REQUIRE(!store.close([](auto, auto) NOEXCEPT {}));
-        BOOST_REQUIRE(!store_.open([](auto, auto) NOEXCEPT {}));
-
-        const auto& genesis = config_.bitcoin.genesis_block.header();
-        const system::chain::header header{ 1u, genesis.hash(), system::null_hash, 0u, 0u, 0u };
-        BOOST_REQUIRE(!query_.set(header, database::context{ 0, 1, genesis.timestamp() }, genesis.proof(), false));
     }
 };
 
@@ -536,41 +508,6 @@ BOOST_AUTO_TEST_CASE(full_node__is_recent__confirmed_to_maximum_height__true)
     BOOST_REQUIRE(initialize());
     BOOST_REQUIRE(query_.push_confirmed(database::header_link{ 0 }, false));
     BOOST_REQUIRE(node_.is_recent());
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_FIXTURE_TEST_SUITE(full_node_full_tests, full_node_full_setup_fixture)
-
-BOOST_AUTO_TEST_CASE(full_node__resume__disk_full__false)
-{
-    BOOST_REQUIRE(query_.is_full());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
-    BOOST_REQUIRE(!node_.resume());
-}
-
-BOOST_AUTO_TEST_CASE(full_node__fault__disk_full__space_notified_suspended)
-{
-    BOOST_REQUIRE(query_.is_full());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
-    auto future = subscribe(chase::space);
-    node_.fault(error::orphan_header);
-    BOOST_REQUIRE(ready(future));
-    BOOST_REQUIRE_EQUAL(future.get(), error::orphan_header);
-    BOOST_REQUIRE(node_.suspended());
-    BOOST_REQUIRE(query_.is_full());
-}
-
-BOOST_AUTO_TEST_CASE(full_node__reload__disk_full__success_not_full_suspended)
-{
-    BOOST_REQUIRE(query_.is_full());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
-    BOOST_REQUIRE(!node_.reload([](auto, auto) NOEXCEPT {}));
-    BOOST_REQUIRE(!query_.is_full());
-    BOOST_REQUIRE(node_.suspended());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

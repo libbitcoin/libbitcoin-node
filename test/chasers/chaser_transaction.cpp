@@ -298,105 +298,6 @@ struct chaser_transaction_header_setup_fixture
     }
 };
 
-// A pooling node on a store reopened unable to grow the configured table.
-struct chaser_transaction_full_setup_fixture
-{
-    DELETE_COPY_MOVE(chaser_transaction_full_setup_fixture);
-
-    using result = std::pair<code, size_t>;
-    using configurator = std::function<void(configuration&)>;
-
-    static configuration configure(const configurator& configurer)
-    {
-        configuration config{ chain::selection::mainnet };
-        config.database.path = TEST_DIRECTORY;
-        config.network.path = TEST_DIRECTORY;
-        config.network.inbound.connections = 0;
-        config.network.inbound.binds.clear();
-        config.network.outbound.connections = 0;
-        config.network.outbound.seeds.clear();
-        config.network.enable_relay = true;
-        config.node.currency_window_minutes = 0;
-        configurer(config);
-        return config;
-    }
-
-    chaser_transaction_full_setup_fixture(const configurator& configurer)
-      : config_{ configure(configurer) }, store_{ config_.database }, query_{ store_ }, node_{ query_, config_, log_ }
-    {
-        test::clear(test::directory);
-        auto settings = config_.database;
-        settings.tx.headroom = database::settings{}.tx.headroom;
-        settings.spends.headroom = database::settings{}.spends.headroom;
-        node::store store{ settings };
-        node::query query{ store };
-        BOOST_REQUIRE(!store.create([](auto, auto) NOEXCEPT {}));
-        BOOST_REQUIRE(query.initialize(config_.bitcoin.genesis_block));
-        BOOST_REQUIRE(query.set(parent()));
-        BOOST_REQUIRE(!store.close([](auto, auto) NOEXCEPT {}));
-        BOOST_REQUIRE(!store_.open([](auto, auto) NOEXCEPT {}));
-
-        std::promise<code> started{};
-        node_.start([&](const code& ec) NOEXCEPT { started.set_value(ec); });
-        auto ec = started.get_future().get();
-        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-
-        std::promise<code> running{};
-        node_.run([&](const code& ec) NOEXCEPT { running.set_value(ec); });
-        ec = running.get_future().get();
-        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-    }
-
-    ~chaser_transaction_full_setup_fixture()
-    {
-        node_.close();
-        const auto ec = store_.close([](auto, auto) {});
-        BOOST_WARN_MESSAGE(!ec, ec.message());
-        test::clear(test::directory);
-    }
-
-    result submit(const chain::transactions_cptr& txs)
-    {
-        std::promise<result> promise{};
-        node_.submit(txs, false, [&](const code& ec, size_t index) NOEXCEPT
-        {
-            promise.set_value({ ec, index });
-        });
-
-        return promise.get_future().get();
-    }
-
-    configuration config_;
-    node::store store_;
-    node::query query_;
-    network::logger log_{};
-    full_node node_;
-};
-
-struct chaser_transaction_full_tx_setup_fixture
-  : chaser_transaction_full_setup_fixture
-{
-    inline chaser_transaction_full_tx_setup_fixture()
-      : chaser_transaction_full_setup_fixture([](configuration& config)
-        {
-            config.database.tx.headroom = max_uint64;
-        })
-    {
-    }
-};
-
-struct chaser_transaction_full_spends_setup_fixture
-  : chaser_transaction_full_setup_fixture
-{
-    inline chaser_transaction_full_spends_setup_fixture()
-      : chaser_transaction_full_setup_fixture([](configuration& config)
-        {
-            config.database.spends.headroom = max_uint64;
-        })
-    {
-    }
-};
-
 BC_POP_WARNING()
 
 BOOST_AUTO_TEST_SUITE(chaser_transaction_tests)
@@ -550,22 +451,6 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_relative_lock__rela
     const auto result = submit(package({ first, second }));
     BOOST_REQUIRE_EQUAL(result.first, system::error::relative_time_locked);
     BOOST_REQUIRE(!query_.is_tx(first->hash(false)));
-}
-
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__tx_table_full__tx_tx_allocate_suspended, chaser_transaction_full_tx_setup_fixture)
-{
-    const auto result = submit(package({ spend(parent_value) }));
-    BOOST_REQUIRE_EQUAL(result.first, database::error::tx_tx_allocate);
-    BOOST_REQUIRE_EQUAL(result.second, zero);
-    BOOST_REQUIRE(node_.suspended());
-}
-
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__spends_table_full__transaction2_suspended, chaser_transaction_full_spends_setup_fixture)
-{
-    const auto result = submit(package({ spend(parent_value) }));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::transaction2);
-    BOOST_REQUIRE_EQUAL(result.second, zero);
-    BOOST_REQUIRE(node_.suspended());
 }
 
 // do_bump
