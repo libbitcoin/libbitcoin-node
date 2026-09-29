@@ -227,6 +227,29 @@ struct chaser_check_sampled_local_setup_fixture
     }
 };
 
+// Mainnet block 1 is an unassociated compact candidate.
+struct chaser_check_compact_setup_fixture
+  : chaser_check_setup_fixture
+{
+    static bool compact(node::query& query) NOEXCEPT
+    {
+        const system::settings bitcoin{ chain::selection::mainnet };
+        const auto& genesis = bitcoin.genesis_block.header();
+        const auto& header1 = p2p_compact_setup_fixture::block1().header();
+        const database::context context1{ 0, 1, genesis.timestamp() };
+        database::header_link link{};
+        return !query.set_code(link, header1, context1, genesis.proof() + header1.proof(), false, true) && query.push_candidate(link);
+    }
+
+    inline chaser_check_compact_setup_fixture()
+      : chaser_check_setup_fixture(compact, [](configuration& config)
+        {
+            config.node.compact_timeout_seconds = 1;
+        })
+    {
+    }
+};
+
 BC_POP_WARNING()
 
 namespace peer = network::messages::peer;
@@ -453,6 +476,57 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__checked__window_downloaded__windowed, chas
     BOOST_REQUIRE_EQUAL(windowed.height, two);
 }
 
+// valid
+
+BOOST_FIXTURE_TEST_CASE(chaser_check__valid__requested_not_positioned__no_download, chaser_check_candidate_setup_fixture)
+{
+    subscribe();
+    node_.notify({}, chases::valid{ 1 });
+    node_.notify({}, chases::valid{ 2 });
+    node_.notify({}, chases::starved{ 42 });
+
+    chases::stall stall{};
+    BOOST_REQUIRE(await(stall));
+    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
+    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
+    BOOST_REQUIRE(get_hashes().map->empty());
+}
+
+// bump
+
+BOOST_FIXTURE_TEST_CASE(chaser_check__bump__purging__download_on_purged, chaser_check_candidate_setup_fixture)
+{
+    subscribe();
+    auto work = get_hashes();
+    node_.notify({}, chases::regressed{ 0 });
+
+    chases::purge purge{};
+    BOOST_REQUIRE(await(purge));
+
+    node_.notify({}, chases::bump{ 0 });
+    node_.notify({}, chases::starved{ 42 });
+
+    chases::stall stall{};
+    BOOST_REQUIRE(await(stall));
+    work.job.reset();
+
+    chases::download download{};
+    BOOST_REQUIRE(await(download));
+    BOOST_REQUIRE_EQUAL(download.count, two);
+}
+
+// compact
+
+BOOST_FIXTURE_TEST_CASE(chaser_check__handle_compact_timer__expired__download, chaser_check_compact_setup_fixture)
+{
+    subscribe();
+
+    chases::download download{};
+    BOOST_REQUIRE(await(download));
+    BOOST_REQUIRE_EQUAL(download.count, one);
+    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(protocol_block_in_31800_tests)
@@ -584,6 +658,48 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_then_spl
     BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
     BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
     BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_with_work__not_stopped, chaser_check_candidate_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(peer_services));
+    receive(get_data::command);
+
+    node_.notify({}, chases::download{ 1 });
+    send(ping{ 42 }, node_version->value);
+
+    const auto message = pong::deserialize(node_version->value, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_without_work__not_stopped, chaser_check_setup_fixture)
+{
+    subscribe();
+    BOOST_REQUIRE(handshake(peer_services));
+
+    chases::starved starved{};
+    BOOST_REQUIRE(await(starved));
+
+    node_.notify({}, chases::purge{ 0 });
+    send(ping{ 42 }, node_version->value);
+
+    const auto message = pong::deserialize(node_version->value, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__split_single__not_stopped, chaser_check_candidate_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(peer_services));
+    receive(get_data::command);
+
+    node_.notify({}, chases::split{ 42 });
+    send(ping{ 42 }, node_version->value);
+
+    const auto message = pong::deserialize(node_version->value, receive(pong::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
 // performance

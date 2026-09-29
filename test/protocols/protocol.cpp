@@ -376,6 +376,22 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_out_106__get_data__witness_unwitnessed__s
     BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
 }
 
+BOOST_FIXTURE_TEST_CASE(protocol_block_out_106__handle_chase__unknown_then_genesis__genesis_inventory, p2p_compact_candidate_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(0, level::bip35));
+    send(ping{ 42 }, level::bip35);
+    receive(pong::command);
+
+    node_.notify({}, node::chases::block{ node::header_t{ 42 } });
+    node_.notify({}, node::chases::block{ node::header_t{ 0 } });
+
+    const auto message = inventory::deserialize(level::bip35, receive(inventory::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->items.size(), one);
+    BOOST_REQUIRE(message->items.front().type == inventory_item::type_id::block);
+    BOOST_REQUIRE(message->items.front().hash == config_.bitcoin.genesis_block.hash());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // protocol_block_out_70012
