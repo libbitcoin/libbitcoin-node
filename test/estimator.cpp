@@ -426,4 +426,102 @@ BOOST_AUTO_TEST_CASE(estimator__compute__geometric_high_target__expected)
     BOOST_REQUIRE_EQUAL(instance->compute(2, acessor::confidence::high, false), max_uint64);
 }
 
+BOOST_AUTO_TEST_CASE(estimator__compute__large_target__max_uint64)
+{
+    const auto instance = acessor::create();
+    instance->history().large[0].total = 10'000u;
+    BOOST_REQUIRE_EQUAL(instance->compute(acessor::horizon::large, acessor::confidence::low), max_uint64);
+}
+
+// estimate (modes)
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__large_target__max_uint64)
+{
+    const auto instance = acessor::create();
+    instance->history().large[0].total = 10'000u;
+    BOOST_REQUIRE_EQUAL(instance->estimate(acessor::horizon::large, estimator::mode::basic), max_uint64);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__basic__expected)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 10u;
+    instance->history().small[0].confirmed[2] = 1u;
+    BOOST_REQUIRE_EQUAL(instance->estimate(1, estimator::mode::basic), 1u);
+    BOOST_REQUIRE_EQUAL(instance->estimate(2, estimator::mode::basic), max_uint64);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__geometric__expected)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 10u;
+    instance->history().small[0].confirmed[2] = 1u;
+    BOOST_REQUIRE_EQUAL(instance->estimate(2, estimator::mode::geometric), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__economical_double_target_failed__max_uint64)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 10u;
+    instance->history().small[0].confirmed[2] = 1u;
+    BOOST_REQUIRE_EQUAL(instance->estimate(1, estimator::mode::economical), max_uint64);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__economical_all_targets_pass__expected)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 10u;
+    BOOST_REQUIRE_EQUAL(instance->estimate(1, estimator::mode::economical), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__conservative_double_target_failed__max_uint64)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 10u;
+    instance->history().small[0].confirmed[2] = 1u;
+    BOOST_REQUIRE_EQUAL(instance->estimate(1, estimator::mode::conservative), max_uint64);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__conservative_all_targets_pass__expected)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 10u;
+    BOOST_REQUIRE_EQUAL(instance->estimate(1, estimator::mode::conservative), 1u);
+}
+
+// history
+
+BOOST_AUTO_TEST_CASE(estimator__history__const__expected)
+{
+    const auto instance = acessor::create();
+    instance->history().top_height = 42u;
+    const auto& constant = *instance;
+    BOOST_REQUIRE_EQUAL(constant.history().top_height, 42u);
+}
+
+// update
+
+BOOST_AUTO_TEST_CASE(estimator__push__zero_bytes__false)
+{
+    const auto instance = acessor::create();
+    const acessor::rates block{ { 0u, 1u } };
+    BOOST_REQUIRE(!instance->push(block));
+}
+
+BOOST_AUTO_TEST_CASE(estimator__push__zero_fee__not_counted)
+{
+    const auto instance = acessor::create();
+    const acessor::rates block{ { 10u, 0u } };
+    BOOST_REQUIRE(instance->push(block));
+    BOOST_REQUIRE_EQUAL(instance->history().small[0].total, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__push__below_minimum_rate__not_counted)
+{
+    const auto instance = acessor::create();
+    const acessor::rates block{ { 100u, 1u } };
+    BOOST_REQUIRE(instance->push(block));
+    BOOST_REQUIRE_EQUAL(instance->history().small[0].total, 0u);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
