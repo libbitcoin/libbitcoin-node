@@ -39,7 +39,7 @@ struct chaser_check_setup_fixture
     {
         code ec;
         map_ptr map;
-        job::ptr job;
+        job::ptr racer;
     };
 
     struct subscription
@@ -433,7 +433,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__get_hashes__candidates__expected_map, chas
 {
     const auto work = get_hashes();
     BOOST_REQUIRE(!work.ec);
-    BOOST_REQUIRE(work.job);
+    BOOST_REQUIRE(work.racer);
     BOOST_REQUIRE_EQUAL(work.map->size(), one);
     BOOST_REQUIRE(work.map->exists(p2p_compact_setup_fixture::block1().hash()));
     BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
@@ -465,7 +465,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__get_hashes__purging__dropped, chaser_check
     std::atomic_bool put{ false };
     node_.get_hashes([&](const code&, const map_ptr&, const job::ptr&) NOEXCEPT { got = true; });
     node_.put_hashes(work.map, [&](const code&) NOEXCEPT { put = true; });
-    work.job.reset();
+    work.racer.reset();
 
     chases::download download{};
     BOOST_REQUIRE(await(download));
@@ -522,7 +522,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__bump__purging__download_on_purged, chaser_
 
     chases::stall stall{};
     BOOST_REQUIRE(await(stall));
-    work.job.reset();
+    work.racer.reset();
 
     chases::download download{};
     BOOST_REQUIRE(await(download));
