@@ -69,12 +69,8 @@ bool protocol_block_out_70014::handle_receive_get_data(const code& ec,
             continue;
 
         const auto link = query.to_header(item.hash);
-        if (link.is_terminal() || !query.is_associated(link))
-        {
-            LOGV("Requested compact block " << encode_hash(item.hash)
-                << " from [" << opposite() << "] not stored.");
+        if (!is_servable(item.hash, link))
             continue;
-        }
 
         const auto block = make_compact_block(link);
         if (!block)
@@ -103,13 +99,8 @@ bool protocol_block_out_70014::handle_receive_get_compact_transactions(
 
     const auto& query = archive();
     const auto link = query.to_header(message->block_hash);
-    if (link.is_terminal() || !query.is_associated(link))
-    {
-        LOGV("Requested compact transactions " << encode_hash(
-            message->block_hash) << " from [" << opposite()
-            << "] not stored.");
+    if (!is_servable(message->block_hash, link))
         return true;
-    }
 
     const auto txs = query.to_transactions(link);
     compact_transactions out{ message->block_hash, {} };
