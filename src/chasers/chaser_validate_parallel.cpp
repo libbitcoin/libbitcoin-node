@@ -60,11 +60,6 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else
     {
-        // TODO: a current block that is not fully pooled revalidates all of
-        // its txs, including those sufficiently pooled. A better fallback
-        // would validate only the insufficiently pooled txs, relying on the
-        // pool for the others (as validate_pooled does for all txs).
-
         // TODO: implement allocator parameter resulting in full allocation to
         // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
         const auto block = query.get_block(link, node_witness_);
