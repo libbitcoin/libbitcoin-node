@@ -304,7 +304,7 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
         const auto& tx = txs.at(index);
         const auto position = block.missing.at(index);
         if (!tx || (to_short_id(block.key, tx->is_coinbase() ?
-            bitcoin_hash(tx->to_data(true)) : tx->hash(true)) !=
+            bitcoin_hash(tx->to_data(true)) : tx->get_hash(true)) !=
             block.short_ids.at(position)))
         {
             LOGR("Invalid compact transaction from [" << opposite() << "].");
@@ -344,8 +344,8 @@ void protocol_header_in_70014::identify() NOEXCEPT
     {
         if (const auto& tx = block.txs.at(position); tx)
         {
-            txids.at(position) = tx->hash(false);
-            wtxids.at(position) = tx->hash(true);
+            txids.at(position) = tx->get_hash(false);
+            wtxids.at(position) = tx->get_hash(true);
             continue;
         }
 
