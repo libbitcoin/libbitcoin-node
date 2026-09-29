@@ -250,6 +250,20 @@ struct chaser_check_compact_setup_fixture
     }
 };
 
+// A compact candidate deferred beyond a one second performance sample period.
+struct chaser_check_compact_sampled_setup_fixture
+  : chaser_check_setup_fixture
+{
+    inline chaser_check_compact_sampled_setup_fixture()
+      : chaser_check_setup_fixture(chaser_check_compact_setup_fixture::compact, [](configuration& config)
+        {
+            config.node.compact_timeout_seconds = 3;
+            config.node.sample_period_seconds = 1;
+        })
+    {
+    }
+};
+
 BC_POP_WARNING()
 
 namespace peer = network::messages::peer;
@@ -730,6 +744,16 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__partial_then_no_by
     BOOST_REQUIRE(associated(block1.hash()));
 
     BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__idle__deferred_get_data, chaser_check_compact_sampled_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(peer_services));
+
+    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
+    BOOST_REQUIRE(request);
+    BOOST_REQUIRE_EQUAL(request->items.size(), one);
+    BOOST_REQUIRE(request->items.front().hash == p2p_compact_setup_fixture::block1().hash());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
