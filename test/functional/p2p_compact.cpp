@@ -42,7 +42,7 @@ static compact_block shortened(const chain::block& block)
 {
     const auto key = compact_accessor::to_compact_key(block.header(), 42);
     const auto& coinbase = *block.transactions_ptr()->front();
-    const auto id = compact_accessor::to_mini(compact_accessor::to_short_id(key, coinbase.hash(true)));
+    const auto id = compact_accessor::to_mini(compact_accessor::to_short_id(key, bitcoin_hash(coinbase.to_data(true))));
     return { block.header_ptr(), 42, { id }, {} };
 }
 

@@ -297,12 +297,14 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
         return false;
     }
 
-    // The peer's short id for each position must match its own tx.
+    // The peer's short id for each position must match its own tx. A coinbase
+    // short id is over its witness serialization, not its null wtxid (bip152).
     for (size_t index{}; index < txs.size(); ++index)
     {
         const auto& tx = txs.at(index);
         const auto position = block.missing.at(index);
-        if (!tx || (to_short_id(block.key, tx->hash(true)) !=
+        if (!tx || (to_short_id(block.key, tx->is_coinbase() ?
+            bitcoin_hash(tx->to_data(true)) : tx->hash(true)) !=
             block.short_ids.at(position)))
         {
             LOGR("Invalid compact transaction from [" << opposite() << "].");
