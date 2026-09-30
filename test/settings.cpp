@@ -73,4 +73,18 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE(node.memory_priority_() == network::memory_priority::highest);
 }
 
+BOOST_AUTO_TEST_CASE(settings__services_provided__default__network_witness)
+{
+    const node::settings node{};
+    BOOST_REQUIRE_EQUAL(node.services_provided(), 0x0009_u64);
+}
+
+BOOST_AUTO_TEST_CASE(settings__services_provided__filters_privacy__network_witness_filters_v2)
+{
+    node::settings node{};
+    node.provide_filters = true;
+    node.provide_privacy = true;
+    BOOST_REQUIRE_EQUAL(node.services_provided(), 0x0849_u64);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
