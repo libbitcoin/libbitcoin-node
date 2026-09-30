@@ -390,42 +390,42 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__starved__no_speeds__stall, chaser_check_se
 
 // regressed
 
-BOOST_FIXTURE_TEST_CASE(chaser_check__regressed__below_window__purged_and_downloaded, chaser_check_candidate_setup_fixture, * boost::unit_test::disabled())
-{
-    subscribe();
-    node_.notify({}, chases::regressed{ 0 });
+////BOOST_FIXTURE_TEST_CASE(chaser_check__regressed__below_window__purged_and_downloaded, chaser_check_candidate_setup_fixture)
+////{
+////    subscribe();
+////    node_.notify({}, chases::regressed{ 0 });
 
-    chases::purge purge{};
-    BOOST_REQUIRE(await(purge));
-    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
+////    chases::purge purge{};
+////    BOOST_REQUIRE(await(purge));
+////    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
 
-    chases::download download{};
-    BOOST_REQUIRE(await(download));
-    BOOST_REQUIRE_EQUAL(download.count, two);
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
-}
+////    chases::download download{};
+////    BOOST_REQUIRE(await(download));
+////    BOOST_REQUIRE_EQUAL(download.count, two);
+////    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
+////    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
+////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_check__regressed__above_window__not_purged, chaser_check_candidate_setup_fixture, * boost::unit_test::disabled())
-{
-    subscribe();
-    node_.notify({}, chases::regressed{ 5 });
-    node_.notify({}, chases::regressed{ 0 });
+////BOOST_FIXTURE_TEST_CASE(chaser_check__regressed__above_window__not_purged, chaser_check_candidate_setup_fixture)
+////{
+////    subscribe();
+////    node_.notify({}, chases::regressed{ 5 });
+////    node_.notify({}, chases::regressed{ 0 });
 
-    chases::purge purge{};
-    BOOST_REQUIRE(await(purge));
-    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
-}
+////    chases::purge purge{};
+////    BOOST_REQUIRE(await(purge));
+////    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
+////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_check__disorganized__below_window__purged, chaser_check_candidate_setup_fixture, * boost::unit_test::disabled())
-{
-    subscribe();
-    node_.notify({}, chases::disorganized{ 0 });
+////BOOST_FIXTURE_TEST_CASE(chaser_check__disorganized__below_window__purged, chaser_check_candidate_setup_fixture)
+////{
+////    subscribe();
+////    node_.notify({}, chases::disorganized{ 0 });
 
-    chases::purge purge{};
-    BOOST_REQUIRE(await(purge));
-    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
-}
+////    chases::purge purge{};
+////    BOOST_REQUIRE(await(purge));
+////    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
+////}
 
 // get_hashes/put_hashes
 

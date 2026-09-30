@@ -424,48 +424,48 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__equal_work_branch__cache
     BOOST_REQUIRE_EQUAL(duplicate.second, 1u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_cached_branch__reorganized, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto b1 = make(genesis_hash(), 2);
-    const auto b2 = make(b1->hash(), 3);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+////BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_cached_branch__reorganized, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    const auto b1 = make(genesis_hash(), 2);
+////    const auto b2 = make(b1->hash(), 3);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
 
-    const auto result = organize(b2, false);
-    BOOST_REQUIRE_EQUAL(result.first, error::success);
-    BOOST_REQUIRE_EQUAL(result.second, 2u);
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
-    BOOST_REQUIRE(candidate(1, b1->hash()));
-    BOOST_REQUIRE(candidate(2, b2->hash()));
-    BOOST_REQUIRE(!query_.is_candidate_header(query_.to_header(a1->hash())));
-}
+////    const auto result = organize(b2, false);
+////    BOOST_REQUIRE_EQUAL(result.first, error::success);
+////    BOOST_REQUIRE_EQUAL(result.second, 2u);
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+////    BOOST_REQUIRE(candidate(1, b1->hash()));
+////    BOOST_REQUIRE(candidate(2, b2->hash()));
+////    BOOST_REQUIRE(!query_.is_candidate_header(query_.to_header(a1->hash())));
+////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_archived_branch__reorganized, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto a2 = make(a1->hash(), 4);
-    const auto a3 = make(a2->hash(), 5);
-    const auto b1 = make(genesis_hash(), 2);
-    const auto b2 = make(b1->hash(), 3);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b2, false).first, error::success);
-    BOOST_REQUIRE(candidate(2, b2->hash()));
+////BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_archived_branch__reorganized, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    const auto a2 = make(a1->hash(), 4);
+////    const auto a3 = make(a2->hash(), 5);
+////    const auto b1 = make(genesis_hash(), 2);
+////    const auto b2 = make(b1->hash(), 3);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+////    BOOST_REQUIRE(candidate(2, b2->hash()));
 
-    const auto weak = organize(a2, false);
-    BOOST_REQUIRE_EQUAL(weak.first, error::success);
-    BOOST_REQUIRE_EQUAL(weak.second, 2u);
-    BOOST_REQUIRE(candidate(2, b2->hash()));
+////    const auto weak = organize(a2, false);
+////    BOOST_REQUIRE_EQUAL(weak.first, error::success);
+////    BOOST_REQUIRE_EQUAL(weak.second, 2u);
+////    BOOST_REQUIRE(candidate(2, b2->hash()));
 
-    const auto result = organize(a3, false);
-    BOOST_REQUIRE_EQUAL(result.first, error::success);
-    BOOST_REQUIRE_EQUAL(result.second, 3u);
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 3u);
-    BOOST_REQUIRE(candidate(1, a1->hash()));
-    BOOST_REQUIRE(candidate(2, a2->hash()));
-    BOOST_REQUIRE(candidate(3, a3->hash()));
-}
+////    const auto result = organize(a3, false);
+////    BOOST_REQUIRE_EQUAL(result.first, error::success);
+////    BOOST_REQUIRE_EQUAL(result.second, 3u);
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 3u);
+////    BOOST_REQUIRE(candidate(1, a1->hash()));
+////    BOOST_REQUIRE(candidate(2, a2->hash()));
+////    BOOST_REQUIRE(candidate(3, a3->hash()));
+////}
 
 BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__fork_activation__candidate, chaser_header_fork_setup_fixture)
 {
@@ -539,28 +539,28 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__under_reached_checkpoint
     BOOST_REQUIRE_EQUAL(orphan.first, error::orphan_header);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__above_reached_checkpoint__reorganized, chaser_header_checkpoint_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto a2 = make(a1->hash(), 3);
-    const auto a3 = make(a2->hash(), 4);
-    const auto c3 = make(a2->hash(), 5);
-    const auto c4 = make(c3->hash(), 6);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(a3, false).first, error::success);
+////BOOST_FIXTURE_TEST_CASE(chaser_header__organize_proven__above_reached_checkpoint__reorganized, chaser_header_checkpoint_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    const auto a2 = make(a1->hash(), 3);
+////    const auto a3 = make(a2->hash(), 4);
+////    const auto c3 = make(a2->hash(), 5);
+////    const auto c4 = make(c3->hash(), 6);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(a3, false).first, error::success);
 
-    const auto weak = organize(c3, false);
-    BOOST_REQUIRE_EQUAL(weak.first, error::success);
-    BOOST_REQUIRE_EQUAL(weak.second, 3u);
-    BOOST_REQUIRE(candidate(3, a3->hash()));
+////    const auto weak = organize(c3, false);
+////    BOOST_REQUIRE_EQUAL(weak.first, error::success);
+////    BOOST_REQUIRE_EQUAL(weak.second, 3u);
+////    BOOST_REQUIRE(candidate(3, a3->hash()));
 
-    const auto result = organize(c4, false);
-    BOOST_REQUIRE_EQUAL(result.first, error::success);
-    BOOST_REQUIRE_EQUAL(result.second, 4u);
-    BOOST_REQUIRE(candidate(3, c3->hash()));
-    BOOST_REQUIRE(candidate(4, c4->hash()));
-}
+////    const auto result = organize(c4, false);
+////    BOOST_REQUIRE_EQUAL(result.first, error::success);
+////    BOOST_REQUIRE_EQUAL(result.second, 4u);
+////    BOOST_REQUIRE(candidate(3, c3->hash()));
+////    BOOST_REQUIRE(candidate(4, c4->hash()));
+////}
 
 // window
 // ----------------------------------------------------------------------------
@@ -624,19 +624,19 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__prioritize__unknown__not_found, chaser_he
     BOOST_REQUIRE_EQUAL(result.second, 0u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__prioritize__tied_branch__reorganized, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto b1 = make(genesis_hash(), 2);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-    BOOST_REQUIRE(candidate(1, a1->hash()));
+////BOOST_FIXTURE_TEST_CASE(chaser_header__prioritize__tied_branch__reorganized, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    const auto b1 = make(genesis_hash(), 2);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+////    BOOST_REQUIRE(candidate(1, a1->hash()));
 
-    const auto result = prioritize(b1->hash());
-    BOOST_REQUIRE_EQUAL(result.first, error::success);
-    BOOST_REQUIRE_EQUAL(result.second, 1u);
-    BOOST_REQUIRE(candidate(1, b1->hash()));
-}
+////    const auto result = prioritize(b1->hash());
+////    BOOST_REQUIRE_EQUAL(result.first, error::success);
+////    BOOST_REQUIRE_EQUAL(result.second, 1u);
+////    BOOST_REQUIRE(candidate(1, b1->hash()));
+////}
 
 BOOST_FIXTURE_TEST_CASE(chaser_header__prioritize__cached_with_child__unchanged, chaser_header_setup_fixture)
 {
@@ -659,76 +659,76 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__prioritize__cached_with_child__unchanged,
 // disorganize
 // ----------------------------------------------------------------------------
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_top__disorganized, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto a2 = make(a1->hash(), 2);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-    BOOST_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::disorganized));
-    flush();
+////BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_top__disorganized, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    const auto a2 = make(a1->hash(), 2);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+////    BOOST_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::disorganized));
+////    flush();
 
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
-    BOOST_REQUIRE(unconfirmable(a2->hash()));
-    BOOST_REQUIRE(!unconfirmable(a1->hash()));
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
+////    BOOST_REQUIRE(unconfirmable(a2->hash()));
+////    BOOST_REQUIRE(!unconfirmable(a1->hash()));
 
-    const auto cached = organize(make(genesis_hash(), 1), false);
-    BOOST_REQUIRE_EQUAL(cached.first, error::duplicate_header);
-    BOOST_REQUIRE_EQUAL(cached.second, 1u);
-}
+////    const auto cached = organize(make(genesis_hash(), 1), false);
+////    BOOST_REQUIRE_EQUAL(cached.first, error::duplicate_header);
+////    BOOST_REQUIRE_EQUAL(cached.second, 1u);
+////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unchecked_first__disorganized, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto a2 = make(a1->hash(), 2);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-    BOOST_REQUIRE(notify(chases::unchecked{ link(a1->hash()) }, chase::disorganized));
+////BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unchecked_first__disorganized, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    const auto a2 = make(a1->hash(), 2);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+////    BOOST_REQUIRE(notify(chases::unchecked{ link(a1->hash()) }, chase::disorganized));
 
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
-    BOOST_REQUIRE(unconfirmable(a1->hash()));
-    BOOST_REQUIRE(unconfirmable(a2->hash()));
-}
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
+////    BOOST_REQUIRE(unconfirmable(a1->hash()));
+////    BOOST_REQUIRE(unconfirmable(a2->hash()));
+////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unconfirmable_top__disorganized, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE(notify(chases::unconfirmable{ link(a1->hash()) }, chase::disorganized));
+////BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unconfirmable_top__disorganized, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE(notify(chases::unconfirmable{ link(a1->hash()) }, chase::disorganized));
 
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
-    BOOST_REQUIRE(unconfirmable(a1->hash()));
-}
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
+////    BOOST_REQUIRE(unconfirmable(a1->hash()));
+////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_above_confirmed__confirmed_candidates, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    const auto a2 = make(a1->hash(), 2);
-    const auto b1 = make(genesis_hash(), 3);
-    const auto b2 = make(b1->hash(), 4);
-    const auto b3 = make(b2->hash(), 5);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-    BOOST_REQUIRE(query_.push_confirmed(query_.to_header(a1->hash()), false));
-    BOOST_REQUIRE(query_.push_confirmed(query_.to_header(a2->hash()), false));
-    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b2, false).first, error::success);
-    BOOST_REQUIRE_EQUAL(organize(b3, false).first, error::success);
-    BOOST_REQUIRE(candidate(3, b3->hash()));
-    BOOST_REQUIRE(notify(chases::unvalid{ link(b2->hash()) }, chase::disorganized));
-    flush();
+////BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_above_confirmed__confirmed_candidates, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    const auto a2 = make(a1->hash(), 2);
+////    const auto b1 = make(genesis_hash(), 3);
+////    const auto b2 = make(b1->hash(), 4);
+////    const auto b3 = make(b2->hash(), 5);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+////    BOOST_REQUIRE(query_.push_confirmed(query_.to_header(a1->hash()), false));
+////    BOOST_REQUIRE(query_.push_confirmed(query_.to_header(a2->hash()), false));
+////    BOOST_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+////    BOOST_REQUIRE_EQUAL(organize(b3, false).first, error::success);
+////    BOOST_REQUIRE(candidate(3, b3->hash()));
+////    BOOST_REQUIRE(notify(chases::unvalid{ link(b2->hash()) }, chase::disorganized));
+////    flush();
 
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
-    BOOST_REQUIRE(candidate(1, a1->hash()));
-    BOOST_REQUIRE(candidate(2, a2->hash()));
-    BOOST_REQUIRE(unconfirmable(b2->hash()));
-    BOOST_REQUIRE(unconfirmable(b3->hash()));
-    BOOST_REQUIRE(!unconfirmable(b1->hash()));
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+////    BOOST_REQUIRE(candidate(1, a1->hash()));
+////    BOOST_REQUIRE(candidate(2, a2->hash()));
+////    BOOST_REQUIRE(unconfirmable(b2->hash()));
+////    BOOST_REQUIRE(unconfirmable(b3->hash()));
+////    BOOST_REQUIRE(!unconfirmable(b1->hash()));
 
-    const auto cached = organize(make(genesis_hash(), 3), false);
-    BOOST_REQUIRE_EQUAL(cached.first, error::duplicate_header);
-    BOOST_REQUIRE_EQUAL(cached.second, 1u);
-}
+////    const auto cached = organize(make(genesis_hash(), 3), false);
+////    BOOST_REQUIRE_EQUAL(cached.first, error::duplicate_header);
+////    BOOST_REQUIRE_EQUAL(cached.second, 1u);
+////}
 
 BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_not_candidate__unchanged, chaser_header_setup_fixture)
 {
@@ -744,17 +744,17 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_not_candidate__unch
     BOOST_REQUIRE(!unconfirmable(x1->hash()));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_fork_point__unchanged, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto a1 = make(genesis_hash(), 1);
-    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-    BOOST_REQUIRE(notify(chases::unvalid{ link(genesis_hash()) }, chase::unvalid));
-    flush();
+////BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_fork_point__unchanged, chaser_header_setup_fixture)
+////{
+////    const auto a1 = make(genesis_hash(), 1);
+////    BOOST_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+////    BOOST_REQUIRE(notify(chases::unvalid{ link(genesis_hash()) }, chase::unvalid));
+////    flush();
 
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 1u);
-    BOOST_REQUIRE(candidate(1, a1->hash()));
-    BOOST_REQUIRE(!unconfirmable(genesis_hash()));
-}
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 1u);
+////    BOOST_REQUIRE(candidate(1, a1->hash()));
+////    BOOST_REQUIRE(!unconfirmable(genesis_hash()));
+////}
 
 BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__stop__unsubscribed, chaser_header_setup_fixture)
 {
@@ -768,18 +768,18 @@ BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__stop__unsubscribed, chaser_
     BOOST_REQUIRE(!unconfirmable(a1->hash()));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unstored_fork_point__unchanged, chaser_header_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto x2 = make(genesis_hash(), 1);
-    BOOST_REQUIRE(query_.push_candidate(database::header_link{ 42 }));
-    BOOST_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
-    BOOST_REQUIRE(push(*x2, 2, 2));
-    BOOST_REQUIRE(notify(chases::unvalid{ link(x2->hash()) }, chase::unvalid));
-    flush();
+////BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unstored_fork_point__unchanged, chaser_header_setup_fixture)
+////{
+////    const auto x2 = make(genesis_hash(), 1);
+////    BOOST_REQUIRE(query_.push_candidate(database::header_link{ 42 }));
+////    BOOST_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
+////    BOOST_REQUIRE(push(*x2, 2, 2));
+////    BOOST_REQUIRE(notify(chases::unvalid{ link(x2->hash()) }, chase::unvalid));
+////    flush();
 
-    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
-    BOOST_REQUIRE(!unconfirmable(x2->hash()));
-}
+////    BOOST_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+////    BOOST_REQUIRE(!unconfirmable(x2->hash()));
+////}
 
 BOOST_FIXTURE_TEST_CASE(chaser_header__handle_chase__unstored_candidate_below__unchanged, chaser_header_setup_fixture)
 {
