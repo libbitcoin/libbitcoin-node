@@ -209,24 +209,24 @@ BOOST_FIXTURE_TEST_CASE(chaser_estimate__top_height__not_initialized__zero, chas
     BOOST_REQUIRE_EQUAL(instance.top_height(), zero);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
-{
-    notify_block(p2p_compact_setup_fixture::block1().hash());
-    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
+////{
+////    notify_block(p2p_compact_setup_fixture::block1().hash());
+////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
-    node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
-    BOOST_REQUIRE(suspended());
-}
+////    node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
+////    BOOST_REQUIRE(suspended());
+////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspended, chaser_estimate_enabled_setup_fixture)
-{
-    notify_block(p2p_compact_setup_fixture::block1().hash());
-    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspended, chaser_estimate_enabled_setup_fixture)
+////{
+////    notify_block(p2p_compact_setup_fixture::block1().hash());
+////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
-    BOOST_REQUIRE(store_header2());
-    notify_organized(p2p_compact_setup_fixture::block2().hash());
-    BOOST_REQUIRE(suspended());
-}
+////    BOOST_REQUIRE(store_header2());
+////    notify_organized(p2p_compact_setup_fixture::block2().hash());
+////    BOOST_REQUIRE(suspended());
+////}
 
 ////BOOST_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
 ////{

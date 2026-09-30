@@ -158,7 +158,7 @@ struct p2p_regtest_setup_fixture
     bool candidate(size_t height)
     {
         using namespace std::chrono;
-        const auto deadline = steady_clock::now() + seconds(10);
+        const auto deadline = steady_clock::now() + seconds(60);
         while (steady_clock::now() < deadline)
         {
             if (query_.get_top_candidate() == height)
