@@ -366,8 +366,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
 // Header is checked by header_in, Check/Accept/Connect are called by validate.
 // While check could be called here, it's more optimal to defer to validate, as
-// requiring only identity here allows the use of the simplified block_view.
-code protocol_block_in_31800::identify(const chain::block_view& block,
+// requiring only identity here allows the use of the simplified view::block.
+code protocol_block_in_31800::identify(const chain::view::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
     if (const auto ec = block.identify())
