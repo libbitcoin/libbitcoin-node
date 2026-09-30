@@ -580,7 +580,6 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable__s
     receive(get_headers::command);
 
     send(message, level::headers_protocol);
-    send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
     BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
 }
@@ -597,7 +596,6 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable_pa
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     BOOST_REQUIRE(query_.set_block_unconfirmable(query_.to_header(genesis.hash())));
     send(message, level::headers_protocol);
-    send(get_headers{ { header1()->hash() }, system::null_hash }, level::headers_protocol);
 
     BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
 }
