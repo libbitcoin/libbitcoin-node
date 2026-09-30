@@ -485,17 +485,17 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__invalid_schnorr_signature__un
     BOOST_REQUIRE(await([&]() { return is_zero(query_.schnorr_records()) && is_zero(query_.prevalid_records()); }));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_validate__regressed__confirmed_candidates__unchanged, validate_unvalidated_fixture, * boost::unit_test::disabled())
-{
-    BOOST_REQUIRE(confirmed(2));
-    node_.notify(node::error::success, chases::unfull{});
-    node_.notify(node::error::success, chases::regressed{ 0 });
-    node_.notify(node::error::success, chases::disorganized{ 0 });
-    node_.notify(node::error::success, chases::bump{ 0 });
-    node_.notify(node::error::success, chases::checked{ 1 });
-    BOOST_REQUIRE(stated(validate_a2(), database::error::block_confirmable));
-    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), 2u);
-}
+////BOOST_FIXTURE_TEST_CASE(chaser_validate__regressed__confirmed_candidates__unchanged, validate_unvalidated_fixture)
+////{
+////    BOOST_REQUIRE(confirmed(2));
+////    node_.notify(node::error::success, chases::unfull{});
+////    node_.notify(node::error::success, chases::regressed{ 0 });
+////    node_.notify(node::error::success, chases::disorganized{ 0 });
+////    node_.notify(node::error::success, chases::bump{ 0 });
+////    node_.notify(node::error::success, chases::checked{ 1 });
+////    BOOST_REQUIRE(stated(validate_a2(), database::error::block_confirmable));
+////    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), 2u);
+////}
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__bump__unfull_new_candidate__confirmable, validate_unvalidated_fixture)
 {

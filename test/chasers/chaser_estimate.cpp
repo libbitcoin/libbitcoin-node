@@ -186,21 +186,21 @@ BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__initialized_no_fees__estimate
     BOOST_REQUIRE_EQUAL(result.second, estimator::estimate_failed);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__estimate_false, chaser_estimate_enabled_setup_fixture, * boost::unit_test::disabled())
-{
-    const auto& block1 = p2p_compact_setup_fixture::block1();
-    const auto& block2 = p2p_compact_setup_fixture::block2();
-    notify_block(block1.hash());
-    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__estimate_false, chaser_estimate_enabled_setup_fixture)
+////{
+////    const auto& block1 = p2p_compact_setup_fixture::block1();
+////    const auto& block2 = p2p_compact_setup_fixture::block2();
+////    notify_block(block1.hash());
+////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
-    notify_block(block1.hash());
-    notify_organized(block1.hash());
-    BOOST_REQUIRE(confirm2());
-    notify_organized(block2.hash());
-    notify_reorganized(block2.hash());
-    notify_reorganized(block2.hash());
-    BOOST_REQUIRE_EQUAL(estimate(1, estimator::mode::basic).first, node::error::estimate_false);
-}
+////    notify_block(block1.hash());
+////    notify_organized(block1.hash());
+////    BOOST_REQUIRE(confirm2());
+////    notify_organized(block2.hash());
+////    notify_reorganized(block2.hash());
+////    notify_reorganized(block2.hash());
+////    BOOST_REQUIRE_EQUAL(estimate(1, estimator::mode::basic).first, node::error::estimate_false);
+////}
 
 BOOST_FIXTURE_TEST_CASE(chaser_estimate__top_height__not_initialized__zero, chaser_estimate_enabled_setup_fixture)
 {
@@ -228,13 +228,13 @@ BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspe
     BOOST_REQUIRE(suspended());
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture, * boost::unit_test::disabled())
-{
-    notify_block(p2p_compact_setup_fixture::block1().hash());
-    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////BOOST_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
+////{
+////    notify_block(p2p_compact_setup_fixture::block1().hash());
+////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
-    node_.notify(node::error::success, chases::reorganized{ node::header_t{ 42 } });
-    BOOST_REQUIRE(suspended());
-}
+////    node_.notify(node::error::success, chases::reorganized{ node::header_t{ 42 } });
+////    BOOST_REQUIRE(suspended());
+////}
 
 BOOST_AUTO_TEST_SUITE_END()
