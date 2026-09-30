@@ -195,7 +195,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         }
 
         link = query.to_header(item.hash);
-        if (is_servable(item, link))
+        if (is_servable(item.hash, link))
             break;
 
         if (!handle_unservable(item))
@@ -234,7 +234,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
 }
 
 // The checkpoint, milestone and association queries assume an archived header.
-bool protocol_block_out_106::is_servable(const inventory_item& LOG_ONLY(item),
+bool protocol_block_out_106::is_servable(const hash_digest& LOG_ONLY(hash),
     const database::header_link& link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -242,7 +242,7 @@ bool protocol_block_out_106::is_servable(const inventory_item& LOG_ONLY(item),
     // A hash that resolves to no header is ordinary peer input.
     if (link.is_terminal())
     {
-        LOGV("Requested block " << encode_hash(item.hash) << " from ["
+        LOGV("Requested block " << encode_hash(hash) << " from ["
             << opposite() << "] not stored.");
         return false;
     }
@@ -250,7 +250,7 @@ bool protocol_block_out_106::is_servable(const inventory_item& LOG_ONLY(item),
     const auto& query = archive();
     if (node_pruned_ && (is_under_checkpoint(link) || query.is_milestone(link)))
     {
-        LOGV("Requested pruned block " << encode_hash(item.hash)
+        LOGV("Requested pruned block " << encode_hash(hash)
             << " from [" << opposite() << "].");
         return false;
     }
@@ -258,7 +258,7 @@ bool protocol_block_out_106::is_servable(const inventory_item& LOG_ONLY(item),
     // This block could not have been advertised to the peer.
     if (!query.is_associated(link))
     {
-        LOGV("Requested block " << encode_hash(item.hash) << " from ["
+        LOGV("Requested block " << encode_hash(hash) << " from ["
             << opposite() << "] not found.");
         return false;
     }

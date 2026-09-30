@@ -110,6 +110,7 @@
     <ClCompile Include="..\..\..\..\test\estimator.cpp" />
     <ClCompile Include="..\..\..\..\test\full_node.cpp" />
     <ClCompile Include="..\..\..\..\test\functional\p2p.cpp" />
+    <ClCompile Include="..\..\..\..\test\functional\p2p_compact.cpp" />
     <ClCompile Include="..\..\..\..\test\functional\p2p_setup_fixture.cpp" />
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp" />

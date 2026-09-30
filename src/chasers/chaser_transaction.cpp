@@ -225,6 +225,14 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    constexpr auto terminal = database::tx_link::terminal;
+    const auto count = std::ranges::count(links, terminal);
+    if (possible_narrow_sign_cast<size_t>(count) != txs->size())
+    {
+        handler(error::transaction5, {});
+        return;
+    }
+
     // Txs are an arbitrary subset of the block, so block checks are deferred to
     // validation. Each is archived before the next, so in block order a parent
     // is resolved from the store.
@@ -232,64 +240,20 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     auto filled = links;
     for (auto& fk: filled)
     {
-        if (fk != database::tx_link::terminal)
+        if (fk != terminal)
             continue;
 
-        if (index >= txs->size())
+        database::tx_link out{};
+        if (const auto ec = fill(out, *txs->at(index), ctx))
         {
-            handler(error::transaction5, index);
+            const auto faulted = node::error::error_category::contains(ec) ||
+                database::error::error_category::contains(ec);
+            handler(faulted ? ec : unconfirmable(link, ctx.height, ec), index);
             return;
         }
 
-        const auto& tx = *txs->at(index);
-        if (const auto stored = to_stored(tx); !stored.is_terminal())
-        {
-            fk = stored;
-            ++index;
-            continue;
-        }
-
-        // An identified block with an invalid tx is invalid.
-        if (const auto ec = validate(tx, ctx))
-        {
-            if (!query.set_block_unconfirmable(link))
-            {
-                handler(fault(error::transaction4), index);
-                return;
-            }
-
-            LOGR("Compact block failed check [" << ctx.height << "] "
-                << ec.message());
-            notify(error::success, chases::unchecked{ link });
-            fire(events::block_unconfirmable, ctx.height);
-            handler(ec, index);
-            return;
-        }
-
-        bool pooled{};
-        database::tx_link tx_fk{};
-
-        // Disk full may leave txs partly archived, resolves by resubmit.
-        if (const auto ec = query.set_code(tx_fk, pooled, tx))
-        {
-            handler(fault(ec), index);
-            return;
-        }
-
-        fk = tx_fk;
-        if (!pooled && !tx.is_coinbase() && !query.set_pooled(tx_fk, tx, ctx))
-        {
-            handler(fault(error::transaction2), index);
-            return;
-        }
-
+        fk = out;
         ++index;
-    }
-
-    if (index != txs->size())
-    {
-        handler(error::transaction5, index);
-        return;
     }
 
     const auto strong = is_under_checkpoint(ctx.height);
@@ -317,6 +281,43 @@ database::tx_link chaser_transaction::to_stored(
             return link;
 
     return {};
+}
+
+// The stored tx, or validated and archived, pooled under the block context.
+code chaser_transaction::fill(database::tx_link& out,
+    const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
+{
+    out = to_stored(tx);
+    if (!out.is_terminal())
+        return error::success;
+
+    if (const auto ec = validate(tx, ctx))
+        return ec;
+
+    bool pooled{};
+    auto& query = archive();
+
+    // Disk full may leave txs partly archived, resolves by resubmit.
+    if (const auto ec = query.set_code(out, pooled, tx))
+        return fault(ec);
+
+    if (!pooled && !tx.is_coinbase() && !query.set_pooled(out, tx, ctx))
+        return fault(error::transaction2);
+
+    return error::success;
+}
+
+// An identified block with an invalid tx is invalid.
+code chaser_transaction::unconfirmable(const database::header_link& link,
+    size_t height, const code& ec) NOEXCEPT
+{
+    if (!archive().set_block_unconfirmable(link))
+        return fault(error::transaction4);
+
+    LOGR("Compact block failed check [" << height << "] " << ec.message());
+    notify(error::success, chases::unchecked{ link });
+    fire(events::block_unconfirmable, height);
+    return ec;
 }
 
 // The fee and size are recomputed here, as they are for the package rate and

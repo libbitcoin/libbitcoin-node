@@ -72,6 +72,9 @@
     <ClCompile Include="..\..\..\..\test\functional\p2p.cpp">
       <Filter>src\functional</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\test\functional\p2p_compact.cpp">
+      <Filter>src\functional</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\test\functional\p2p_setup_fixture.cpp">
       <Filter>src\functional</Filter>
     </ClCompile>

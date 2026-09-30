@@ -78,11 +78,13 @@ protected:
     virtual bool report_unservable(size_t index,
         const get_data::cptr& message, const gate_t::ptr& gate) NOEXCEPT;
 
+    /// The block is associated, and not pruned by a limited node.
+    bool is_servable(const system::hash_digest& hash,
+        const database::header_link& link) NOEXCEPT;
+
 private:
     using inventory = network::messages::peer::inventory;
 
-    bool is_servable(const inventory_item& item,
-        const database::header_link& link) NOEXCEPT;
     bool is_under_checkpoint(const database::header_link& link) NOEXCEPT;
     inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
 

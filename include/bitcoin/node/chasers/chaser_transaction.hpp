@@ -72,6 +72,10 @@ private:
         const system::chain::context& ctx) NOEXCEPT;
     database::tx_link to_stored(
         const system::chain::transaction& tx) const NOEXCEPT;
+    code fill(database::tx_link& out, const system::chain::transaction& tx,
+        const system::chain::context& ctx) NOEXCEPT;
+    code unconfirmable(const database::header_link& link, size_t height,
+        const code& ec) NOEXCEPT;
 
     // These are protected by strand.
     system::chain::context pool_{};
