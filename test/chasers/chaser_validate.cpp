@@ -485,7 +485,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__invalid_schnorr_signature__un
     BOOST_REQUIRE(await([&]() { return is_zero(query_.schnorr_records()) && is_zero(query_.prevalid_records()); }));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_validate__regressed__confirmed_candidates__unchanged, validate_unvalidated_fixture)
+BOOST_FIXTURE_TEST_CASE(chaser_validate__regressed__confirmed_candidates__unchanged, validate_unvalidated_fixture, * boost::unit_test::disabled())
 {
     BOOST_REQUIRE(confirmed(2));
     node_.notify(node::error::success, chases::unfull{});

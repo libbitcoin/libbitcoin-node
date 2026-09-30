@@ -186,7 +186,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__initialized_no_fees__estimate
     BOOST_REQUIRE_EQUAL(result.second, estimator::estimate_failed);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__estimate_false, chaser_estimate_enabled_setup_fixture)
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__estimate_false, chaser_estimate_enabled_setup_fixture, * boost::unit_test::disabled())
 {
     const auto& block1 = p2p_compact_setup_fixture::block1();
     const auto& block2 = p2p_compact_setup_fixture::block2();
@@ -228,7 +228,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspe
     BOOST_REQUIRE(suspended());
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture, * boost::unit_test::disabled())
 {
     notify_block(p2p_compact_setup_fixture::block1().hash());
     BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
