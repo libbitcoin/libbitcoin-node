@@ -651,6 +651,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__archived__inventory, chaser_transaction_pooling_setup_fixture)
 {
     BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
 
     const auto tx = spend(parent_value);
     BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
