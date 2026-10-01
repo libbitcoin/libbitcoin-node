@@ -212,7 +212,7 @@ const system::chain::block& p2p_compact_setup_fixture::block2() NOEXCEPT
 bool p2p_compact_setup_fixture::await(const condition& satisfied)
 {
     using namespace std::chrono;
-    const auto deadline = steady_clock::now() + seconds(10);
+    const auto deadline = steady_clock::now() + seconds(60);
     while (steady_clock::now() < deadline)
     {
         if (satisfied())

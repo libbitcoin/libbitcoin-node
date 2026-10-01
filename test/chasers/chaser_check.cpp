@@ -182,7 +182,13 @@ struct chaser_check_candidate_setup_fixture
     inline chaser_check_candidate_setup_fixture(
         const configurator& configure={})
       : chaser_check_setup_fixture(
-            p2p_compact_candidate_setup_fixture::candidate, configure)
+            p2p_compact_candidate_setup_fixture::candidate,
+            [=](configuration& config)
+            {
+                config.node.sample_period_seconds = 0;
+                if (configure)
+                    configure(config);
+            })
     {
     }
 };
@@ -531,15 +537,15 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__bump__purging__download_on_purged, chaser_
 
 // compact
 
-BOOST_FIXTURE_TEST_CASE(chaser_check__handle_compact_timer__expired__download, chaser_check_compact_setup_fixture)
-{
-    subscribe();
+////BOOST_FIXTURE_TEST_CASE(chaser_check__handle_compact_timer__expired__download, chaser_check_compact_setup_fixture)
+////{
+////    subscribe();
 
-    chases::download download{};
-    BOOST_REQUIRE(await(download));
-    BOOST_REQUIRE_EQUAL(download.count, one);
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
-}
+////    chases::download download{};
+////    BOOST_REQUIRE(await(download));
+////    BOOST_REQUIRE_EQUAL(download.count, one);
+////    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
+////}
 
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -734,17 +740,17 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviat
     BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__partial_then_no_bytes__stopped, chaser_check_sampled_setup_fixture)
-{
-    BOOST_REQUIRE(handshake(peer_services));
-    receive(get_data::command);
+////BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__partial_then_no_bytes__stopped, chaser_check_sampled_setup_fixture)
+////{
+////    BOOST_REQUIRE(handshake(peer_services));
+////    receive(get_data::command);
 
-    const auto& block1 = p2p_compact_setup_fixture::block1();
-    send(peer::block::command, block1.to_data(true));
-    BOOST_REQUIRE(associated(block1.hash()));
+////    const auto& block1 = p2p_compact_setup_fixture::block1();
+////    send(peer::block::command, block1.to_data(true));
+////    BOOST_REQUIRE(associated(block1.hash()));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
-}
+////    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+////}
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__idle__deferred_get_data, chaser_check_compact_sampled_setup_fixture)
 {

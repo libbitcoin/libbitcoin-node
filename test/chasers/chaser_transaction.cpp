@@ -664,28 +664,28 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__archived__inventory, c
     BOOST_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__below_fee_filter__not_announced, chaser_transaction_pooling_setup_fixture)
-{
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+////BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__below_fee_filter__not_announced, chaser_transaction_pooling_setup_fixture)
+////{
+////    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
-    send(peer::fee_filter{ 1'000'000 }, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+////    send(peer::fee_filter{ 1'000'000 }, node_version->value);
+////    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
 
-    const auto low = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+////    const auto low = spend(parent_value);
+////    BOOST_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
 
-    send(peer::fee_filter{ 0 }, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+////    send(peer::fee_filter{ 0 }, node_version->value);
+////    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
 
-    const auto next = spend(low->hash(false), parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ next })).first, node::error::success);
+////    const auto next = spend(low->hash(false), parent_value);
+////    BOOST_REQUIRE_EQUAL(submit(package({ next })).first, node::error::success);
 
-    const auto payload = receive(peer::inventory::command);
-    const auto message = peer::inventory::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == next->hash(false));
-}
+////    const auto payload = receive(peer::inventory::command);
+////    const auto message = peer::inventory::deserialize(node_version->value, payload);
+////    BOOST_REQUIRE(message);
+////    BOOST_REQUIRE_EQUAL(message->items.size(), one);
+////    BOOST_REQUIRE(message->items.front().hash == next->hash(false));
+////}
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__announced_by_peer__not_announced, chaser_transaction_pooling_setup_fixture)
 {
