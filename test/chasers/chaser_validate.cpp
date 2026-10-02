@@ -447,10 +447,10 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__start__maximum_height__confirmable, val
     BOOST_REQUIRE(stated(validate_a1(), database::error::block_confirmable));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_prevalid_unbatched__purged, validate_staged_fixture)
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_prevalid__validated_iff_accelerated, validate_staged_fixture)
 {
     BOOST_REQUIRE_EQUAL(query_.prevalid_records(), zero);
-    BOOST_REQUIRE(state(validate_x1()) != database::error::block_valid);
+    BOOST_REQUIRE_EQUAL(state(validate_x1()) == database::error::block_valid, system::batched::accelerated());
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__prevalid__valid, validate_windowed_fixture)
