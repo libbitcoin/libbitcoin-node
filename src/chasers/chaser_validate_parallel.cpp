@@ -105,7 +105,8 @@ void chaser_validate::validate_block(const header_link& link,
         else if ((ec = validate(batched, capturing, block, spends, conflicts,
             link, ctx)))
         {
-            if (!query.set_block_unconfirmable(link))
+            if (!node::error::error_category::contains(ec) &&
+                !query.set_block_unconfirmable(link))
                 ec = error::validate5;
         }
     }
