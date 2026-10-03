@@ -45,13 +45,14 @@ static bool unfiltered(node::query& query)
 static bool confirmed(node::query& query)
 {
     const auto& genesis = mainnet.genesis_block.header();
-    const auto& header1 = p2p_compact_setup_fixture::block1().header();
+    const auto& block1 = p2p_compact_setup_fixture::block1();
+    const auto& header1 = block1.header();
     const auto& header2 = p2p_compact_setup_fixture::block2().header();
     const auto work1 = genesis.proof() + header1.proof();
     const auto work2 = work1 + header2.proof();
     const database::context context1{ 0, 1, genesis.timestamp() };
     const database::context context2{ 0, 2, header1.timestamp() };
-    return query.set(p2p_compact_setup_fixture::block1(), context1, work1, false, true) &&
+    return query.set(block1, context1, work1, false, true) &&
         query.push_candidate(query.to_header(header1.hash())) &&
         query.push_confirmed(query.to_header(header1.hash()), true) &&
         query.set(header2, context2, work2, false) &&
@@ -61,17 +62,20 @@ static bool confirmed(node::query& query)
 // The block 1 header with the block 1 coinbase and a spend of it.
 static const chain::block& paired()
 {
-    const auto& coinbase = *p2p_compact_setup_fixture::block1().transactions_ptr()->front();
+    const auto& block1 = p2p_compact_setup_fixture::block1();
+    const auto& coinbase = *block1.transactions_ptr()->front();
+    const chain::point point{ coinbase.hash(false), 0u };
+    const chain::input input{ point, chain::script{}, max_uint32 };
     static const chain::block instance
     {
-        p2p_compact_setup_fixture::block1().header(),
+        block1.header(),
         chain::transactions
         {
             coinbase,
             chain::transaction
             {
                 1u,
-                chain::inputs{ chain::input{ chain::point{ coinbase.hash(false), 0u }, chain::script{}, max_uint32 } },
+                chain::inputs{ input },
                 chain::outputs{ chain::output{ 0u, chain::script{} } },
                 0u
             }
@@ -85,7 +89,8 @@ static bool archive(node::query& query, const chain::block& block)
 {
     const auto& genesis = mainnet.genesis_block.header();
     const database::context context{ 0, 1, genesis.timestamp() };
-    return query.set(block, context, genesis.proof() + block.header().proof(), false, false);
+    const auto work = genesis.proof() + block.header().proof();
+    return query.set(block, context, work, false, false);
 }
 
 struct protocol_paired_setup_fixture

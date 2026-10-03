@@ -24,7 +24,8 @@
 
 using namespace system;
 
-static const uint64_t confirm_subsidy = system::settings{ chain::selection::mainnet }.initial_subsidy();
+static const system::settings confirm_settings{ chain::selection::mainnet };
+static const uint64_t confirm_subsidy = confirm_settings.initial_subsidy();
 
 static const chain::block& confirm_genesis()
 {
@@ -34,54 +35,78 @@ static const chain::block& confirm_genesis()
 
 static chain::transaction confirm_coinbase(uint8_t tag)
 {
-    const chain::input input{ chain::point{ null_hash, chain::point::null_index }, chain::script{ data_chunk{ 0x01, tag }, false }, max_uint32 };
-    return { 1u, chain::inputs{ input }, chain::outputs{ chain::output{ confirm_subsidy, chain::script{ data_chunk{ 0x51 }, false } } }, 0u };
+    const chain::point null{ null_hash, chain::point::null_index };
+    const chain::script tagged{ data_chunk{ 0x01, tag }, false };
+    const chain::script op_true{ data_chunk{ 0x51 }, false };
+    const chain::input input{ null, tagged, max_uint32 };
+    const chain::output output{ confirm_subsidy, op_true };
+    return { 1u, chain::inputs{ input }, chain::outputs{ output }, 0u };
 }
 
 static chain::transaction confirm_spend(const chain::block& block)
 {
-    const chain::input input{ chain::point{ block.transactions_ptr()->front()->hash(false), 0 }, chain::script{}, max_uint32 };
-    return { 1u, chain::inputs{ input }, chain::outputs{ chain::output{ confirm_subsidy, chain::script{ data_chunk{ 0x51 }, false } } }, 0u };
+    const auto prior = block.transactions_ptr()->front()->hash(false);
+    const chain::point point{ prior, 0 };
+    const chain::script op_true{ data_chunk{ 0x51 }, false };
+    const chain::input input{ point, chain::script{}, max_uint32 };
+    const chain::output output{ confirm_subsidy, op_true };
+    return { 1u, chain::inputs{ input }, chain::outputs{ output }, 0u };
 }
 
-static chain::block confirm_block(const chain::block& parent, uint32_t height, const chain::transactions& txs)
+static chain::block confirm_block(const chain::block& parent, uint32_t height,
+    const chain::transactions& txs)
 {
     const auto& genesis = confirm_genesis().header();
     hashes ids{};
     for (const auto& tx: txs)
         ids.push_back(tx.hash(false));
 
-    const chain::header header{ 1u, parent.hash(), sha256::merkle_root(std::move(ids)), genesis.timestamp() + height * 600u, genesis.bits(), height };
+    const auto previous = parent.hash();
+    const auto root = sha256::merkle_root(std::move(ids));
+    const auto timestamp = genesis.timestamp() + height * 600u;
+    const auto bits = genesis.bits();
+    const chain::header header{ 1u, previous, root, timestamp, bits, height };
     return { header, txs };
 }
 
 static const chain::block& confirm_c1()
 {
-    static const auto instance = confirm_block(confirm_genesis(), 1, { confirm_coinbase(11) });
+    const auto& parent = confirm_genesis();
+    const auto coinbase = confirm_coinbase(11);
+    static const auto instance = confirm_block(parent, 1, { coinbase });
     return instance;
 }
 
 static const chain::block& confirm_c2()
 {
-    static const auto instance = confirm_block(confirm_c1(), 2, { confirm_coinbase(12) });
+    const auto& parent = confirm_c1();
+    const auto coinbase = confirm_coinbase(12);
+    static const auto instance = confirm_block(parent, 2, { coinbase });
     return instance;
 }
 
 static const chain::block& confirm_d1()
 {
-    static const auto instance = confirm_block(confirm_genesis(), 1, { confirm_coinbase(21) });
+    const auto& parent = confirm_genesis();
+    const auto coinbase = confirm_coinbase(21);
+    static const auto instance = confirm_block(parent, 1, { coinbase });
     return instance;
 }
 
 static const chain::block& confirm_d2()
 {
-    static const auto instance = confirm_block(confirm_d1(), 2, { confirm_coinbase(22) });
+    const auto& parent = confirm_d1();
+    const auto coinbase = confirm_coinbase(22);
+    static const auto instance = confirm_block(parent, 2, { coinbase });
     return instance;
 }
 
 static const chain::block& confirm_e2()
 {
-    static const auto instance = confirm_block(confirm_d1(), 2, { confirm_coinbase(23), confirm_spend(confirm_d1()) });
+    const auto& parent = confirm_d1();
+    const auto coinbase = confirm_coinbase(23);
+    const auto spend = confirm_spend(parent);
+    static const auto instance = confirm_block(parent, 2, { coinbase, spend });
     return instance;
 }
 
@@ -93,36 +118,48 @@ static const chain::block& confirm_e2()
 ////    return { header, { coinbase } };
 ////}
 
-static bool confirm_store(node::query& query, const chain::block& block, uint32_t height)
+static bool confirm_store(node::query& query, const chain::block& block,
+    uint32_t height)
 {
     const auto& genesis = confirm_genesis().header();
     const database::context context{ 0, height, genesis.timestamp() };
-    return query.set(block, context, genesis.proof() * add1(height), false, false);
+    const auto work = genesis.proof() * add1(height);
+    return query.set(block, context, work, false, false);
 }
 
-static bool confirm_candidate(node::query& query, const chain::block& block, uint32_t height)
+static bool confirm_candidate(node::query& query, const chain::block& block,
+    uint32_t height)
 {
-    return confirm_store(query, block, height) && query.push_candidate(query.to_header(block.hash()));
+    return confirm_store(query, block, height) &&
+        query.push_candidate(query.to_header(block.hash()));
 }
 
-static bool confirm_confirmed(node::query& query, const chain::block& block, uint32_t height)
+static bool confirm_confirmed(node::query& query, const chain::block& block,
+    uint32_t height)
 {
-    return confirm_store(query, block, height) && query.set_block_confirmable(query.to_header(block.hash())) && query.push_confirmed(query.to_header(block.hash()), true);
+    return confirm_store(query, block, height) &&
+        query.set_block_confirmable(query.to_header(block.hash())) &&
+        query.push_confirmed(query.to_header(block.hash()), true);
 }
 
 static bool confirm_stronger(node::query& query)
 {
-    return confirm_confirmed(query, confirm_c1(), 1) && confirm_candidate(query, confirm_d1(), 1) && confirm_candidate(query, confirm_d2(), 2);
+    return confirm_confirmed(query, confirm_c1(), 1) &&
+        confirm_candidate(query, confirm_d1(), 1) &&
+        confirm_candidate(query, confirm_d2(), 2);
 }
 
 static bool confirm_weaker(node::query& query)
 {
-    return confirm_confirmed(query, confirm_c1(), 1) && confirm_confirmed(query, confirm_c2(), 2) && confirm_candidate(query, confirm_d1(), 1);
+    return confirm_confirmed(query, confirm_c1(), 1) &&
+        confirm_confirmed(query, confirm_c2(), 2) &&
+        confirm_candidate(query, confirm_d1(), 1);
 }
 
 static bool confirm_immature(node::query& query)
 {
-    return confirm_candidate(query, confirm_d1(), 1) && confirm_candidate(query, confirm_e2(), 2);
+    return confirm_candidate(query, confirm_d1(), 1) &&
+        confirm_candidate(query, confirm_e2(), 2);
 }
 
 static bool confirm_immature_fork(node::query& query)
@@ -132,44 +169,61 @@ static bool confirm_immature_fork(node::query& query)
 
 static bool confirm_candidates(node::query& query)
 {
-    return confirm_candidate(query, confirm_d1(), 1) && confirm_candidate(query, confirm_d2(), 2);
+    return confirm_candidate(query, confirm_d1(), 1) &&
+        confirm_candidate(query, confirm_d2(), 2);
 }
 
 static bool confirm_unfiltered(node::query& query)
 {
-    return confirm_candidate(query, confirm_d1(), 1) && query.set_block_valid(query.to_header(confirm_d1().hash()));
+    return confirm_candidate(query, confirm_d1(), 1) &&
+        query.set_block_valid(query.to_header(confirm_d1().hash()));
 }
 
 static bool confirm_confirmable(node::query& query)
 {
-    return confirm_candidate(query, confirm_d1(), 1) && query.set_block_confirmable(query.to_header(confirm_d1().hash()));
+    return confirm_candidate(query, confirm_d1(), 1) &&
+        query.set_block_confirmable(query.to_header(confirm_d1().hash()));
 }
 
 static bool confirm_confirmables(node::query& query)
 {
-    return confirm_confirmable(query) && confirm_candidate(query, confirm_d2(), 2) && query.set_block_confirmable(query.to_header(confirm_d2().hash()));
+    return confirm_confirmable(query) &&
+        confirm_candidate(query, confirm_d2(), 2) &&
+        query.set_block_confirmable(query.to_header(confirm_d2().hash()));
 }
 
 static bool confirm_headerless_confirmed(node::query& query)
 {
     const auto& genesis = confirm_genesis().header();
-    return query.set(confirm_c1().header(), database::context{ 0, 1, genesis.timestamp() }, genesis.proof() * 2u, false) && query.push_confirmed(query.to_header(confirm_c1().hash()), false) && confirm_confirmables(query);
+    const database::context context{ 0, 1, genesis.timestamp() };
+    const auto work = genesis.proof() * 2u;
+    return query.set(confirm_c1().header(), context, work, false) &&
+        query.push_confirmed(query.to_header(confirm_c1().hash()), false) &&
+        confirm_confirmables(query);
 }
 
 static bool confirm_headerless_candidate(node::query& query)
 {
     const auto& genesis = confirm_genesis().header();
-    return query.set(confirm_d1().header(), database::context{ 0, 1, genesis.timestamp() }, genesis.proof() * 2u, false) && query.push_candidate(query.to_header(confirm_d1().hash())) && query.set_block_confirmable(query.to_header(confirm_d1().hash()));
+    const database::context context{ 0, 1, genesis.timestamp() };
+    const auto work = genesis.proof() * 2u;
+    return query.set(confirm_d1().header(), context, work, false) &&
+        query.push_candidate(query.to_header(confirm_d1().hash())) &&
+        query.set_block_confirmable(query.to_header(confirm_d1().hash()));
 }
 
 static bool confirm_unheaded(node::query& query)
 {
-    return confirm_confirmed(query, confirm_c1(), 1) && query.push_candidate(query.to_header(confirm_c1().hash())) && confirm_candidate(query, confirm_c2(), 2);
+    return confirm_confirmed(query, confirm_c1(), 1) &&
+        query.push_candidate(query.to_header(confirm_c1().hash())) &&
+        confirm_candidate(query, confirm_c2(), 2);
 }
 
 static bool confirm_unprevouted(node::query& query)
 {
-    return confirm_confirmable(query) && confirm_candidate(query, confirm_e2(), 2) && query.set_block_valid(query.to_header(confirm_e2().hash()));
+    return confirm_confirmable(query) &&
+        confirm_candidate(query, confirm_e2(), 2) &&
+        query.set_block_valid(query.to_header(confirm_e2().hash()));
 }
 
 static bool confirm_c1_confirmed(node::query& query)
@@ -182,9 +236,9 @@ static void confirm_uncheckpointed(configuration& config)
     config.bitcoin.checkpoints.clear();
 }
 
-struct chaser_confirm_setup_fixture
+struct confirm_setup_fixture
 {
-    DELETE_COPY_MOVE(chaser_confirm_setup_fixture);
+    DELETE_COPY_MOVE(confirm_setup_fixture);
 
     using condition = std::function<bool()>;
     using initializer = std::function<bool(node::query&)>;
@@ -205,8 +259,12 @@ struct chaser_confirm_setup_fixture
         return config;
     }
 
-    chaser_confirm_setup_fixture(const initializer& setup, const configurator& configurer)
-      : config_{ configure(configurer) }, store_{ config_.database }, query_{ store_ }, node_{ query_, config_, log_ }
+    confirm_setup_fixture(const initializer& setup,
+        const configurator& configurer)
+      : config_{ configure(configurer) },
+        store_{ config_.database },
+        query_{ store_ },
+        node_{ query_, config_, log_ }
     {
         test::clear(test::directory);
         auto ec = store_.create([](auto, auto) {});
@@ -225,7 +283,7 @@ struct chaser_confirm_setup_fixture
         BOOST_REQUIRE_MESSAGE(!ec, ec.message());
     }
 
-    ~chaser_confirm_setup_fixture()
+    ~confirm_setup_fixture()
     {
         node_.close();
         const auto ec = store_.close([](auto, auto) {});
@@ -261,56 +319,62 @@ struct chaser_confirm_setup_fixture
 
     bool confirmed(const chain::block& block, size_t height)
     {
-        return await([&]() { return query_.to_confirmed(height) == link(block); });
+        return await([&]()
+        {
+            return query_.to_confirmed(height) == link(block);
+        });
     }
 
     bool stated(const chain::block& block, const code& expected)
     {
-        return await([&]() { return query_.get_block_state(link(block)) == expected; });
+        return await([&]()
+        {
+            return query_.get_block_state(link(block)) == expected;
+        });
     }
 };
 
 struct confirm_stronger_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_stronger_fixture()
-      : chaser_confirm_setup_fixture(confirm_stronger, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_stronger, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_weaker_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_weaker_fixture()
-      : chaser_confirm_setup_fixture(confirm_weaker, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_weaker, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_immature_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_immature_fixture()
-      : chaser_confirm_setup_fixture(confirm_immature, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_immature, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_immature_fork_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_immature_fork_fixture()
-      : chaser_confirm_setup_fixture(confirm_immature_fork, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_immature_fork, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_current_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_current_fixture()
-      : chaser_confirm_setup_fixture(confirm_candidates, [](configuration& config)
+      : confirm_setup_fixture(confirm_candidates, [](configuration& config)
         {
             config.bitcoin.checkpoints.clear();
             config.node.currency_window_minutes = 30u * 365u * 24u * 60u;
@@ -320,19 +384,19 @@ struct confirm_current_fixture
 };
 
 struct confirm_unfiltered_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_unfiltered_fixture()
-      : chaser_confirm_setup_fixture(confirm_unfiltered, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_unfiltered, confirm_uncheckpointed)
     {
     }
 };
 
 ////struct confirm_windowed_fixture
-////  : chaser_confirm_setup_fixture
+////  : confirm_setup_fixture
 ////{
 ////    confirm_windowed_fixture()
-////      : chaser_confirm_setup_fixture([](node::query&) { return true; }, [](configuration& config)
+////      : confirm_setup_fixture([](node::query&) { return true; }, [](configuration& config)
 ////        {
 ////            config.bitcoin.checkpoints.clear();
 ////            config.node.currency_window_minutes = 1;
@@ -361,55 +425,55 @@ struct confirm_unfiltered_fixture
 ////};
 
 struct confirm_confirmable_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_confirmable_fixture()
-      : chaser_confirm_setup_fixture(confirm_confirmable, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_confirmable, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_c1_confirmed_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_c1_confirmed_fixture()
-      : chaser_confirm_setup_fixture(confirm_c1_confirmed, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_c1_confirmed, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_headerless_confirmed_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_headerless_confirmed_fixture()
-      : chaser_confirm_setup_fixture(confirm_headerless_confirmed, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_headerless_confirmed, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_headerless_candidate_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_headerless_candidate_fixture()
-      : chaser_confirm_setup_fixture(confirm_headerless_candidate, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_headerless_candidate, confirm_uncheckpointed)
     {
     }
 };
 
 struct confirm_unheaded_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_unheaded_fixture()
-      : chaser_confirm_setup_fixture(confirm_unheaded, {})
+      : confirm_setup_fixture(confirm_unheaded, {})
     {
     }
 };
 
 struct confirm_unprevouted_fixture
-  : chaser_confirm_setup_fixture
+  : confirm_setup_fixture
 {
     confirm_unprevouted_fixture()
-      : chaser_confirm_setup_fixture(confirm_unprevouted, confirm_uncheckpointed)
+      : confirm_setup_fixture(confirm_unprevouted, confirm_uncheckpointed)
     {
     }
 };

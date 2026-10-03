@@ -52,7 +52,9 @@ struct p2p_confirmed_setup_fixture
 {
     static bool confirmed(node::query& query) NOEXCEPT
     {
-        return p2p_compact_candidate_setup_fixture::candidate(query) && query.push_confirmed(query.to_header(block1().hash()), false) && query.push_confirmed(query.to_header(block2().hash()), false);
+        return p2p_compact_candidate_setup_fixture::candidate(query) &&
+            query.push_confirmed(query.to_header(block1().hash()), false) &&
+            query.push_confirmed(query.to_header(block2().hash()), false);
     }
 
     inline p2p_confirmed_setup_fixture()
@@ -85,7 +87,9 @@ struct p2p_unconfirmable_setup_fixture
         const system::settings bitcoin{ system::chain::selection::mainnet };
         const auto& genesis = bitcoin.genesis_block.header();
         const database::context context{ 0, 1, genesis.timestamp() };
-        return query.set(header, context, genesis.proof() + header.proof(), false) && query.set_block_unconfirmable(query.to_header(header.hash()));
+        const auto work = genesis.proof() + header.proof();
+        return query.set(header, context, work, false) &&
+            query.set_block_unconfirmable(query.to_header(header.hash()));
     }
 
     inline p2p_unconfirmable_setup_fixture()
@@ -101,13 +105,17 @@ static const system::settings& regtest() NOEXCEPT
 }
 
 // Mine a regtest header (minimal proof of work) extending previous.
-static system::chain::header::cptr mine(const system::hash_digest& previous, uint32_t timestamp)
+static system::chain::header::cptr mine(const system::hash_digest& previous,
+    uint32_t timestamp)
 {
     const auto& bitcoin = regtest();
+    const auto bits = bitcoin.proof_of_work_limit;
+    const auto limit = bitcoin.timestamp_limit_seconds;
     for (uint32_t nonce{};; ++nonce)
     {
-        const auto header = std::make_shared<const system::chain::header>(4u, previous, system::null_hash, timestamp, bitcoin.proof_of_work_limit, nonce);
-        if (!header->check(bitcoin.timestamp_limit_seconds, bitcoin.proof_of_work_limit, false))
+        const auto header = std::make_shared<const system::chain::header>(4u,
+            previous, system::null_hash, timestamp, bits, nonce);
+        if (!header->check(limit, bits, false))
             return header;
     }
 }
@@ -187,10 +195,12 @@ struct p2p_compact_not_current_setup_fixture
   : p2p_setup_fixture
 {
     inline p2p_compact_not_current_setup_fixture()
-      : p2p_setup_fixture(p2p_compact_candidate_setup_fixture::candidate, [](configuration& config)
-        {
-            config.network.enable_compact = true;
-        })
+      : p2p_setup_fixture(
+            p2p_compact_candidate_setup_fixture::candidate,
+            [](configuration& config)
+            {
+                config.network.enable_compact = true;
+            })
     {
     }
 };

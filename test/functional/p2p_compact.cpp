@@ -33,7 +33,8 @@ struct compact_accessor
     using protocol_peer::to_mini;
 };
 
-static compact_block prefilled(const chain::block& block, const chain::transaction::cptr& coinbase)
+static compact_block prefilled(const chain::block& block,
+    const chain::transaction::cptr& coinbase)
 {
     return { block.header_ptr(), 42, {}, { { 0, coinbase } } };
 }
@@ -42,7 +43,9 @@ static compact_block shortened(const chain::block& block)
 {
     const auto key = compact_accessor::to_compact_key(block.header(), 42);
     const auto& coinbase = *block.transactions_ptr()->front();
-    const auto id = compact_accessor::to_mini(compact_accessor::to_short_id(key, bitcoin_hash(coinbase.to_data(true))));
+    const auto hash = bitcoin_hash(coinbase.to_data(true));
+    const auto short_id = compact_accessor::to_short_id(key, hash);
+    const auto id = compact_accessor::to_mini(short_id);
     return { block.header_ptr(), 42, { id }, {} };
 }
 

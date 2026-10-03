@@ -32,24 +32,31 @@ static const hash_digest missing_hash{ 0x42 };
 // An unconfirmed tx with an anyone-can-spend output.
 static const chain::transaction& parent() NOEXCEPT
 {
+    const chain::point point{ one_hash, 0u };
+    const chain::operations ops{ { chain::opcode::push_positive_1 } };
+    const chain::script spendable{ ops };
     static const chain::transaction instance
     {
         1u,
-        chain::inputs{ { chain::point{ one_hash, 0u }, chain::script{}, max_uint32 } },
-        chain::outputs{ { parent_value, chain::script{ chain::operations{ { chain::opcode::push_positive_1 } } } } },
+        chain::inputs{ { point, chain::script{}, max_uint32 } },
+        chain::outputs{ { parent_value, spendable } },
         0u
     };
 
     return instance;
 }
 
-static chain::transaction::cptr spend(const hash_digest& hash, uint64_t value, uint32_t locktime=0, uint32_t sequence=max_uint32) NOEXCEPT
+static chain::transaction::cptr spend(const hash_digest& hash, uint64_t value,
+    uint32_t locktime=0, uint32_t sequence=max_uint32) NOEXCEPT
 {
+    const chain::point point{ hash, 0u };
+    const chain::operations ops{ { chain::opcode::push_positive_1 } };
+    const chain::script spendable{ ops };
     return std::make_shared<const chain::transaction>(chain::transaction
     {
         1u,
-        chain::inputs{ { chain::point{ hash, 0u }, chain::script{}, sequence } },
-        chain::outputs{ { value, chain::script{ chain::operations{ { chain::opcode::push_positive_1 } } } } },
+        chain::inputs{ { point, chain::script{}, sequence } },
+        chain::outputs{ { value, spendable } },
         locktime
     });
 }
@@ -59,18 +66,23 @@ static chain::transaction::cptr spend(uint64_t value) NOEXCEPT
     return spend(parent().hash(false), value);
 }
 
-static chain::transaction::cptr spend_relative(const hash_digest& hash, uint64_t value, uint32_t sequence) NOEXCEPT
+static chain::transaction::cptr spend_relative(const hash_digest& hash,
+    uint64_t value, uint32_t sequence) NOEXCEPT
 {
+    const chain::point point{ hash, 0u };
+    const chain::operations ops{ { chain::opcode::push_positive_1 } };
+    const chain::script spendable{ ops };
     return std::make_shared<const chain::transaction>(chain::transaction
     {
         2u,
-        chain::inputs{ { chain::point{ hash, 0u }, chain::script{}, sequence } },
-        chain::outputs{ { value, chain::script{ chain::operations{ { chain::opcode::push_positive_1 } } } } },
+        chain::inputs{ { point, chain::script{}, sequence } },
+        chain::outputs{ { value, spendable } },
         0u
     });
 }
 
-static chain::transactions_cptr package(const chain::transaction_cptrs& txs) NOEXCEPT
+static chain::transactions_cptr package(
+    const chain::transaction_cptrs& txs) NOEXCEPT
 {
     return std::make_shared<const chain::transaction_cptrs>(txs);
 }
@@ -104,7 +116,8 @@ static bool stored_header(node::query& query) NOEXCEPT
     const auto& genesis = bitcoin.genesis_block.header();
     const auto& header1 = p2p_compact_setup_fixture::block1().header();
     const database::context context1{ 0, 1, genesis.timestamp() };
-    return query.set(parent()) && query.set(header1, context1, genesis.proof() + header1.proof(), false);
+    const auto work1 = genesis.proof() + header1.proof();
+    return query.set(parent()) && query.set(header1, context1, work1, false);
 }
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -114,7 +127,8 @@ struct chaser_transaction_setup_fixture
 {
     using result = std::pair<code, size_t>;
 
-    inline chaser_transaction_setup_fixture(const configurator& configure={}, const initializer& setup=stored_parent)
+    inline chaser_transaction_setup_fixture(const configurator& configure={},
+        const initializer& setup=stored_parent)
       : p2p_setup_fixture(setup, configure)
     {
     }
@@ -130,13 +144,16 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
-    result submit_compact(const chain::transactions_cptr& txs, const database::tx_links& links, const database::header_link& link)
+    result submit_compact(const chain::transactions_cptr& txs,
+        const database::tx_links& links, const database::header_link& link)
     {
         std::promise<result> promise{};
-        node_.submit_compact(txs, links, link, [&](const code& ec, size_t index) NOEXCEPT
+        const auto handler = [&](const code& ec, size_t index) NOEXCEPT
         {
             promise.set_value({ ec, index });
-        });
+        };
+
+        node_.submit_compact(txs, links, link, handler);
 
         return promise.get_future().get();
     }
@@ -279,7 +296,8 @@ struct chaser_transaction_relative_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            config.bitcoin.bip9_bit0_active_checkpoint = { config.bitcoin.genesis_block.hash(), 0 };
+            const auto genesis = config.bitcoin.genesis_block.hash();
+            config.bitcoin.bip9_bit0_active_checkpoint = { genesis, 0 };
         })
     {
     }

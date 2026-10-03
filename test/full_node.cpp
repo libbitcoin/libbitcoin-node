@@ -116,7 +116,8 @@ struct full_node_setup_fixture
     /// Wait (bounded) for the future.
     static bool ready(const std::future<code>& future)
     {
-        return future.wait_for(std::chrono::seconds(10)) == std::future_status::ready;
+        const auto status = future.wait_for(std::chrono::seconds(10));
+        return status == std::future_status::ready;
     }
 
     /// Wait (bounded) for the condition to be satisfied.

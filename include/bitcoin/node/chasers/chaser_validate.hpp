@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 
+#include <array>
 #include <atomic>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -83,17 +84,18 @@ protected:
     /// Batching (lock-free, self-serviced by completing pool threads).
     /// Batch state is the store: sig tables carry rows, prevalid table
     /// carries the per-block link set (write-through, crash-durable).
+    /// Tables are banked, commits fill one bank while the other drains.
     virtual code start_batch() NOEXCEPT;
     virtual void process_batch(bool residual) NOEXCEPT;
-    virtual code do_process_batch(bool startup) NOEXCEPT;
-    virtual code purge_batch() NOEXCEPT;
+    virtual code do_process_batch(bool bank, bool startup) NOEXCEPT;
+    virtual code purge_batch(bool bank) NOEXCEPT;
     virtual bool mark_valids(header_links& prevalids, bool startup) NOEXCEPT;
     virtual bool mark_invalids(header_links& prevalids,
         const header_links& invalids, bool startup) NOEXCEPT;
 
-    /// Turnstile (drain/commit exclusion without blocking writers).
+    /// Turnstile (bank of the commit, excluded from drain until exit).
     virtual bool enter_capture() NOEXCEPT;
-    virtual void exit_capture() NOEXCEPT;
+    virtual void exit_capture(bool bank) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
@@ -145,7 +147,8 @@ private:
     std::atomic_bool maximum_posted_{};
     ////std::atomic_bool verifying_{};
     std::atomic_bool draining_{};
-    atomic_counter writers_{};
+    std::atomic_bool bank_{};
+    std::array<atomic_counter, two> writers_{};
     counters counters_{};
     stopper stopping_{};
 

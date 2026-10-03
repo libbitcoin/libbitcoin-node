@@ -80,31 +80,28 @@ signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
 }
 
 // Commit this thread's captured signatures as the block's batch rows. All
-// batch table state is written inside the commit epoch (turnstile). When
-// diverted by a drain, or upon store decline, the rows are verified in
-// place, equivalent to the inline evaluation their capture fabricated
-// (batched is cleared so the block completes by the non-batched path).
+// batch table state is written inside the commit epoch (turnstile). Upon
+// store decline, the rows are verified in place, equivalent to the inline
+// evaluation their capture fabricated (batched is cleared so the block
+// completes by the non-batched path).
 code chaser_validate::commit_capture(bool& batched,
     const header_link& link) NOEXCEPT
 {
     code ec{};
-    auto committed = false;
     auto& ecdsa = signatures::ecdsa_rows();
     auto& schnorr = signatures::schnorr_rows();
 
-    if (enter_capture())
-    {
-        auto& query = archive();
-        committed =
-            query.set_signatures(ecdsa, link) &&
-            query.set_signatures(schnorr, link) &&
-            query.set_prevalid(link);
-        exit_capture();
+    auto& query = archive();
+    const auto bank = enter_capture();
+    const auto committed =
+        query.set_signatures(ecdsa, link, bank) &&
+        query.set_signatures(schnorr, link, bank) &&
+        query.set_prevalid(link, bank);
+    exit_capture(bank);
 
-        // Store decline (e.g. disk full), recoverable once faulted.
-        if (!committed)
-            fault(error::batch5);
-    }
+    // Store decline (e.g. disk full), recoverable once faulted.
+    if (!committed)
+        fault(error::batch5);
 
     const auto thresholds = schnorr.thresholds();
     const auto singles = schnorr.rows().size() - thresholds;
