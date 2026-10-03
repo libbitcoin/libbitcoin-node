@@ -35,7 +35,8 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
 
 code configuration::initialize() NOEXCEPT
 {
-    database.initialize(bitcoin, node.limited_blocks);
+    database.initialize(bitcoin, node.limited_blocks,
+        node.silent_start_height);
     return network.initialize();
 }
 

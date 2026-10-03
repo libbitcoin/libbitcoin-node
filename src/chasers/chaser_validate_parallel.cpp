@@ -144,7 +144,7 @@ code chaser_validate::complete_pooled(const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
-    if (filter_ || (ctx.height >= silent_start_height_))
+    if (filter_ || (ctx.height >= query.silent_start_height()))
     {
         bool batched{}, capturing{};
         constexpr auto bypass = true;
@@ -210,7 +210,7 @@ code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
     if (!query.set_filter_body(link, block))
         return error::validate8;
 
-    if ((ctx.height >= silent_start_height_) &&
+    if ((ctx.height >= query.silent_start_height()) &&
         !query.set_silent(link, block))
         return error::validate9;
 
