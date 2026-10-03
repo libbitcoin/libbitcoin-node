@@ -23,10 +23,17 @@
 
 using namespace system;
 
-static const uint64_t validate_subsidy = system::settings{ chain::selection::mainnet }.initial_subsidy();
+static const system::settings validate_settings{ chain::selection::mainnet };
+static const uint64_t validate_subsidy = validate_settings.initial_subsidy();
 
-static const ec_compressed validate_generator = base16_array("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
-static const ec_xonly validate_generator_xonly = base16_array("79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798");
+static const ec_compressed validate_generator = base16_array
+(
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+);
+static const ec_xonly validate_generator_xonly = base16_array
+(
+    "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+);
 
 static const chain::block& validate_genesis()
 {
@@ -36,92 +43,129 @@ static const chain::block& validate_genesis()
 
 static chain::transaction validate_coinbase(uint8_t tag, uint64_t value)
 {
-    const chain::input input{ chain::point{ null_hash, chain::point::null_index }, chain::script{ data_chunk{ 0x01, tag }, false }, max_uint32 };
-    return { 1u, chain::inputs{ input }, chain::outputs{ chain::output{ value, chain::script{ data_chunk{ 0x51 }, false } } }, 0u };
+    const chain::point null{ null_hash, chain::point::null_index };
+    const chain::script tagged{ data_chunk{ 0x01, tag }, false };
+    const chain::script op_true{ data_chunk{ 0x51 }, false };
+    const chain::input input{ null, tagged, max_uint32 };
+    const chain::output output{ value, op_true };
+    return { 1u, chain::inputs{ input }, chain::outputs{ output }, 0u };
 }
 
-static chain::transaction validate_spend(const chain::point& point, uint64_t value)
+static chain::transaction validate_spend(const chain::point& point,
+    uint64_t value)
 {
+    const chain::script op_true{ data_chunk{ 0x51 }, false };
     const chain::input input{ point, chain::script{}, max_uint32 };
-    return { 1u, chain::inputs{ input }, chain::outputs{ chain::output{ value, chain::script{ data_chunk{ 0x51 }, false } } }, 0u };
+    const chain::output output{ value, op_true };
+    return { 1u, chain::inputs{ input }, chain::outputs{ output }, 0u };
 }
 
-static chain::block validate_block(const chain::block& parent, uint32_t height, const chain::transactions& txs)
+static chain::block validate_block(const chain::block& parent,
+    uint32_t height, const chain::transactions& txs)
 {
     const auto& genesis = validate_genesis().header();
     hashes ids{};
     for (const auto& tx: txs)
         ids.push_back(tx.hash(false));
 
-    const chain::header header{ 1u, parent.hash(), sha256::merkle_root(std::move(ids)), genesis.timestamp() + height * 600u, genesis.bits(), height };
+    const auto previous = parent.hash();
+    const auto root = sha256::merkle_root(std::move(ids));
+    const auto timestamp = genesis.timestamp() + height * 600u;
+    const auto bits = genesis.bits();
+    const chain::header header{ 1u, previous, root, timestamp, bits, height };
     return { header, txs };
 }
 
 static const chain::block& validate_a1()
 {
-    static const auto instance = validate_block(validate_genesis(), 1, { validate_coinbase(1, validate_subsidy) });
+    const auto& parent = validate_genesis();
+    const auto coinbase = validate_coinbase(1, validate_subsidy);
+    static const auto instance = validate_block(parent, 1, { coinbase });
     return instance;
 }
 
 static const chain::block& validate_a2()
 {
-    static const auto instance = validate_block(validate_a1(), 2, { validate_coinbase(2, validate_subsidy) });
+    const auto& parent = validate_a1();
+    const auto coinbase = validate_coinbase(2, validate_subsidy);
+    static const auto instance = validate_block(parent, 2, { coinbase });
     return instance;
 }
 
 static const chain::block& validate_overspent1()
 {
-    static const auto instance = validate_block(validate_genesis(), 1, { validate_coinbase(3, add1(validate_subsidy)) });
+    const auto& parent = validate_genesis();
+    const auto coinbase = validate_coinbase(3, add1(validate_subsidy));
+    static const auto instance = validate_block(parent, 1, { coinbase });
     return instance;
 }
 
 static const chain::block& validate_missing2()
 {
-    static const chain::point missing{ validate_a1().transactions_ptr()->front()->hash(false), 7 };
-    static const auto instance = validate_block(validate_a1(), 2, { validate_coinbase(4, validate_subsidy), validate_spend(missing, validate_subsidy) });
+    const auto& parent = validate_a1();
+    const auto prior = parent.transactions_ptr()->front()->hash(false);
+    const chain::point missing{ prior, 7 };
+    const auto coinbase = validate_coinbase(4, validate_subsidy);
+    const auto spend = validate_spend(missing, validate_subsidy);
+    static const auto instance = validate_block(parent, 2, { coinbase, spend });
     return instance;
 }
 
 static const chain::block& validate_x1()
 {
-    static const auto instance = validate_block(validate_genesis(), 1, { validate_coinbase(5, validate_subsidy) });
+    const auto& parent = validate_genesis();
+    const auto coinbase = validate_coinbase(5, validate_subsidy);
+    static const auto instance = validate_block(parent, 1, { coinbase });
     return instance;
 }
 
 static const chain::block& validate_a3()
 {
-    static const auto instance = validate_block(validate_a2(), 3, { validate_coinbase(6, validate_subsidy) });
+    const auto& parent = validate_a2();
+    const auto coinbase = validate_coinbase(6, validate_subsidy);
+    static const auto instance = validate_block(parent, 3, { coinbase });
     return instance;
 }
 
 static const chain::block& validate_immature1()
 {
-    static const auto coinbase = validate_coinbase(7, validate_subsidy);
-    static const auto instance = validate_block(validate_genesis(), 1, { coinbase, validate_spend(chain::point{ coinbase.hash(false), 0 }, validate_subsidy) });
+    const auto& parent = validate_genesis();
+    const auto coinbase = validate_coinbase(7, validate_subsidy);
+    const chain::point spent{ coinbase.hash(false), 0 };
+    const auto spend = validate_spend(spent, validate_subsidy);
+    static const auto instance = validate_block(parent, 1, { coinbase, spend });
     return instance;
 }
 
 static const chain::block& validate_coinbases1()
 {
-    static const auto instance = validate_block(validate_genesis(), 1, { validate_coinbase(8, validate_subsidy), validate_coinbase(9, validate_subsidy) });
+    const auto& parent = validate_genesis();
+    const auto first = validate_coinbase(8, validate_subsidy);
+    const auto second = validate_coinbase(9, validate_subsidy);
+    static const auto instance = validate_block(parent, 1, { first, second });
     return instance;
 }
 
-static bool validate_store(node::query& query, const chain::block& block, uint32_t height)
+static bool validate_store(node::query& query, const chain::block& block,
+    uint32_t height)
 {
     const auto& genesis = validate_genesis().header();
     const database::context context{ 0, height, genesis.timestamp() };
-    return query.set(block, context, genesis.proof() * add1(height), false, false);
+    const auto work = genesis.proof() * add1(height);
+    return query.set(block, context, work, false, false);
 }
 
-static bool validate_candidate(node::query& query, const chain::block& block, uint32_t height)
+static bool validate_candidate(node::query& query, const chain::block& block,
+    uint32_t height)
 {
-    return validate_store(query, block, height) && query.push_candidate(query.to_header(block.hash()));
+    return validate_store(query, block, height) &&
+        query.push_candidate(query.to_header(block.hash()));
 }
 
 static bool validate_candidates(node::query& query)
 {
-    return validate_candidate(query, validate_a1(), 1) && validate_candidate(query, validate_a2(), 2);
+    return validate_candidate(query, validate_a1(), 1) &&
+        validate_candidate(query, validate_a2(), 2);
 }
 
 static bool validate_overspent(node::query& query)
@@ -131,12 +175,15 @@ static bool validate_overspent(node::query& query)
 
 static bool validate_missing(node::query& query)
 {
-    return validate_candidate(query, validate_a1(), 1) && validate_candidate(query, validate_missing2(), 2);
+    return validate_candidate(query, validate_a1(), 1) &&
+        validate_candidate(query, validate_missing2(), 2);
 }
 
 static bool validate_prevalidated(node::query& query)
 {
-    return validate_candidates(query) && query.set_block_valid(query.to_header(validate_a1().hash())) && query.set_block_unconfirmable(query.to_header(validate_a2().hash()));
+    return validate_candidates(query) &&
+        query.set_block_valid(query.to_header(validate_a1().hash())) &&
+        query.set_block_unconfirmable(query.to_header(validate_a2().hash()));
 }
 
 static bool validate_noncandidate(node::query& query)
@@ -146,12 +193,14 @@ static bool validate_noncandidate(node::query& query)
 
 static bool validate_staged(node::query& query)
 {
-    return validate_noncandidate(query) && query.set_prevalid(query.to_header(validate_x1().hash()), false);
+    return validate_noncandidate(query) &&
+        query.set_prevalid(query.to_header(validate_x1().hash()), false);
 }
 
 static bool validate_staged_second(node::query& query)
 {
-    return validate_noncandidate(query) && query.set_prevalid(query.to_header(validate_x1().hash()), true);
+    return validate_noncandidate(query) &&
+        query.set_prevalid(query.to_header(validate_x1().hash()), true);
 }
 
 static bool validate_immature(node::query& query)
@@ -175,9 +224,9 @@ static void validate_current(configuration& config)
     config.node.currency_window_minutes = 0;
 }
 
-struct chaser_validate_setup_fixture
+struct validate_setup_fixture
 {
-    DELETE_COPY_MOVE(chaser_validate_setup_fixture);
+    DELETE_COPY_MOVE(validate_setup_fixture);
 
     using condition = std::function<bool()>;
     using initializer = std::function<bool(node::query&)>;
@@ -198,8 +247,12 @@ struct chaser_validate_setup_fixture
         return config;
     }
 
-    chaser_validate_setup_fixture(const initializer& setup, const configurator& configurer)
-      : config_{ configure(configurer) }, store_{ config_.database }, query_{ store_ }, node_{ query_, config_, log_ }
+    validate_setup_fixture(const initializer& setup,
+        const configurator& configurer)
+      : config_{ configure(configurer) },
+        store_{ config_.database },
+        query_{ store_ },
+        node_{ query_, config_, log_ }
     {
         test::clear(test::directory);
         auto ec = store_.create([](auto, auto) {});
@@ -218,7 +271,7 @@ struct chaser_validate_setup_fixture
         BOOST_REQUIRE_MESSAGE(!ec, ec.message());
     }
 
-    ~chaser_validate_setup_fixture()
+    ~validate_setup_fixture()
     {
         node_.close();
         const auto ec = store_.close([](auto, auto) {});
@@ -264,19 +317,19 @@ struct chaser_validate_setup_fixture
 };
 
 struct validate_unvalidated_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_unvalidated_fixture()
-      : chaser_validate_setup_fixture(validate_candidates, validate_uncheckpointed)
+      : validate_setup_fixture(validate_candidates, validate_uncheckpointed)
     {
     }
 };
 
 struct validate_current_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_current_fixture()
-      : chaser_validate_setup_fixture(validate_candidates, [](configuration& config)
+      : validate_setup_fixture(validate_candidates, [](configuration& config)
         {
             config.bitcoin.checkpoints.clear();
             config.node.currency_window_minutes = 0;
@@ -287,37 +340,37 @@ struct validate_current_fixture
 };
 
 struct validate_overspent_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_overspent_fixture()
-      : chaser_validate_setup_fixture(validate_overspent, validate_uncheckpointed)
+      : validate_setup_fixture(validate_overspent, validate_uncheckpointed)
     {
     }
 };
 
 struct validate_missing_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_missing_fixture()
-      : chaser_validate_setup_fixture(validate_missing, validate_uncheckpointed)
+      : validate_setup_fixture(validate_missing, validate_uncheckpointed)
     {
     }
 };
 
 struct validate_checkpointed_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_checkpointed_fixture()
-      : chaser_validate_setup_fixture(validate_candidates, {})
+      : validate_setup_fixture(validate_candidates, {})
     {
     }
 };
 
 struct validate_unfiltered_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_unfiltered_fixture()
-      : chaser_validate_setup_fixture(validate_candidates, [](configuration& config)
+      : validate_setup_fixture(validate_candidates, [](configuration& config)
         {
             config.database.filter_bk.buckets = 0;
             config.database.filter_tx.buckets = 0;
@@ -327,10 +380,10 @@ struct validate_unfiltered_fixture
 };
 
 struct validate_prevalidated_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_prevalidated_fixture()
-      : chaser_validate_setup_fixture(validate_prevalidated, [](configuration& config)
+      : validate_setup_fixture(validate_prevalidated, [](configuration& config)
         {
             config.bitcoin.checkpoints.clear();
             config.database.filter_bk.buckets = 0;
@@ -341,10 +394,10 @@ struct validate_prevalidated_fixture
 };
 
 struct validate_maximum_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_maximum_fixture()
-      : chaser_validate_setup_fixture(validate_candidates, [](configuration& config)
+      : validate_setup_fixture(validate_candidates, [](configuration& config)
         {
             config.bitcoin.checkpoints.clear();
             config.node.maximum_height = 1;
@@ -354,10 +407,10 @@ struct validate_maximum_fixture
 };
 
 struct validate_staged_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_staged_fixture()
-      : chaser_validate_setup_fixture(validate_staged, [](configuration& config)
+      : validate_setup_fixture(validate_staged, [](configuration& config)
         {
             config.node.batch_signatures = 1;
         })
@@ -366,10 +419,10 @@ struct validate_staged_fixture
 };
 
 struct validate_staged_second_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_staged_second_fixture()
-      : chaser_validate_setup_fixture(validate_staged_second, [](configuration& config)
+      : validate_setup_fixture(validate_staged_second, [](configuration& config)
         {
             config.node.batch_signatures = 1;
         })
@@ -378,42 +431,40 @@ struct validate_staged_second_fixture
 };
 
 struct validate_windowed_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_windowed_fixture()
-      : chaser_validate_setup_fixture(validate_noncandidate, {})
+      : validate_setup_fixture(validate_noncandidate, {})
     {
     }
 };
 
-
 struct validate_immature_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_immature_fixture()
-      : chaser_validate_setup_fixture(validate_immature, validate_uncheckpointed)
+      : validate_setup_fixture(validate_immature, validate_uncheckpointed)
     {
     }
 };
 
 struct validate_coinbases_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_coinbases_fixture()
-      : chaser_validate_setup_fixture(validate_coinbases, validate_uncheckpointed)
+      : validate_setup_fixture(validate_coinbases, validate_uncheckpointed)
     {
     }
 };
 
 struct validate_current_overspent_fixture
-  : chaser_validate_setup_fixture
+  : validate_setup_fixture
 {
     validate_current_overspent_fixture()
-      : chaser_validate_setup_fixture(validate_overspent, validate_current)
+      : validate_setup_fixture(validate_overspent, validate_current)
     {
     }
 };
-
 
 BOOST_AUTO_TEST_SUITE(chaser_validate_tests)
 

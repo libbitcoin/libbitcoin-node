@@ -543,7 +543,8 @@ struct estimator_query_setup_fixture
         BOOST_REQUIRE(test::clear(test::directory));
         const auto ec = store_.create([](auto, auto) NOEXCEPT {});
         BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-        BOOST_REQUIRE(query_.initialize(system::settings{ chain::selection::mainnet }.genesis_block));
+        const system::settings bitcoin{ chain::selection::mainnet };
+        BOOST_REQUIRE(query_.initialize(bitcoin.genesis_block));
     }
 
     ~estimator_query_setup_fixture()

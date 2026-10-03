@@ -33,9 +33,16 @@ struct channel_peer_setup_fixture
             [&]() NOEXCEPT
             {
                 config_.node.announcement_cache = announcement_cache;
-                network::socket::parameters params{ .maximum_request = 42, .maximum_buffer = 42 };
-                const auto socket = std::make_shared<network::socket>(log_, pool_.service(), std::move(params));
-                return std::make_shared<node::channel_peer>(log_, socket, 42, config_, options);
+                network::socket::parameters params
+                {
+                    .maximum_request = 42,
+                    .maximum_buffer = 42
+                };
+
+                const auto socket = std::make_shared<network::socket>(log_,
+                    pool_.service(), std::move(params));
+                return std::make_shared<node::channel_peer>(log_, socket, 42,
+                    config_, options);
             }()
         }
     {
@@ -49,14 +56,17 @@ struct channel_peer_setup_fixture
     }
 
     /// Announce first then second, report whether each was announced.
-    std::pair<bool, bool> announce(const system::hash_digest& first, const system::hash_digest& second)
+    std::pair<bool, bool> announce(const system::hash_digest& first,
+        const system::hash_digest& second)
     {
         std::promise<std::pair<bool, bool>> promise{};
         boost::asio::post(channel_->strand(), [&]() NOEXCEPT
         {
             channel_->set_announced(first);
             channel_->set_announced(second);
-            promise.set_value({ channel_->was_announced(first), channel_->was_announced(second) });
+            const auto announced1 = channel_->was_announced(first);
+            const auto announced2 = channel_->was_announced(second);
+            promise.set_value({ announced1, announced2 });
         });
 
         return promise.get_future().get();

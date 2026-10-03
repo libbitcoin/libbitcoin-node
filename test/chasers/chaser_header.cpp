@@ -40,15 +40,23 @@ static const system::hash_digest& genesis_hash() NOEXCEPT
 }
 
 // A distinct difficulty one header that does not satisfy its proof of work.
-static system::chain::header::cptr make(const system::hash_digest& previous, uint32_t nonce, uint32_t timestamp=add1(genesis_time), uint32_t version=1)
+static system::chain::header::cptr make(const system::hash_digest& previous,
+    uint32_t nonce, uint32_t timestamp=add1(genesis_time), uint32_t version=1)
 {
-    return std::make_shared<const system::chain::header>(version, previous, system::null_hash, timestamp, difficulty_one, nonce);
+    return std::make_shared<const system::chain::header>(version, previous,
+        system::null_hash, timestamp, difficulty_one, nonce);
 }
 
 // Mainnet block 1 header.
 static system::chain::header::cptr block1()
 {
-    return std::make_shared<const system::chain::header>(system::base16_chunk("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e36299"));
+    const auto data = system::base16_chunk
+    (
+        "010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d61900"
+        "00000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e8"
+        "57233e0e61bc6649ffff001d01e36299"
+    );
+    return std::make_shared<const system::chain::header>(data);
 }
 
 // Cumulative work of a difficulty one chain of count headers (genesis is one).
@@ -138,10 +146,12 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        node_.organize(header, milestone, [promise](const code& ec, size_t height) NOEXCEPT
+        const auto handler = [promise](const code& ec, size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
-        });
+        };
+
+        node_.organize(header, milestone, handler);
 
         BOOST_REQUIRE(future.wait_for(await_limit) == std::future_status::ready);
         return future.get();
@@ -220,15 +230,19 @@ struct chaser_header_setup_fixture
     }
 
     /// Archive a header directly, bypassing the chaser.
-    bool archive(const system::chain::header& header, uint32_t height, size_t count)
+    bool archive(const system::chain::header& header, uint32_t height,
+        size_t count)
     {
-        return query_.set(header, database::context{ 0, height, header.timestamp() }, work(count), false);
+        const database::context context{ 0, height, header.timestamp() };
+        return query_.set(header, context, work(count), false);
     }
 
     /// Archive and push a candidate directly, bypassing the chaser.
-    bool push(const system::chain::header& header, uint32_t height, size_t count)
+    bool push(const system::chain::header& header, uint32_t height,
+        size_t count)
     {
-        return archive(header, height, count) && query_.push_candidate(query_.to_header(header.hash()));
+        return archive(header, height, count) &&
+            query_.push_candidate(query_.to_header(header.hash()));
     }
 
 protected:
@@ -257,7 +271,8 @@ struct chaser_header_conflict_setup_fixture
     chaser_header_conflict_setup_fixture()
       : chaser_header_setup_fixture([](configuration& config)
         {
-            config.bitcoin.checkpoints.emplace_back(make(genesis_hash(), 2)->hash(), 1);
+            const auto hash = make(genesis_hash(), 2)->hash();
+            config.bitcoin.checkpoints.emplace_back(hash, 1);
         })
     {
     }
@@ -269,7 +284,8 @@ struct chaser_header_checkpoint_setup_fixture
     chaser_header_checkpoint_setup_fixture()
       : chaser_header_setup_fixture([](configuration& config)
         {
-            config.bitcoin.checkpoints.emplace_back(make(make(genesis_hash(), 1)->hash(), 3)->hash(), 2);
+            const auto parent = make(genesis_hash(), 1)->hash();
+            config.bitcoin.checkpoints.emplace_back(make(parent, 3)->hash(), 2);
         })
     {
     }

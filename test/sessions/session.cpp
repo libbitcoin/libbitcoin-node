@@ -55,7 +55,8 @@ public:
     }
 
 protected:
-    void attach_handshake(const network::channel::ptr&, network::result_handler&&) NOEXCEPT override
+    void attach_handshake(const network::channel::ptr&,
+        network::result_handler&&) NOEXCEPT override
     {
     }
 
@@ -63,7 +64,8 @@ protected:
     {
     }
 
-    network::channel::ptr create_channel(const network::socket::ptr&) NOEXCEPT override
+    network::channel::ptr create_channel(
+        const network::socket::ptr&) NOEXCEPT override
     {
         return {};
     }
@@ -161,8 +163,9 @@ struct session_outbound_setup_fixture
         BOOST_REQUIRE_MESSAGE(!ec, ec.message());
         BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
 
-        const auto services = std::to_string(service::node_network | service::node_witness);
-        std::ofstream{ config_.network.file() } << "127.0.0.1:65115/0/" << services << std::endl;
+        const auto services = service::node_network | service::node_witness;
+        const auto entry = "127.0.0.1:65115/0/" + std::to_string(services);
+        std::ofstream{ config_.network.file() } << entry << std::endl;
 
         std::promise<code> started{};
         node_.start([&](const code& ec) NOEXCEPT
@@ -220,7 +223,12 @@ struct session_outbound_setup_fixture
 protected:
     using tcp = boost::asio::ip::tcp;
     boost::asio::io_context io_{};
-    tcp::acceptor acceptor_{ io_, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65115 } };
+    const tcp::endpoint endpoint_
+    {
+        boost::asio::ip::make_address("127.0.0.1"),
+        65115
+    };
+    tcp::acceptor acceptor_{ io_, endpoint_ };
     tcp::socket socket_{ io_ };
     configuration config_;
     node::store store_;
@@ -240,7 +248,15 @@ struct session_broadcast_setup_fixture
     {
         std::promise<code> promise{};
         const auto broadcaster = std::make_shared<session_broadcaster>(node_);
-        broadcaster->broadcast<network::diagnostics>(std::make_shared<network::diagnostics>(std::make_shared<network::diagnostics::race>([&](const code& ec) NOEXCEPT { promise.set_value(ec); }), sink, group), 0);
+        using diagnostics = network::diagnostics;
+        const auto handler = [&](const code& ec) NOEXCEPT
+        {
+            promise.set_value(ec);
+        };
+
+        const auto race = std::make_shared<diagnostics::race>(handler);
+        const auto message = std::make_shared<diagnostics>(race, sink, group);
+        broadcaster->broadcast<diagnostics>(message, 0);
         return promise.get_future().get();
     }
 
@@ -249,7 +265,16 @@ struct session_broadcast_setup_fixture
     {
         std::promise<code> promise{};
         const auto broadcaster = std::make_shared<session_broadcaster>(node_);
-        broadcaster->broadcast<network::terminator>(std::make_shared<network::terminator>(std::make_shared<network::terminator::race>([&](const code& ec) NOEXCEPT { promise.set_value(ec); }), network::error::channel_dropped, identifier), 0);
+        using terminator = network::terminator;
+        const auto handler = [&](const code& ec) NOEXCEPT
+        {
+            promise.set_value(ec);
+        };
+
+        const auto race = std::make_shared<terminator::race>(handler);
+        const auto message = std::make_shared<terminator>(race,
+            network::error::channel_dropped, identifier);
+        broadcaster->broadcast<terminator>(message, 0);
         return promise.get_future().get();
     }
 };
@@ -274,8 +299,9 @@ struct session_peer_bip31_relay_setup_fixture
     inline session_peer_bip31_relay_setup_fixture()
       : p2p_setup_fixture({}, [](configuration& config)
         {
+            using namespace network::messages::peer;
             config.network.enable_relay = true;
-            config.network.protocol_maximum = network::messages::peer::level::bip31;
+            config.network.protocol_maximum = level::bip31;
         })
     {
     }

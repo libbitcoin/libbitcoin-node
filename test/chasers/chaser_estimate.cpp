@@ -39,10 +39,13 @@ struct chaser_estimate_setup_fixture
         const auto& block1 = p2p_compact_setup_fixture::block1();
         const database::context context1{ 0, 1, genesis.timestamp() };
         const auto work1 = genesis.proof() + block1.header().proof();
-        return query.set(block1, context1, work1, false, true) && query.push_candidate(query.to_header(block1.hash())) && query.push_confirmed(query.to_header(block1.hash()), true);
+        return query.set(block1, context1, work1, false, true) &&
+            query.push_candidate(query.to_header(block1.hash())) &&
+            query.push_confirmed(query.to_header(block1.hash()), true);
     }
 
-    inline chaser_estimate_setup_fixture(uint16_t horizon, const initializer& setup=confirm1)
+    inline chaser_estimate_setup_fixture(uint16_t horizon,
+        const initializer& setup=confirm1)
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             config.node.fee_estimate_horizon = horizon;
@@ -67,7 +70,8 @@ struct chaser_estimate_setup_fixture
         using namespace std::chrono;
         const auto deadline = steady_clock::now() + seconds(10);
         auto value = estimate(target, mode);
-        while (value.first == node::error::estimate_premature && steady_clock::now() < deadline)
+        while (value.first == node::error::estimate_premature &&
+            steady_clock::now() < deadline)
         {
             std::this_thread::sleep_for(milliseconds(10));
             value = estimate(target, mode);
@@ -78,17 +82,20 @@ struct chaser_estimate_setup_fixture
 
     void notify_block(const hash_digest& hash)
     {
-        node_.notify(node::error::success, chases::block{ query_.to_header(hash).value });
+        const auto link = query_.to_header(hash);
+        node_.notify(node::error::success, chases::block{ link.value });
     }
 
     void notify_organized(const hash_digest& hash)
     {
-        node_.notify(node::error::success, chases::organized{ query_.to_header(hash).value });
+        const auto link = query_.to_header(hash);
+        node_.notify(node::error::success, chases::organized{ link.value });
     }
 
     void notify_reorganized(const hash_digest& hash)
     {
-        node_.notify(node::error::success, chases::reorganized{ query_.to_header(hash).value });
+        const auto link = query_.to_header(hash);
+        node_.notify(node::error::success, chases::reorganized{ link.value });
     }
 
     bool confirm2()
@@ -98,8 +105,11 @@ struct chaser_estimate_setup_fixture
         const auto& block1 = p2p_compact_setup_fixture::block1();
         const auto& block2 = p2p_compact_setup_fixture::block2();
         const database::context context2{ 0, 2, block1.header().timestamp() };
-        const auto work2 = genesis.proof() + block1.header().proof() + block2.header().proof();
-        return query_.set(block2, context2, work2, false, true) && query_.push_candidate(query_.to_header(block2.hash())) && query_.push_confirmed(query_.to_header(block2.hash()), true);
+        const auto work1 = genesis.proof() + block1.header().proof();
+        const auto work2 = work1 + block2.header().proof();
+        return query_.set(block2, context2, work2, false, true) &&
+            query_.push_candidate(query_.to_header(block2.hash())) &&
+            query_.push_confirmed(query_.to_header(block2.hash()), true);
     }
 
     bool store_header2()
@@ -109,7 +119,8 @@ struct chaser_estimate_setup_fixture
         const auto& header1 = p2p_compact_setup_fixture::block1().header();
         const auto& header2 = p2p_compact_setup_fixture::block2().header();
         const database::context context2{ 0, 2, header1.timestamp() };
-        return query_.set(header2, context2, genesis.proof() + header1.proof() + header2.proof(), false);
+        const auto work2 = genesis.proof() + header1.proof() + header2.proof();
+        return query_.set(header2, context2, work2, false);
     }
 
     bool suspended()

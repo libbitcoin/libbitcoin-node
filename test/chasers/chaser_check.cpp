@@ -244,7 +244,9 @@ struct chaser_check_compact_setup_fixture
         const auto& header1 = p2p_compact_setup_fixture::block1().header();
         const database::context context1{ 0, 1, genesis.timestamp() };
         database::header_link link{};
-        return !query.set_code(link, header1, context1, genesis.proof() + header1.proof(), false, true) && query.push_candidate(link);
+        const auto work = genesis.proof() + header1.proof();
+        return !query.set_code(link, header1, context1, work, false, true) &&
+            query.push_candidate(link);
     }
 
     inline chaser_check_compact_setup_fixture()
@@ -261,11 +263,13 @@ struct chaser_check_compact_sampled_setup_fixture
   : chaser_check_setup_fixture
 {
     inline chaser_check_compact_sampled_setup_fixture()
-      : chaser_check_setup_fixture(chaser_check_compact_setup_fixture::compact, [](configuration& config)
-        {
-            config.node.compact_timeout_seconds = 3;
-            config.node.sample_period_seconds = 1;
-        })
+      : chaser_check_setup_fixture(
+            chaser_check_compact_setup_fixture::compact,
+            [](configuration& config)
+            {
+                config.node.compact_timeout_seconds = 3;
+                config.node.sample_period_seconds = 1;
+            })
     {
     }
 };
@@ -274,16 +278,24 @@ BC_POP_WARNING()
 
 namespace peer = network::messages::peer;
 
-static constexpr uint64_t peer_services = service::node_network | service::node_witness;
+static constexpr uint64_t peer_services = service::node_network |
+    service::node_witness;
 
 // Mainnet block 1 with a coinbase witness, which does not change its hash.
 static const chain::block& witness_block1() NOEXCEPT
 {
-    static const chain::block instance
-    {
-        base16_chunk("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e3629901010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff0704ffff001d0104ffffffff0100f2052a0100000043410496b538e853519c726a2c91e61ec11600ae1390813a627c66fb8be7947be63c52da7589379515d4e0a604f8141781e62294721166bf621e73a82cbf2342c858eeac0120000000000000000000000000000000000000000000000000000000000000000000000000"),
-        true
-    };
+    const auto data = base16_chunk
+    (
+        "010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d61900"
+        "00000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e8"
+        "57233e0e61bc6649ffff001d01e3629901010000000001010000000000000000"
+        "000000000000000000000000000000000000000000000000ffffffff0704ffff"
+        "001d0104ffffffff0100f2052a0100000043410496b538e853519c726a2c91e6"
+        "1ec11600ae1390813a627c66fb8be7947be63c52da7589379515d4e0a604f814"
+        "1781e62294721166bf621e73a82cbf2342c858eeac0120000000000000000000"
+        "000000000000000000000000000000000000000000000000000000"
+    );
+    static const chain::block instance{ data, true };
 
     return instance;
 }
