@@ -41,19 +41,31 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 code chaser_validate::start_batch() NOEXCEPT
 {
     auto& query = archive();
-    if (is_zero(query.prevalid_records()) &&
-        is_zero(query.ecdsa_records()) &&
-        is_zero(query.schnorr_records()))
-        return {};
-
-    // Prevalid is not a validation state, so dropped blocks validate in place.
-    if (!batch_enabled_)
+    for (const auto bank: { false, true })
     {
-        LOGN("Dropping staged batch rows (" << query.prevalid_records() << ").");
-        return purge_batch();
+        if (is_zero(query.prevalid_records(bank)) &&
+            is_zero(query.ecdsa_records(bank)) &&
+            is_zero(query.schnorr_records(bank)))
+            continue;
+
+        // Prevalid is not a validation state, so dropped blocks validate in
+        // place.
+        if (!batch_enabled_)
+        {
+            LOGN("Dropping staged batch rows ("
+                << query.prevalid_records(bank) << ").");
+
+            if (const auto ec = purge_batch(bank))
+                return ec;
+
+            continue;
+        }
+
+        if (const auto ec = do_process_batch(bank, true))
+            return ec;
     }
 
-    return do_process_batch(true);
+    return {};
 }
 
 void chaser_validate::process_batch(bool residual) NOEXCEPT
@@ -66,10 +78,21 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     if (draining_.exchange(true))
         return;
 
-    // Wait for in-flight commits to complete or abandon on close.
-    // Bounded: the writer epoch spans only the per-block slab commit, so
-    // writers_ only drains (arriving commits divert to in-place verify).
-    while (is_nonzero(writers_.load()))
+    // Retest under the claim, another drain may have just emptied the bank.
+    if (!is_mature(residual))
+    {
+        draining_.store(false);
+        return;
+    }
+
+    // Admit arriving commits to the other bank (changed only under claim).
+    const auto bank = bank_.load();
+    bank_.store(!bank);
+
+    // Wait for in-flight commits to the bank to complete or abandon on close.
+    // Bounded: the writer epoch spans only the per-block slab commit, and
+    // arriving commits go to the other bank.
+    while (is_nonzero(writers_.at(to_int<size_t>(bank)).load()))
     {
         if (closed())
         {
@@ -80,17 +103,10 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         std::this_thread::yield();
     }
 
-    // Batch tables are now quiescent (no writers admitted, none in flight).
+    // Bank is now quiescent (no writers admitted, none in flight).
     // ========================================================================
 
-    // Retest under the claim, another drain may have just emptied the tables.
-    if (!is_mature(residual))
-    {
-        draining_.store(false);
-        return;
-    }
-
-    const auto ec = do_process_batch(false);
+    const auto ec = do_process_batch(bank, false);
     draining_.store(false);
     if (ec == network::error::operation_canceled)
         return;
@@ -108,17 +124,17 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
 }
 
 // Guarded by the drain claim (or single-threaded at startup).
-code chaser_validate::do_process_batch(bool startup) NOEXCEPT
+code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
 {
     auto& query = archive();
-    auto prevalids = query.get_prevalids();
+    auto prevalids = query.get_prevalids(bank);
 
-    const auto ecdsa = query.ecdsa_records();
+    const auto ecdsa = query.ecdsa_records(bank);
     if (is_nonzero(ecdsa))
     {
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_ecdsa_signatures(stopping_, invalids))
+        if (!query.verify_ecdsa_signatures(stopping_, invalids, bank))
         {
             LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return network::error::operation_canceled;
@@ -136,12 +152,12 @@ code chaser_validate::do_process_batch(bool startup) NOEXCEPT
             return error::batch1;
     }
 
-    const auto schnorr = query.schnorr_records();
+    const auto schnorr = query.schnorr_records(bank);
     if (is_nonzero(schnorr))
     {
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_schnorr_signatures(stopping_, invalids))
+        if (!query.verify_schnorr_signatures(stopping_, invalids, bank))
         {
             LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return network::error::operation_canceled;
@@ -162,17 +178,17 @@ code chaser_validate::do_process_batch(bool startup) NOEXCEPT
     if (!mark_valids(prevalids, startup))
         return error::batch3;
 
-    return purge_batch();
+    return purge_batch(bank);
 }
 
-code chaser_validate::purge_batch() NOEXCEPT
+code chaser_validate::purge_batch(bool bank) NOEXCEPT
 {
     auto& query = archive();
 
     // Purge prevalids before signatures.
-    return query.purge_prevalids() &&
-        query.purge_ecdsa_signatures() &&
-        query.purge_schnorr_signatures() ?
+    return query.purge_prevalids(bank) &&
+        query.purge_ecdsa_signatures(bank) &&
+        query.purge_schnorr_signatures(bank) ?
         error::success : error::batch4;
 }
 
@@ -247,12 +263,13 @@ bool chaser_validate::is_residual() NOEXCEPT
 bool chaser_validate::is_mature(bool residual) NOEXCEPT
 {
     const auto& query = archive();
-    const auto ecdsa = query.ecdsa_records();
-    const auto schnorr = query.schnorr_records();
+    const auto bank = bank_.load();
+    const auto ecdsa = query.ecdsa_records(bank);
+    const auto schnorr = query.schnorr_records(bank);
 
     // Nothing to verify and no links to release.
     if (is_zero(ecdsa) && is_zero(schnorr) &&
-        is_zero(query.prevalid_records()))
+        is_zero(query.prevalid_records(bank)))
         return false;
 
     // Verify residuals whenever, and non-residuals when mature.
@@ -273,23 +290,24 @@ std::string chaser_validate::log_rate(const std::string& name,
 // ----------------------------------------------------------------------------
 // protected
 
+// A writer admitted to a bank that is then switched retries on the other, so
+// that a drain observes every writer of its bank.
 bool chaser_validate::enter_capture() NOEXCEPT
 {
-
-    // Capture bypassed by batch.
-    ++writers_;
-    if (draining_.load())
+    while (true)
     {
-        --writers_;
-        return false;
-    }
+        const auto bank = bank_.load();
+        ++writers_.at(to_int<size_t>(bank));
+        if (bank == bank_.load())
+            return bank;
 
-    return true;
+        --writers_.at(to_int<size_t>(bank));
+    }
 }
 
-void chaser_validate::exit_capture() NOEXCEPT
+void chaser_validate::exit_capture(bool bank) NOEXCEPT
 {
-    --writers_;
+    --writers_.at(to_int<size_t>(bank));
 }
 
 BC_POP_WARNING()

@@ -146,7 +146,12 @@ static bool validate_noncandidate(node::query& query)
 
 static bool validate_staged(node::query& query)
 {
-    return validate_noncandidate(query) && query.set_prevalid(query.to_header(validate_x1().hash()));
+    return validate_noncandidate(query) && query.set_prevalid(query.to_header(validate_x1().hash()), false);
+}
+
+static bool validate_staged_second(node::query& query)
+{
+    return validate_noncandidate(query) && query.set_prevalid(query.to_header(validate_x1().hash()), true);
 }
 
 static bool validate_immature(node::query& query)
@@ -360,6 +365,18 @@ struct validate_staged_fixture
     }
 };
 
+struct validate_staged_second_fixture
+  : chaser_validate_setup_fixture
+{
+    validate_staged_second_fixture()
+      : chaser_validate_setup_fixture(validate_staged_second, [](configuration& config)
+        {
+            config.node.batch_signatures = 1;
+        })
+    {
+    }
+};
+
 struct validate_windowed_fixture
   : chaser_validate_setup_fixture
 {
@@ -449,16 +466,22 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__start__maximum_height__confirmable, val
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_prevalid__validated_iff_accelerated, validate_staged_fixture)
 {
-    BOOST_REQUIRE_EQUAL(query_.prevalid_records(), zero);
+    BOOST_REQUIRE_EQUAL(query_.prevalid0_records(), zero);
+    BOOST_REQUIRE_EQUAL(state(validate_x1()) == database::error::block_valid, system::batched::accelerated());
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_second_bank__validated_iff_accelerated, validate_staged_second_fixture)
+{
+    BOOST_REQUIRE_EQUAL(query_.prevalid_records(true), zero);
     BOOST_REQUIRE_EQUAL(state(validate_x1()) == database::error::block_valid, system::batched::accelerated());
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__prevalid__valid, validate_windowed_fixture)
 {
-    BOOST_REQUIRE(query_.set_prevalid(query_.to_header(validate_x1().hash())));
+    BOOST_REQUIRE(query_.set_prevalid(query_.to_header(validate_x1().hash()), false));
     node_.notify(node::error::success, chases::windowed{ 1 });
     BOOST_REQUIRE(stated(validate_x1(), database::error::block_valid));
-    BOOST_REQUIRE(await([&]() { return is_zero(query_.prevalid_records()); }));
+    BOOST_REQUIRE(await([&]() { return is_zero(query_.prevalid0_records()); }));
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__invalid_ecdsa_signature__unconfirmable, validate_windowed_fixture)
@@ -466,11 +489,11 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__invalid_ecdsa_signature__unco
     const auto link = query_.to_header(validate_x1().hash());
     chain::ecdsa_signatures signatures{};
     BOOST_REQUIRE(signatures.append(null_hash, validate_generator, ec_signature{}));
-    BOOST_REQUIRE(query_.set_signatures(signatures, link));
-    BOOST_REQUIRE(query_.set_prevalid(link));
+    BOOST_REQUIRE(query_.set_signatures(signatures, link, false));
+    BOOST_REQUIRE(query_.set_prevalid(link, false));
     node_.notify(node::error::success, chases::windowed{ 1 });
     BOOST_REQUIRE(stated(validate_x1(), database::error::block_unconfirmable));
-    BOOST_REQUIRE(await([&]() { return is_zero(query_.ecdsa_records()) && is_zero(query_.prevalid_records()); }));
+    BOOST_REQUIRE(await([&]() { return is_zero(query_.ecdsa0_records()) && is_zero(query_.prevalid0_records()); }));
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__invalid_schnorr_signature__unconfirmable, validate_windowed_fixture)
@@ -478,11 +501,11 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__invalid_schnorr_signature__un
     const auto link = query_.to_header(validate_x1().hash());
     chain::schnorr_signatures signatures{};
     signatures.append(null_hash, validate_generator_xonly, ec_signature{});
-    BOOST_REQUIRE(query_.set_signatures(signatures, link));
-    BOOST_REQUIRE(query_.set_prevalid(link));
+    BOOST_REQUIRE(query_.set_signatures(signatures, link, false));
+    BOOST_REQUIRE(query_.set_prevalid(link, false));
     node_.notify(node::error::success, chases::windowed{ 1 });
     BOOST_REQUIRE(stated(validate_x1(), database::error::block_unconfirmable));
-    BOOST_REQUIRE(await([&]() { return is_zero(query_.schnorr_records()) && is_zero(query_.prevalid_records()); }));
+    BOOST_REQUIRE(await([&]() { return is_zero(query_.schnorr0_records()) && is_zero(query_.prevalid0_records()); }));
 }
 
 ////BOOST_FIXTURE_TEST_CASE(chaser_validate__regressed__confirmed_candidates__unchanged, validate_unvalidated_fixture)
