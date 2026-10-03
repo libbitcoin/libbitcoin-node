@@ -310,6 +310,12 @@ code chaser_transaction::fill(database::tx_link& out,
     if (!pooled && !tx.is_coinbase() && !query.set_pooled(out, tx, ctx))
         return fault(error::transaction2);
 
+    if (!tx.is_coinbase())
+    {
+        fire(events::tx_archived, to_rate(tx));
+        notify(error::success, chases::transaction{ out });
+    }
+
     return error::success;
 }
 
