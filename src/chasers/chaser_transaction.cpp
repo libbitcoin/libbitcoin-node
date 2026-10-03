@@ -239,28 +239,34 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
-    // Txs are an arbitrary subset of the block, so block checks are deferred to
-    // validation. Each is archived before the next, so in block order a parent
-    // is resolved from the store.
-    size_t index{};
-    auto filled = links;
-    for (auto& fk: filled)
+    const auto filler = [&](auto& fk, size_t index) NOEXCEPT
     {
-        if (fk != terminal)
-            continue;
-
         database::tx_link out{};
         if (const auto ec = fill(out, *txs->at(index), ctx))
         {
             const auto faulted = node::error::error_category::contains(ec) ||
                 database::error::error_category::contains(ec);
             handler(faulted ? ec : unconfirmable(link, ctx.height, ec), index);
-            return;
+            return false;
         }
 
         fk = out;
-        ++index;
-    }
+        return true;
+    };
+
+    // Txs are an arbitrary subset of the block, so block checks are deferred to
+    // validation. Each is archived before the next, so in block order a parent
+    // is resolved from the store. The coinbase (never a parent within its
+    // block) is archived last, as validation indexes only txs linked above it.
+    auto filled = links;
+    const auto deferred = filled.front() == terminal;
+    auto index = deferred ? one : zero;
+    for (auto fk = std::next(filled.begin()); fk != filled.end(); ++fk)
+        if (*fk == terminal && !filler(*fk, index++))
+            return;
+
+    if (deferred && !filler(filled.front(), zero))
+        return;
 
     const auto strong = is_under_checkpoint(ctx.height);
     if (const auto ec = query.set_code(link, filled, strong))
@@ -309,6 +315,10 @@ code chaser_transaction::fill(database::tx_link& out,
 
     if (!pooled && !tx.is_coinbase() && !query.set_pooled(out, tx, ctx))
         return fault(error::transaction2);
+
+    if (!pooled && !tx.is_coinbase() && query.silent_enabled() &&
+        !query.set_silent(out, tx))
+        return fault(error::transaction6);
 
     if (!tx.is_coinbase())
     {
