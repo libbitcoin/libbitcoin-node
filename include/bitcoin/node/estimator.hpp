@@ -64,8 +64,8 @@ public:
 
     /// Update accumulator (not thread safe).
     bool push(const query& query) NOEXCEPT;
-    bool pop(const query& query) NOEXCEPT;
     bool pool(const query& query, const database::tx_link& link) NOEXCEPT;
+    bool pop(const query& query, const database::header_link& link) NOEXCEPT;
 
     /// Top height of accumulator (thread safe).
     size_t top_height() const NOEXCEPT;

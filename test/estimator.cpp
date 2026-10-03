@@ -809,7 +809,7 @@ BOOST_FIXTURE_TEST_CASE(estimator__push__query_maximum_top_height__false, estima
 BOOST_FIXTURE_TEST_CASE(estimator__pop__query_zero_top_height__false, estimator_query_setup_fixture)
 {
     const auto instance = acessor::create();
-    BOOST_REQUIRE(!instance->pop(query_));
+    BOOST_REQUIRE(!instance->pop(query_, query_.to_confirmed(0)));
     BOOST_REQUIRE_EQUAL(instance->top_height(), 0u);
 }
 
@@ -944,6 +944,29 @@ BOOST_FIXTURE_TEST_CASE(estimator__pool__query_unknown_link__false, estimator_qu
 {
     const auto instance = acessor::create();
     BOOST_REQUIRE(!instance->pool(query_, 42));
+}
+
+BOOST_FIXTURE_TEST_CASE(estimator__pop__query_top_link__removes_top_block_fees, estimator_query_setup_fixture)
+{
+    constexpr uint64_t value = 5'000'000'000;
+    const system::settings bitcoin{ chain::selection::mainnet };
+    const auto& genesis = bitcoin.genesis_block;
+    const auto coinbase1 = estimator_coinbase(1, value);
+    const auto spend = estimator_spend(coinbase1, 10'000u);
+    const auto block1 = estimator_block(genesis, 1, { coinbase1 });
+    const auto block2 = estimator_block(block1, 2, { estimator_coinbase(2, value), spend });
+    BOOST_REQUIRE(estimator_confirm(query_, block1, 1));
+    BOOST_REQUIRE(estimator_confirm(query_, block2, 2));
+    BOOST_REQUIRE(estimator_pool(store_, query_, spend, 1, 10'000u));
+
+    const auto instance = acessor::create();
+    BOOST_REQUIRE(instance->initialize(cancel_, query_, 3));
+    BOOST_REQUIRE_EQUAL(instance->top_height(), 2u);
+    BOOST_REQUIRE_GT(estimator_small_total(*instance), 0u);
+
+    BOOST_REQUIRE(instance->pop(query_, query_.to_header(block2.hash())));
+    BOOST_REQUIRE_EQUAL(instance->top_height(), 1u);
+    BOOST_REQUIRE_EQUAL(estimator_small_total(*instance), 0u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

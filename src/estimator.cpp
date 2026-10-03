@@ -104,13 +104,13 @@ bool estimator::push(const query& query) NOEXCEPT
     return query.get_block_fees(block, link) && push(block);
 }
 
-bool estimator::pop(const query& query) NOEXCEPT
+bool estimator::pop(const query& query,
+    const database::header_link& link) NOEXCEPT
 {
     if (is_subtract_overflow(top_height(), one))
         return false;
 
     rates block{};
-    const auto link = query.to_confirmed(sub1(top_height()));
     return query.get_block_fees(block, link) && pop(block);
 }
 
