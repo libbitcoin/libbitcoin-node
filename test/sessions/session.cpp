@@ -254,9 +254,9 @@ struct session_broadcast_setup_fixture
             promise.set_value(ec);
         };
 
-        const auto race = std::make_shared<diagnostics::race>(handler);
-        const auto message = std::make_shared<diagnostics>(race, sink, group);
-        broadcaster->broadcast<diagnostics>(message, 0);
+        // The race completes upon release of the last message reference.
+        broadcaster->broadcast<diagnostics>(std::make_shared<diagnostics>(
+            std::make_shared<diagnostics::race>(handler), sink, group), 0);
         return promise.get_future().get();
     }
 
@@ -271,10 +271,10 @@ struct session_broadcast_setup_fixture
             promise.set_value(ec);
         };
 
-        const auto race = std::make_shared<terminator::race>(handler);
-        const auto message = std::make_shared<terminator>(race,
-            network::error::channel_dropped, identifier);
-        broadcaster->broadcast<terminator>(message, 0);
+        // The race completes upon match, or release of the last reference.
+        broadcaster->broadcast<terminator>(std::make_shared<terminator>(
+            std::make_shared<terminator::race>(handler),
+            network::error::channel_dropped, identifier), 0);
         return promise.get_future().get();
     }
 };
