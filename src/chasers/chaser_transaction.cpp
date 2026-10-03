@@ -191,6 +191,12 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             return;
         }
 
+        if (!pooled && query.silent_enabled() && !query.set_silent(link, tx))
+        {
+            handler(fault(error::transaction6), index);
+            return;
+        }
+
         fire(events::tx_archived, to_rate(tx));
         notify(error::success, chases::transaction{ link });
     }
