@@ -185,16 +185,19 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             return;
         }
 
-        if (!pooled && !query.set_pooled(link, tx, pool_))
+        if (!pooled)
         {
-            handler(fault(error::transaction2), index);
-            return;
-        }
+            if (!query.set_pooled(link, tx, pool_))
+            {
+                handler(fault(error::transaction2), index);
+                return;
+            }
 
-        if (!pooled && query.silent_enabled() && !query.set_silent(link, tx))
-        {
-            handler(fault(error::transaction6), index);
-            return;
+            if (query.silent_enabled() && !query.set_silent(link, tx))
+            {
+                handler(fault(error::transaction6), index);
+                return;
+            }
         }
 
         fire(events::tx_archived, to_rate(tx));
@@ -239,7 +242,8 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
-    const auto filler = [&](auto& fk, size_t index) NOEXCEPT
+    using link_t = database::tx_link::integer;
+    const auto filler = [&](link_t& fk, size_t index) NOEXCEPT
     {
         database::tx_link out{};
         if (const auto ec = fill(out, *txs->at(index), ctx))
@@ -262,8 +266,15 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     const auto deferred = filled.front() == terminal;
     auto index = deferred ? one : zero;
     for (auto fk = std::next(filled.begin()); fk != filled.end(); ++fk)
-        if (*fk == terminal && !filler(*fk, index++))
+    {
+        if (*fk != terminal)
+            continue;
+
+        if (!filler(*fk, index))
             return;
+
+        ++index;
+    }
 
     if (deferred && !filler(filled.front(), zero))
         return;
@@ -313,14 +324,17 @@ code chaser_transaction::fill(database::tx_link& out,
     if (const auto ec = query.set_code(out, pooled, tx))
         return fault(ec);
 
-    if (!pooled && !tx.is_coinbase() && !query.set_pooled(out, tx, ctx))
-        return fault(error::transaction2);
+    const auto coinbase = tx.is_coinbase();
+    if (!pooled && !coinbase)
+    {
+        if (!query.set_pooled(out, tx, ctx))
+            return fault(error::transaction2);
 
-    if (!pooled && !tx.is_coinbase() && query.silent_enabled() &&
-        !query.set_silent(out, tx))
-        return fault(error::transaction6);
+        if (query.silent_enabled() && !query.set_silent(out, tx))
+            return fault(error::transaction6);
+    }
 
-    if (!tx.is_coinbase())
+    if (!coinbase)
     {
         fire(events::tx_archived, to_rate(tx));
         notify(error::success, chases::transaction{ out });
