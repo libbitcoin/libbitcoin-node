@@ -33,8 +33,12 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
 {
 }
 
+// Silent payment indexing requires witness data.
 code configuration::initialize() NOEXCEPT
 {
+    if (node.silent_start_height != max_uint32 && !node.require_witness)
+        return network::error::invalid_configuration;
+
     database.initialize(bitcoin, node.limited_blocks, node.silent_start_height);
     return network.initialize();
 }

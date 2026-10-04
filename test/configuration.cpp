@@ -39,4 +39,20 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__mainnet__success_peer_identifier
     BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, 0xd9b4bef9_u32);
 }
 
+BOOST_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__invalid_configuration)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.silent_start_height = 0;
+    instance.node.require_witness = false;
+    BOOST_REQUIRE_EQUAL(instance.initialize(), network::error::invalid_configuration);
+}
+
+BOOST_AUTO_TEST_CASE(configuration__initialize__silent_with_witness__success)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.silent_start_height = 0;
+    instance.node.require_witness = true;
+    BOOST_REQUIRE(!instance.initialize());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
