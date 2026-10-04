@@ -182,7 +182,7 @@ void chaser_estimate::do_initialize(header_t) NOEXCEPT
     if (!estimator_->initialize(stopping_, archive(), horizon))
     {
         fault(error::estimates_initialize);
-        estimator_.release();
+        estimator_.reset();
         return;
     }
 
