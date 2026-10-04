@@ -55,6 +55,7 @@ settings::settings() NOEXCEPT
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
     compact_timeout_seconds{ 10 },
+    compact_missing_percent{ 50 },
     currency_window_minutes{ 1440 }
 {
 }

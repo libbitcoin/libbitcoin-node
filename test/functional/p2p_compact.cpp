@@ -146,6 +146,17 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id__requested_
     BOOST_REQUIRE(associated(block.hash()));
 }
 
+// The pool holds none of the block, so it is downloaded (not requested).
+BOOST_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__short_id_unpooled__not_requested, p2p_compact_pooled_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(full_node));
+
+    send(shortened(block1()), node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    BOOST_REQUIRE(!received(get_compact_transactions::command, pong::command));
+}
+
 BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id_mismatch__stopped)
 {
     BOOST_REQUIRE(handshake(full_node));
@@ -162,36 +173,32 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id_mismatch__s
 }
 
 // An unidentified fill leaves evidence, resolved against the archived block.
-////BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__unidentified_then_archived__stopped)
-////{
-////    BOOST_REQUIRE(handshake(full_node));
+// Block 2 remains an unassociated candidate, so the chain never coalesces
+// (which would prune the store, suspending the network).
+BOOST_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__unidentified_then_archived__stopped, p2p_compact_candidate_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(full_node));
 
-////    const auto& block = block1();
-////    const chain::block& genesis = config_.bitcoin.genesis_block;
-////    send(prefilled(block, genesis.transactions_ptr()->front()), node_version->value);
-////    BOOST_REQUIRE(await([&]() { return query_.get_top_candidate() == one; }));
+    // The unassociated candidates are requested on handshake.
+    const auto& block = block1();
+    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
+    BOOST_REQUIRE(request);
+    BOOST_REQUIRE(request->items.front().hash == block.hash());
 
-////    // Headers are proven, then requested again for archival. The deferred
-////    // compact top is then downloaded, as it is no longer the top.
-////    const headers announcement{ { block2().header_ptr() } };
-////    send(announcement, node_version->value);
-////    receive(get_headers::command);
-////    receive(get_headers::command);
-////    send(announcement, node_version->value);
-////    BOOST_REQUIRE(await([&]() { return query_.get_top_candidate() == two; }));
+    // The fill is unidentified (wrong coinbase), the pong orders it.
+    const chain::block& genesis = config_.bitcoin.genesis_block;
+    send(prefilled(block, genesis.transactions_ptr()->front()), node_version->value);
+    send(ping{ 1 }, node_version->value);
+    receive(pong::command);
 
-////    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
-////    BOOST_REQUIRE(request);
-////    BOOST_REQUIRE(request->items.front().hash == block.hash());
+    send(network::messages::peer::block::command, block.to_data(true));
+    BOOST_REQUIRE(associated(block.hash()));
 
-////    send(network::messages::peer::block::command, block.to_data(true));
-////    BOOST_REQUIRE(associated(block.hash()));
+    send(prefilled(block, block.transactions_ptr()->front()), node_version->value);
+    send(ping{ 2 }, node_version->value);
 
-////    send(prefilled(block, block.transactions_ptr()->front()), node_version->value);
-////    send(ping{ 42 }, node_version->value);
-
-////    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
-////}
+    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+}
 
 // cmpctblock (announce)
 // ----------------------------------------------------------------------------
