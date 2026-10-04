@@ -65,7 +65,7 @@ TEMPLATE
 inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
 {
     BC_ASSERT(channel->stranded());
-    BC_ASSERT(channel->held());
+    BC_ASSERT(channel->held() || channel->stopped());
 
     using namespace system;
     using namespace network;
