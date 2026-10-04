@@ -209,13 +209,14 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 
         const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
+        const auto silent = height >= query.silent_start_height();
 
         switch (ec.value())
         {
             case database::error::unvalidated:
             case database::error::unknown_state:
             {
-                if (bypass && !filter_)
+                if (bypass && !filter_ && !silent)
                 {
                     complete_block(error::success, link, height, true);
                 }

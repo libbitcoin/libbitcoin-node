@@ -102,7 +102,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 
     if (bypass)
     {
-        // Populating for filters only (no validation metadata required).
+        // Populating for optional indexes only (no validation metadata).
         block.populate(ctx);
         if (!query.populate_without_metadata(block))
             return system::error::missing_previous_output;
@@ -139,7 +139,7 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
         error::validate11 : ec;
 }
 
-// A pooled block is valid, so is produced only as required for filters.
+// A pooled block is valid, so is produced only as required for indexes.
 code chaser_validate::complete_pooled(const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
