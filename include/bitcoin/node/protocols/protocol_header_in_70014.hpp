@@ -45,8 +45,10 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    using compact_block = network::messages::peer::compact_block;
     using compact_transactions = network::messages::peer::compact_transactions;
+    using compact_block = network::messages::peer::compact_block;
+    using short_id_t = system::chain::short_id::integer;
+    using short_ids_t = std::vector<short_id_t>;
 
     /// A block being filled from its compact block.
     struct fill
@@ -56,7 +58,7 @@ protected:
         system::hash_digest hash{};
         system::chain::header::cptr header{};
         system::siphash_key key{};
-        std::vector<system::chain::short_id::integer> short_ids{};
+        short_ids_t short_ids{};
         system::chain::transaction_cptrs txs{};
         database::tx_links links{};
         std::vector<size_t> missing{};
@@ -80,18 +82,18 @@ protected:
         const system::hash_digest& hash, size_t height) NOEXCEPT;
 
 private:
-    bool decode(fill& block, const compact_block& message) NOEXCEPT;
     bool scan(fill& block) NOEXCEPT;
+    bool is_malleated64(const fill& block) NOEXCEPT;
+    bool decode(fill& block, const compact_block& message) NOEXCEPT;
     bool to_hashes(system::hashes& txids, system::hashes& wtxids,
         const fill& block) NOEXCEPT;
-    bool is_malleated64(const fill& block) NOEXCEPT;
 
-    void collect(const compact_block& message,
-        const database::header_link& link) NOEXCEPT;
     void request() NOEXCEPT;
     void identify() NOEXCEPT;
     bool resolve(const database::header_link& link) NOEXCEPT;
     bool matched(const database::header_link& link) const NOEXCEPT;
+    void collect(const compact_block& message,
+        const database::header_link& link) NOEXCEPT;
 
     // These are protected by strand.
     bool compact_{};

@@ -75,8 +75,7 @@ bool protocol_block_out_70014::handle_receive_get_data(const code& ec,
         const auto block = make_compact_block(link);
         if (!block)
         {
-            LOGF("Compact block " << encode_hash(item.hash)
-                << " not obtained.");
+            LOGF("Compact block " << encode_hash(item.hash) << " not made.");
             continue;
         }
 

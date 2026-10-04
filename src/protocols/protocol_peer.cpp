@@ -60,47 +60,6 @@ code protocol_peer::fault(const code& ec) NOEXCEPT
     return ec;
 }
 
-// Compact blocks (bip152 version 2).
-// ----------------------------------------------------------------------------
-
-network::messages::peer::compact_block::cptr protocol_peer::make_compact_block(
-    const database::header_link& link) const NOEXCEPT
-{
-    using namespace network::messages::peer;
-    const auto& query = archive();
-    const auto header = query.get_header(link);
-    const auto txs = query.to_transactions(link);
-    if (!header || txs.empty())
-        return {};
-
-    const auto coinbase = query.get_transaction(txs.front(), true);
-    const auto wtxids = query.get_wtxids(link);
-    if (!coinbase || wtxids.size() != txs.size())
-        return {};
-
-    const auto nonce = maybe_random::next<uint64_t>(0, max_uint64);
-    const auto key = chain::short_id::to_key(*header, nonce);
-
-    compact_block::short_id_list ids{};
-    ids.reserve(sub1(wtxids.size()));
-    for (auto it = std::next(wtxids.begin()); it != wtxids.end(); ++it)
-    {
-        if (*it == null_hash)
-            return {};
-
-        const auto id = chain::short_id::to_id(key, *it);
-        ids.push_back(chain::short_id::to_mini(id));
-    }
-
-    return to_shared(compact_block
-    {
-        header,
-        nonce,
-        std::move(ids),
-        compact_block_items{ compact_block_item{ zero, coinbase } }
-    });
-}
-
 // Announcements.
 // ----------------------------------------------------------------------------
 
@@ -131,6 +90,47 @@ void protocol_peer::notify_one(object_key key, const code& ec,
     event_value value) const NOEXCEPT
 {
     session_->notify_one(key, ec, value);
+}
+
+// Compact blocks (bip152 version 2).
+// ----------------------------------------------------------------------------
+
+network::messages::peer::compact_block::cptr protocol_peer::make_compact_block(
+    const database::header_link& link) const NOEXCEPT
+{
+    using namespace network::messages::peer;
+    const auto& query = archive();
+    const auto header = query.get_header(link);
+    const auto txs = query.to_transactions(link);
+    if (!header || txs.empty())
+        return {};
+
+    const auto coinbase = query.get_transaction(txs.front(), true);
+    const auto wtxids = query.get_wtxids(link);
+    if (!coinbase || wtxids.size() != txs.size())
+        return {};
+
+    const auto nonce = maybe_random::next<uint64_t>(0, max_uint64);
+    const auto key = chain::short_id::to_key(*header, nonce);
+
+    compact_block::short_id_list ids{};
+    ids.reserve(sub1(wtxids.size()));
+    for (auto it = std::next(wtxids.cbegin()); it != wtxids.cend(); ++it)
+    {
+        if (*it == null_hash)
+            return {};
+
+        const auto id = chain::short_id::to_id(key, *it);
+        ids.push_back(chain::short_id::to_mini(id));
+    }
+
+    return to_shared(compact_block
+    {
+        header,
+        nonce,
+        std::move(ids),
+        compact_block_items{ compact_block_item{ zero, coinbase } }
+    });
 }
 
 } // namespace node

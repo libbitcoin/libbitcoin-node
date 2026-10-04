@@ -83,13 +83,6 @@ protected:
     /// Determine if outgoing block or tx was previously announced by peer.
     virtual bool was_announced(const system::hash_digest&) const NOEXCEPT;
 
-    /// Compact blocks (bip152 version 2).
-    /// -----------------------------------------------------------------------
-
-    /// Compact block of an associated block (coinbase prefilled), or null.
-    virtual network::messages::peer::compact_block::cptr make_compact_block(
-        const database::header_link& link) const NOEXCEPT;
-
     /// Currency.
     /// -----------------------------------------------------------------------
 
@@ -107,6 +100,13 @@ protected:
     /// Set a chaser event.
     virtual void notify_one(object_key key, const code& ec,
         event_value value) const NOEXCEPT;
+
+    /// Compact blocks (bip152 version 2).
+    /// -----------------------------------------------------------------------
+
+    /// Compact block of an associated block (coinbase prefilled), or null.
+    virtual network::messages::peer::compact_block::cptr make_compact_block(
+        const database::header_link& link) const NOEXCEPT;
 
 private:
     // This derived channel requires stranded calls, base is thread safe.

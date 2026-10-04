@@ -66,8 +66,9 @@ bool protocol_header_out_70014::do_announce(header_t link) NOEXCEPT
 
         if (const auto message = make_compact_block(link))
         {
-            LOGN("Announce compact ..." << encode_hash(hash).substr(
-                hash_size - 8, 8) << " to [" << opposite() << "].");
+            LOGN("Announce compact ..."
+                << encode_hash(hash).substr(hash_size - 8, 8) << " to ["
+                << opposite() << "].");
             NOTIFY(*message, handle_send, _1);
             return true;
         }
@@ -94,6 +95,8 @@ bool protocol_header_out_70014::handle_receive_send_compact(const code& ec,
         if (high_bandwidth_)
             announce();
     }
+
+    // TODO: drop peer on non-negotiated version.
 
     return true;
 }

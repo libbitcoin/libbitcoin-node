@@ -86,14 +86,6 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
 
     // Ready to relay blocks or block filters.
     const auto blocks_out = !delay || this->is_recent();
-
-    ///////////////////////////////////////////////////////////////////////
-    // bip152: "Upon receipt of a `sendcmpct` message with the first and
-    // second integers set to 1, the node SHOULD announce new blocks by
-    // sending a cmpctblock message." IOW at 70014 bip152 is optional.
-    // This allows the node to support bip157 without supporting bip152.
-    ///////////////////////////////////////////////////////////////////////
-
     const auto peer = std::dynamic_pointer_cast<channel_t>(channel);
 
     // Node must advertise node_client_filters or no out filters.

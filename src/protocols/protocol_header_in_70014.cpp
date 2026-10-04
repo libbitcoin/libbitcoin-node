@@ -57,13 +57,14 @@ void protocol_header_in_70014::complete() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    // TODO: this is hardwired in handshake.
+    constexpr auto version = send_compact::compact_version_2;
+
     if (!compact_ && is_current_chain(true))
     {
         compact_ = true;
-        SEND((send_compact{ true, send_compact::compact_version_2 }),
-            handle_send, _1);
-        LOGP("Subscribed to compact block announcements at [" << opposite()
-            << "].");
+        SEND((send_compact{ true, version }), handle_send, _1);
+        LOGP("Subscribed to compact blocks at [" << opposite() << "].");
     }
 
     protocol_header_in_70012::complete();
@@ -100,8 +101,8 @@ bool protocol_header_in_70014::handle_receive_compact_block(const code& ec,
 
     if (link.is_terminal())
     {
-        organize_compact(header, BIND(handle_organize_compact, _1, _2,
-            message));
+        organize_compact(header,
+            BIND(handle_organize_compact, _1, _2, message));
         return true;
     }
 
@@ -169,12 +170,14 @@ void protocol_header_in_70014::collect(const compact_block& message,
         return;
     }
 
-    fill block{};
-    block.link = link;
-    block.height = ctx.height;
-    block.header = message.header_ptr;
-    block.hash = message.header_ptr->get_hash();
-    block.key = chain::short_id::to_key(*message.header_ptr, message.nonce);
+    fill block
+    {
+        .link = link,
+        .height = ctx.height,
+        .hash = message.header_ptr->get_hash(),
+        .header = message.header_ptr,
+        .key = chain::short_id::to_key(*message.header_ptr, message.nonce)
+    };
 
     if (!decode(block, message))
     {
@@ -206,14 +209,14 @@ bool protocol_header_in_70014::decode(fill& block,
     const compact_block& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& items = message.transactions;
     const auto& ids = message.short_ids;
+    const auto& items = message.transactions;
     const auto count = ids.size() + items.size();
     if (is_zero(count) || (count > chain::max_block_size))
         return false;
 
-    block.short_ids.resize(count);
     block.txs.resize(count);
+    block.short_ids.resize(count);
     block.links.assign(count, database::tx_link::terminal);
 
     size_t position{};
@@ -243,7 +246,7 @@ bool protocol_header_in_70014::decode(fill& block,
 bool protocol_header_in_70014::scan(fill& block) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    std::vector<chain::short_id::integer> short_ids{};
+    short_ids_t short_ids{};
     std::vector<size_t> positions{};
     for (size_t position{}; position < block.txs.size(); ++position)
     {
@@ -328,11 +331,21 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
     {
         const auto& tx = txs.at(index);
         const auto position = block.missing.at(index);
-        if (!tx || (chain::short_id::to_id(block.key, tx->is_coinbase() ?
-            bitcoin_hash(tx->to_data(true)) : tx->get_hash(true)) !=
-            block.short_ids.at(position)))
+        if (!tx)
         {
             LOGR("Invalid compact transaction from [" << opposite() << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        // TODO: use fast streaming hash to avoid allocation.
+        const auto tx_hash = tx->is_coinbase() ?
+            bitcoin_hash(tx->to_data(true)) : tx->get_hash(true);
+
+        if (chain::short_id::to_id(block.key, tx_hash) !=
+            block.short_ids.at(position))
+        {
+            LOGR("Invalid compact short id from [" << opposite() << "].");
             stop(network::error::protocol_violation);
             return false;
         }
@@ -351,10 +364,11 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
 void protocol_header_in_70014::identify() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& block = *fill_;
 
-    hashes txids{}, wtxids{};
+    auto& block = *fill_;
     chain::context ctx{};
+    hashes txids{}, wtxids{};
+
     if (!to_hashes(txids, wtxids, block) ||
         !archive().get_context(ctx, block.link))
     {
@@ -369,6 +383,7 @@ void protocol_header_in_70014::identify() NOEXCEPT
     const auto& root = block.header->merkle_root();
     const auto segregated = !std::equal(txids.cbegin(), txids.cend(),
         wtxids.cbegin());
+
     const auto witness_root = sha256::merkle_root(std::move(wtxids));
     if ((ec = chain::block::identify(root, txids, is_malleated64(block))) ||
         (ec = chain::block::identify(ctx, first, witness_root, segregated)))
@@ -398,6 +413,7 @@ bool protocol_header_in_70014::to_hashes(hashes& txids, hashes& wtxids,
     const fill& block) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
     const auto& query = archive();
     const auto count = block.txs.size();
     if (!block.txs.front())
@@ -429,6 +445,7 @@ bool protocol_header_in_70014::to_hashes(hashes& txids, hashes& wtxids,
 bool protocol_header_in_70014::is_malleated64(const fill& block) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
     const auto& query = archive();
     auto malleated = !block.txs.front()->is_coinbase();
     for (size_t at{}; malleated && at < block.txs.size(); ++at)
