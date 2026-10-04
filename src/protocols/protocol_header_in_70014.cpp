@@ -80,7 +80,13 @@ bool protocol_header_in_70014::handle_receive_compact_block(const code& ec,
     if (stopped(ec))
         return false;
 
-    resolve();
+    const auto& header = message->header_ptr;
+    const auto& hash = header->get_hash();
+    const auto link = archive().to_header(hash);
+
+    if (!resolve(link))
+        return true;
+
     if (stopped())
         return false;
 
@@ -88,14 +94,10 @@ bool protocol_header_in_70014::handle_receive_compact_block(const code& ec,
     if (!is_current_chain(true))
         return true;
 
-    const auto& header = message->header_ptr;
-    const auto& hash = header->get_hash();
     set_announced(hash);
-
     if (fill_ && (fill_->hash == hash))
         return true;
 
-    const auto link = archive().to_header(hash);
     if (link.is_terminal())
     {
         organize_compact(header, BIND(handle_organize_compact, _1, _2,
@@ -365,16 +367,18 @@ void protocol_header_in_70014::identify() NOEXCEPT
     code ec{};
     const auto& first = *block.txs.front();
     const auto& root = block.header->merkle_root();
-    const auto segregated = !std::equal(txids.begin(), txids.end(),
-        wtxids.begin());
+    const auto segregated = !std::equal(txids.cbegin(), txids.cend(),
+        wtxids.cbegin());
+    const auto witness_root = sha256::merkle_root(std::move(wtxids));
     if ((ec = chain::block::identify(root, txids, is_malleated64(block))) ||
-        (ec = chain::block::identify(ctx, first, wtxids, segregated)))
+        (ec = chain::block::identify(ctx, first, witness_root, segregated)))
     {
         LOGR("Compact block [" << encode_hash(block.hash) << "] from ["
             << opposite() << "] " << ec.message());
 
         evidence_link_ = block.link;
-        evidence_ = std::move(wtxids);
+        evidence_root_ = witness_root;
+        evidence_count_ = block.txs.size();
         fill_.reset();
         return;
     }
@@ -479,17 +483,23 @@ void protocol_header_in_70014::do_submit_compact(const code& ec,
 // ----------------------------------------------------------------------------
 
 // Evidence of an unidentified compact block is held until the peer's next
-// compact block, when it is resolved against the block if then archived.
-void protocol_header_in_70014::resolve() NOEXCEPT
+// compact block, when it is resolved against the block if then archived. A
+// resend of the block in evidence is not filled while it remains unarchived.
+bool protocol_header_in_70014::resolve(
+    const database::header_link& link) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (evidence_.empty())
-        return;
+    if (evidence_link_.is_terminal())
+        return true;
 
     const auto& query = archive();
-    if (query.is_associated(evidence_link_) &&
-        (query.get_wtxids(evidence_link_) != evidence_))
+    if (!query.is_associated(evidence_link_))
+    {
+        if (link == evidence_link_)
+            return false;
+    }
+    else if (!matched(evidence_link_))
     {
         LOGR("Invalid compact block ["
             << encode_hash(query.get_header_key(evidence_link_))
@@ -498,7 +508,16 @@ void protocol_header_in_70014::resolve() NOEXCEPT
     }
 
     evidence_link_ = {};
-    evidence_.clear();
+    return true;
+}
+
+bool protocol_header_in_70014::matched(
+    const database::header_link& link) const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+    return (query.get_tx_count(link) == evidence_count_) &&
+        query.is_witness_committed(evidence_root_, link);
 }
 
 BC_POP_WARNING()

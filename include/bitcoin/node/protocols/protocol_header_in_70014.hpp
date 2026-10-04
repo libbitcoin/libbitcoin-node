@@ -90,13 +90,15 @@ private:
         const database::header_link& link) NOEXCEPT;
     void request() NOEXCEPT;
     void identify() NOEXCEPT;
-    void resolve() NOEXCEPT;
+    bool resolve(const database::header_link& link) NOEXCEPT;
+    bool matched(const database::header_link& link) const NOEXCEPT;
 
     // These are protected by strand.
     bool compact_{};
     std::optional<fill> fill_{};
     database::header_link evidence_link_{};
-    system::hashes evidence_{};
+    system::hash_digest evidence_root_{};
+    size_t evidence_count_{};
 };
 
 } // namespace node
