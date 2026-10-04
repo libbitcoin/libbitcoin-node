@@ -177,7 +177,7 @@ void protocol_header_in_70014::collect(const compact_block& message,
     block.height = ctx.height;
     block.header = message.header_ptr;
     block.hash = message.header_ptr->get_hash();
-    block.key = to_compact_key(*message.header_ptr, message.nonce);
+    block.key = chain::short_id::to_key(*message.header_ptr, message.nonce);
 
     if (!decode(block, message))
     {
@@ -232,7 +232,7 @@ bool protocol_header_in_70014::decode(fill& block,
     auto id = ids.begin();
     for (position = zero; position < count; ++position)
         if (!block.txs.at(position))
-            block.short_ids.at(position) = from_mini(*id++);
+            block.short_ids.at(position) = chain::short_id::from_mini(*id++);
 
     return true;
 }
@@ -241,7 +241,7 @@ bool protocol_header_in_70014::decode(fill& block,
 bool protocol_header_in_70014::scan(fill& block) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    std::vector<uint64_t> short_ids{};
+    std::vector<chain::short_id::integer> short_ids{};
     std::vector<size_t> positions{};
     for (size_t position{}; position < block.txs.size(); ++position)
     {
@@ -326,7 +326,7 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
     {
         const auto& tx = txs.at(index);
         const auto position = block.missing.at(index);
-        if (!tx || (to_short_id(block.key, tx->is_coinbase() ?
+        if (!tx || (chain::short_id::to_id(block.key, tx->is_coinbase() ?
             bitcoin_hash(tx->to_data(true)) : tx->get_hash(true)) !=
             block.short_ids.at(position)))
         {

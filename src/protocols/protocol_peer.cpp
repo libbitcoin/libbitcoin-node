@@ -63,40 +63,6 @@ code protocol_peer::fault(const code& ec) NOEXCEPT
 // Compact blocks (bip152 version 2).
 // ----------------------------------------------------------------------------
 
-// static
-siphash_key protocol_peer::to_compact_key(const chain::header& header,
-    uint64_t nonce) NOEXCEPT
-{
-    auto data = header.to_data();
-    extend(data, to_little_endian(nonce));
-    return to_siphash_key(split(sha256_hash(data)).first);
-}
-
-// static
-uint64_t protocol_peer::to_short_id(const siphash_key& key,
-    const hash_digest& wtxid) NOEXCEPT
-{
-    constexpr auto mask = unmask_right<uint64_t>(to_bits(mini_hash_size));
-    return bit_and(siphash(key, wtxid), mask);
-}
-
-// static
-uint64_t protocol_peer::from_mini(const mini_hash& id) NOEXCEPT
-{
-    data_array<sizeof(uint64_t)> bytes{};
-    std::copy(id.begin(), id.end(), bytes.begin());
-    return from_little_endian<uint64_t>(bytes);
-}
-
-// static
-mini_hash protocol_peer::to_mini(uint64_t id) NOEXCEPT
-{
-    mini_hash out{};
-    const auto bytes = to_little_endian(id);
-    std::copy_n(bytes.begin(), out.size(), out.begin());
-    return out;
-}
-
 network::messages::peer::compact_block::cptr protocol_peer::make_compact_block(
     const database::header_link& link) const NOEXCEPT
 {
@@ -113,7 +79,7 @@ network::messages::peer::compact_block::cptr protocol_peer::make_compact_block(
         return {};
 
     const auto nonce = maybe_random::next<uint64_t>(0, max_uint64);
-    const auto key = to_compact_key(*header, nonce);
+    const auto key = chain::short_id::to_key(*header, nonce);
 
     compact_block::short_id_list ids{};
     ids.reserve(sub1(wtxids.size()));
@@ -122,7 +88,8 @@ network::messages::peer::compact_block::cptr protocol_peer::make_compact_block(
         if (*it == null_hash)
             return {};
 
-        ids.push_back(to_mini(to_short_id(key, *it)));
+        const auto id = chain::short_id::to_id(key, *it);
+        ids.push_back(chain::short_id::to_mini(id));
     }
 
     return to_shared(compact_block
