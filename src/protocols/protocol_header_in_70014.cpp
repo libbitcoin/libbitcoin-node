@@ -157,12 +157,7 @@ void protocol_header_in_70014::collect(const compact_block& message,
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
-
-    // Fill only a single block extension of the confirmed chain.
-    if (query.is_associated(link) ||
-        (query.to_candidate(query.get_top_candidate()) != link) ||
-        (query.to_confirmed(query.get_top_confirmed()) !=
-            query.to_parent(link)))
+    if (!query.is_candidate_extension(link))
         return;
 
     chain::context ctx{};
@@ -207,7 +202,7 @@ bool protocol_header_in_70014::decode(fill& block,
     const auto& items = message.transactions;
     const auto& ids = message.short_ids;
     const auto count = ids.size() + items.size();
-    if (is_zero(count) || (count > chain::max_block_weight))
+    if (is_zero(count) || (count > chain::max_block_size))
         return false;
 
     block.short_ids.resize(count);
