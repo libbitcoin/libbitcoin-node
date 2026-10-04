@@ -56,7 +56,7 @@ protected:
         system::hash_digest hash{};
         system::chain::header::cptr header{};
         system::siphash_key key{};
-        std::vector<uint64_t> short_ids{};
+        std::vector<system::chain::short_id::integer> short_ids{};
         system::chain::transaction_cptrs txs{};
         database::tx_links links{};
         std::vector<size_t> missing{};

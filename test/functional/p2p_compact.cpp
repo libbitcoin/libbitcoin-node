@@ -25,14 +25,6 @@ using namespace network::messages::peer;
 
 constexpr uint64_t full_node = service::node_network | service::node_witness;
 
-struct compact_accessor
-  : node::protocol_peer
-{
-    using protocol_peer::to_compact_key;
-    using protocol_peer::to_short_id;
-    using protocol_peer::to_mini;
-};
-
 static compact_block prefilled(const chain::block& block,
     const chain::transaction::cptr& coinbase)
 {
@@ -41,11 +33,11 @@ static compact_block prefilled(const chain::block& block,
 
 static compact_block shortened(const chain::block& block)
 {
-    const auto key = compact_accessor::to_compact_key(block.header(), 42);
+    const auto key = chain::short_id::to_key(block.header(), 42);
     const auto& coinbase = *block.transactions_ptr()->front();
     const auto hash = bitcoin_hash(coinbase.to_data(true));
-    const auto short_id = compact_accessor::to_short_id(key, hash);
-    const auto id = compact_accessor::to_mini(short_id);
+    const auto integer = chain::short_id::to_id(key, hash);
+    const auto id = chain::short_id::to_mini(integer);
     return { block.header_ptr(), 42, { id }, {} };
 }
 

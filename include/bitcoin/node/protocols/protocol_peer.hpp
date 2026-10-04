@@ -86,18 +86,6 @@ protected:
     /// Compact blocks (bip152 version 2).
     /// -----------------------------------------------------------------------
 
-    /// Short id siphash key of the header and nonce.
-    static system::siphash_key to_compact_key(
-        const system::chain::header& header, uint64_t nonce) NOEXCEPT;
-
-    /// Short id of a witness hash (low 48 bits of its siphash).
-    static uint64_t to_short_id(const system::siphash_key& key,
-        const system::hash_digest& wtxid) NOEXCEPT;
-
-    /// Short id wire encoding (six bytes little endian).
-    static uint64_t from_mini(const system::mini_hash& id) NOEXCEPT;
-    static system::mini_hash to_mini(uint64_t id) NOEXCEPT;
-
     /// Compact block of an associated block (coinbase prefilled), or null.
     virtual network::messages::peer::compact_block::cptr make_compact_block(
         const database::header_link& link) const NOEXCEPT;
