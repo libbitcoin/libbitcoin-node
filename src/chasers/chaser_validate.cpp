@@ -41,7 +41,6 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     validation_strand_(validation_threadpool_.service().get_executor()),
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
-    silent_start_height_(node.node_settings().silent_start_height),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
     maximum_height_(node.node_settings().maximum_height_()),
     batch_target_(node.node_settings().batch_signatures),
@@ -210,13 +209,14 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 
         const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
+        const auto silent = height >= query.silent_start_height();
 
         switch (ec.value())
         {
             case database::error::unvalidated:
             case database::error::unknown_state:
             {
-                if (bypass && !filter_)
+                if (bypass && !filter_ && !silent)
                 {
                     complete_block(error::success, link, height, true);
                 }

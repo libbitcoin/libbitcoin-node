@@ -102,7 +102,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 
     if (bypass)
     {
-        // Populating for filters only (no validation metadata required).
+        // Populating for optional indexes only (no validation metadata).
         block.populate(ctx);
         if (!query.populate_without_metadata(block))
             return system::error::missing_previous_output;
@@ -139,12 +139,12 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
         error::validate11 : ec;
 }
 
-// A pooled block is valid, so is produced only as required for filters.
+// A pooled block is valid, so is produced only as required for indexes.
 code chaser_validate::complete_pooled(const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
-    if (filter_ || (ctx.height >= silent_start_height_))
+    if (filter_ || (ctx.height >= query.silent_start_height()))
     {
         bool batched{}, capturing{};
         constexpr auto bypass = true;
@@ -210,7 +210,7 @@ code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
     if (!query.set_filter_body(link, block))
         return error::validate8;
 
-    if ((ctx.height >= silent_start_height_) &&
+    if ((ctx.height >= query.silent_start_height()) &&
         !query.set_silent(link, block))
         return error::validate9;
 

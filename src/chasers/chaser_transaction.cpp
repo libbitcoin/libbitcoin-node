@@ -185,10 +185,19 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             return;
         }
 
-        if (!pooled && !query.set_pooled(link, tx, pool_))
+        if (!pooled)
         {
-            handler(fault(error::transaction2), index);
-            return;
+            if (!query.set_pooled(link, tx, pool_))
+            {
+                handler(fault(error::transaction2), index);
+                return;
+            }
+
+            if (query.silent_enabled() && !query.set_silent(link, tx))
+            {
+                handler(fault(error::transaction6), index);
+                return;
+            }
         }
 
         fire(events::tx_archived, to_rate(tx));
@@ -233,28 +242,42 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
-    // Txs are an arbitrary subset of the block, so block checks are deferred to
-    // validation. Each is archived before the next, so in block order a parent
-    // is resolved from the store.
-    size_t index{};
-    auto filled = links;
-    for (auto& fk: filled)
+    using link_t = database::tx_link::integer;
+    const auto filler = [&](link_t& fk, size_t index) NOEXCEPT
     {
-        if (fk != terminal)
-            continue;
-
         database::tx_link out{};
         if (const auto ec = fill(out, *txs->at(index), ctx))
         {
             const auto faulted = node::error::error_category::contains(ec) ||
                 database::error::error_category::contains(ec);
             handler(faulted ? ec : unconfirmable(link, ctx.height, ec), index);
-            return;
+            return false;
         }
 
         fk = out;
+        return true;
+    };
+
+    // Txs are an arbitrary subset of the block, so block checks are deferred to
+    // validation. Each is archived before the next, so in block order a parent
+    // is resolved from the store. The coinbase (never a parent within its
+    // block) is archived last, as validation indexes only txs linked above it.
+    auto filled = links;
+    const auto deferred = filled.front() == terminal;
+    auto index = deferred ? one : zero;
+    for (auto fk = std::next(filled.begin()); fk != filled.end(); ++fk)
+    {
+        if (*fk != terminal)
+            continue;
+
+        if (!filler(*fk, index))
+            return;
+
         ++index;
     }
+
+    if (deferred && !filler(filled.front(), zero))
+        return;
 
     const auto strong = is_under_checkpoint(ctx.height);
     if (const auto ec = query.set_code(link, filled, strong))
@@ -301,8 +324,22 @@ code chaser_transaction::fill(database::tx_link& out,
     if (const auto ec = query.set_code(out, pooled, tx))
         return fault(ec);
 
-    if (!pooled && !tx.is_coinbase() && !query.set_pooled(out, tx, ctx))
-        return fault(error::transaction2);
+    const auto coinbase = tx.is_coinbase();
+    if (!pooled && !coinbase)
+    {
+        if (!query.set_pooled(out, tx, ctx))
+            return fault(error::transaction2);
+
+        if (ctx.height >= query.silent_start_height() &&
+            !query.set_silent(out, tx))
+            return fault(error::transaction6);
+    }
+
+    if (!coinbase)
+    {
+        fire(events::tx_archived, to_rate(tx));
+        notify(error::success, chases::transaction{ out });
+    }
 
     return error::success;
 }

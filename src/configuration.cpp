@@ -33,9 +33,21 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
 {
 }
 
+// Silent payment indexing requires witness data, which a pruned store does not
+// archive for checkpointed or milestoned (bypassed) blocks.
 code configuration::initialize() NOEXCEPT
 {
-    database.initialize(bitcoin, node.limited_blocks);
+    const auto silent = node.silent_start_height != max_uint32;
+    if (silent && !node.require_witness)
+        return network::error::invalid_configuration;
+
+    const auto checkpoint = bitcoin.top_checkpoint().height();
+    const auto milestone = bitcoin.milestone.height();
+    const auto bypassed = std::max(checkpoint, milestone);
+    if (silent && node.limited_blocks && node.silent_start_height <= bypassed)
+        return network::error::invalid_configuration;
+
+    database.initialize(bitcoin, node.limited_blocks, node.silent_start_height);
     return network.initialize();
 }
 
