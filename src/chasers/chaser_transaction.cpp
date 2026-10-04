@@ -330,7 +330,8 @@ code chaser_transaction::fill(database::tx_link& out,
         if (!query.set_pooled(out, tx, ctx))
             return fault(error::transaction2);
 
-        if (query.silent_enabled() && !query.set_silent(out, tx))
+        if (ctx.height >= query.silent_start_height() &&
+            !query.set_silent(out, tx))
             return fault(error::transaction6);
     }
 
