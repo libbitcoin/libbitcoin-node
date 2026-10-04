@@ -146,6 +146,17 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id__requested_
     BOOST_REQUIRE(associated(block.hash()));
 }
 
+// The pool holds none of the block, so it is downloaded (not requested).
+BOOST_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__short_id_unpooled__not_requested, p2p_compact_pooled_setup_fixture)
+{
+    BOOST_REQUIRE(handshake(full_node));
+
+    send(shortened(block1()), node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    BOOST_REQUIRE(!received(get_compact_transactions::command, pong::command));
+}
+
 BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id_mismatch__stopped)
 {
     BOOST_REQUIRE(handshake(full_node));

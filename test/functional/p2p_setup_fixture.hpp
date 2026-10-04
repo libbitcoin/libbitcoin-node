@@ -53,6 +53,9 @@ struct p2p_setup_fixture
     /// Read framed messages from the node until the command matches.
     system::data_chunk receive(const std::string& command);
 
+    /// Read framed messages until the command (true) or the terminal.
+    bool received(const std::string& command, const std::string& terminal);
+
     /// Perform the version handshake, retains the node's version message.
     bool handshake(uint64_t services=0,
         uint32_t version=network::messages::peer::level::maximum_protocol,
@@ -147,12 +150,13 @@ struct p2p_compact_setup_fixture
     static const system::chain::block& block2() NOEXCEPT;
 
     inline p2p_compact_setup_fixture(const initializer& setup={},
-        uint16_t compact_timeout=max_uint16)
+        uint16_t compact_timeout=max_uint16, uint16_t missing_percent=100)
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             config.network.enable_compact = true;
             config.node.currency_window_minutes = 0;
             config.node.compact_timeout_seconds = compact_timeout;
+            config.node.compact_missing_percent = missing_percent;
             config.bitcoin.minimum_work = {};
         })
     {
@@ -163,6 +167,16 @@ struct p2p_compact_setup_fixture
 
     /// Wait (bounded) for the block to be associated in the store.
     bool associated(const system::hash_digest& hash);
+};
+
+// A compact node that fills only a block fully held by the pool.
+struct p2p_compact_pooled_setup_fixture
+  : p2p_compact_setup_fixture
+{
+    inline p2p_compact_pooled_setup_fixture()
+      : p2p_compact_setup_fixture({}, max_uint16, 0)
+    {
+    }
 };
 
 // A compact node with blocks 1 and 2 as unassociated candidates.

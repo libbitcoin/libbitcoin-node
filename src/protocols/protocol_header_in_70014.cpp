@@ -186,6 +186,11 @@ void protocol_header_in_70014::collect(const compact_block& message,
         return;
     }
 
+    // A block the pool cannot mostly fill is downloaded instead.
+    const auto percent = node_settings().compact_missing_percent;
+    if ((block.missing.size() * 100u) > (block.txs.size() * percent))
+        return;
+
     fill_.emplace(std::move(block));
     if (fill_->missing.empty())
         identify();

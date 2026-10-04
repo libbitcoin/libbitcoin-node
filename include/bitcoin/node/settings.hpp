@@ -57,6 +57,7 @@ public:
     uint32_t silent_start_height;
     uint16_t sample_period_seconds;
     uint16_t compact_timeout_seconds;
+    uint16_t compact_missing_percent;
     uint32_t currency_window_minutes;
     ////uint64_t snapshot_bytes;
     ////uint32_t snapshot_valid;

@@ -136,6 +136,20 @@ data_chunk p2p_setup_fixture::receive(const std::string& command)
     }
 }
 
+bool p2p_setup_fixture::received(const std::string& command,
+    const std::string& terminal)
+{
+    while (true)
+    {
+        const auto message = receive();
+        if (message.first == command)
+            return true;
+
+        if (message.first == terminal)
+            return false;
+    }
+}
+
 bool p2p_setup_fixture::handshake(uint64_t services, uint32_t value,
     bool relay)
 {
