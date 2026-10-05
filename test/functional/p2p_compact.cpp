@@ -54,13 +54,43 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__handshake__verack__send_compact_low
     BOOST_REQUIRE_EQUAL(message->compact_version, send_compact::compact_version_2);
 }
 
-// Headers completion when current requests compact block announcement.
+// Headers completion when current requests announcement of a signaled peer.
 BOOST_AUTO_TEST_CASE(functional_p2p_compact__headers__complete__send_compact_high_bandwidth)
 {
     BOOST_REQUIRE(handshake(full_node));
+    send(send_compact{ false, send_compact::compact_version_2 }, node_version->value);
 
     receive(get_headers::command);
     send(headers{}, node_version->value);
+
+    const auto message = send_compact::deserialize(node_version->value, receive(send_compact::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE(message->high_bandwidth);
+    BOOST_REQUIRE_EQUAL(message->compact_version, send_compact::compact_version_2);
+}
+
+// A peer that has not signaled compact blocks is not asked to announce.
+BOOST_AUTO_TEST_CASE(functional_p2p_compact__headers__complete_unsignaled__no_high_bandwidth)
+{
+    BOOST_REQUIRE(handshake(full_node));
+    receive(send_compact::command);
+
+    receive(get_headers::command);
+    send(headers{}, node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    BOOST_REQUIRE(!received(send_compact::command, pong::command));
+}
+
+// A peer signaling after headers completion is then asked to announce.
+BOOST_AUTO_TEST_CASE(functional_p2p_compact__send_compact__after_complete__send_compact_high_bandwidth)
+{
+    BOOST_REQUIRE(handshake(full_node));
+    receive(send_compact::command);
+
+    receive(get_headers::command);
+    send(headers{}, node_version->value);
+    send(send_compact{ false, send_compact::compact_version_2 }, node_version->value);
 
     const auto message = send_compact::deserialize(node_version->value, receive(send_compact::command));
     BOOST_REQUIRE(message);

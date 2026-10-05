@@ -45,6 +45,7 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    using send_compact = network::messages::peer::send_compact;
     using compact_transactions = network::messages::peer::compact_transactions;
     using compact_block = network::messages::peer::compact_block;
     using short_id_t = system::chain::short_id::integer;
@@ -68,6 +69,8 @@ protected:
     /// Invoked when initial headers sync is complete.
     void complete() NOEXCEPT override;
 
+    virtual bool handle_receive_send_compact(const code& ec,
+        const send_compact::cptr& message) NOEXCEPT;
     virtual bool handle_receive_compact_block(const code& ec,
         const compact_block::cptr& message) NOEXCEPT;
     virtual bool handle_receive_compact_transactions(const code& ec,
@@ -88,6 +91,7 @@ private:
     bool to_hashes(system::hashes& txids, system::hashes& wtxids,
         const fill& block) NOEXCEPT;
 
+    void upgrade() NOEXCEPT;
     void request() NOEXCEPT;
     void identify() NOEXCEPT;
     bool resolve(const database::header_link& link) NOEXCEPT;

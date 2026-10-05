@@ -45,6 +45,7 @@ void protocol_header_in_70014::start() NOEXCEPT
     if (started())
         return;
 
+    SUBSCRIBE_CHANNEL(send_compact, handle_receive_send_compact, _1, _2);
     SUBSCRIBE_CHANNEL(compact_block, handle_receive_compact_block, _1, _2);
     SUBSCRIBE_CHANNEL(compact_transactions,
         handle_receive_compact_transactions, _1, _2);
@@ -52,22 +53,43 @@ void protocol_header_in_70014::start() NOEXCEPT
     protocol_header_in_70012::start();
 }
 
-// Compact block announcements are requested once current (high bandwidth).
 void protocol_header_in_70014::complete() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    upgrade();
+    protocol_header_in_70012::complete();
+}
+
+// Inbound (sendcmpct).
+// ----------------------------------------------------------------------------
+
+bool protocol_header_in_70014::handle_receive_send_compact(const code& ec,
+    const send_compact::cptr&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    upgrade();
+    return true;
+}
+
+// High bandwidth is requested of a peer that signaled compact blocks, once the
+// chain is current, whichever comes last.
+void protocol_header_in_70014::upgrade() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     // TODO: this is hardwired in handshake.
     constexpr auto version = send_compact::compact_version_2;
 
-    if (!compact_ && is_current_chain(true))
-    {
-        compact_ = true;
-        SEND((send_compact{ true, version }), handle_send, _1);
-        LOGP("Subscribed to compact blocks at [" << opposite() << "].");
-    }
+    if (compact_ || !accepts_compact_blocks() || !is_current_chain(true))
+        return;
 
-    protocol_header_in_70012::complete();
+    compact_ = true;
+    SEND((send_compact{ true, version }), handle_send, _1);
+    LOGP("Subscribed to compact blocks at [" << opposite() << "].");
 }
 
 // Inbound (cmpctblock).

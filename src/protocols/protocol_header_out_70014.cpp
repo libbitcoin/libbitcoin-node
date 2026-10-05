@@ -57,7 +57,7 @@ bool protocol_header_out_70014::do_announce(header_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    if (high_bandwidth_)
+    if (wants_compact_blocks())
     {
         // Don't announce to peer that announced to us.
         const auto hash = archive().get_header_key(link);
@@ -88,15 +88,10 @@ bool protocol_header_out_70014::handle_receive_send_compact(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Only version 2 is supported, the peer may change bandwidth mode.
-    if (message->compact_version == send_compact::compact_version_2)
-    {
-        high_bandwidth_ = message->high_bandwidth;
-        if (high_bandwidth_)
-            announce();
-    }
-
-    // TODO: drop peer on non-negotiated version.
+    // The signal is recorded on the channel by the version protocol.
+    if ((message->compact_version == send_compact::compact_version_2) &&
+        message->high_bandwidth)
+        announce();
 
     return true;
 }

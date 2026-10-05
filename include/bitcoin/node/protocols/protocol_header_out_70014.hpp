@@ -49,10 +49,6 @@ protected:
 
     virtual bool handle_receive_send_compact(const code& ec,
         const network::messages::peer::send_compact::cptr& message) NOEXCEPT;
-
-private:
-    // This is protected by strand.
-    bool high_bandwidth_{};
 };
 
 } // namespace node
