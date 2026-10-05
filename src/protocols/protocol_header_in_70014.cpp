@@ -425,8 +425,10 @@ void protocol_header_in_70014::identify() NOEXCEPT
     for (const auto position: block.unpooled)
         unpooled->push_back(block.txs.at(position));
 
+    const auto count = block.txs.size();
     submit_compact(unpooled, block.links, block.link,
-        BIND(handle_submit_compact, _1, _2, block.hash, block.height));
+        BIND(handle_submit_compact, _1, _2, block.hash, block.height,
+            count - block.unpooled.size(), count));
     fill_.reset();
 }
 
@@ -484,17 +486,19 @@ bool protocol_header_in_70014::is_malleated64(const fill& block) NOEXCEPT
 
 // not stranded
 void protocol_header_in_70014::handle_submit_compact(const code& ec, size_t,
-    const hash_digest& hash, size_t height) NOEXCEPT
+    const hash_digest& hash, size_t height, size_t pooled,
+    size_t count) NOEXCEPT
 {
     // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    POST(do_submit_compact, ec, hash, height);
+    POST(do_submit_compact, ec, hash, height, pooled, count);
 }
 
 void protocol_header_in_70014::do_submit_compact(const code& ec,
-    const hash_digest& hash, size_t height) NOEXCEPT
+    const hash_digest& hash, size_t height, size_t pooled,
+    size_t count) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -514,8 +518,9 @@ void protocol_header_in_70014::do_submit_compact(const code& ec,
         return;
     }
 
-    LOGP("Compact block [" << encode_hash(hash) << ":" << height
-        << "] from [" << opposite() << "].");
+    LOGN("Compact block [" << encode_hash(hash) << ":" << height
+        << "] filled (" << pooled << "/" << count << ") from ["
+        << opposite() << "].");
 }
 
 // Evidence.

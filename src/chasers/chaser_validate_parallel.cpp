@@ -84,8 +84,11 @@ void chaser_validate::validate_block(const header_link& link,
     if (!ec && current)
     {
         const auto elapsed = network::logger::now() - start;
-        fire(events::validate_usecs,
-            duration_cast<microseconds>(elapsed).count());
+        const auto usecs = duration_cast<microseconds>(elapsed).count();
+        fire(events::validate_usecs, usecs);
+        LOGN("Validated " << (pooled ? "pooled" : "full") << " block ["
+            << ctx.height << "] of (" << query.get_tx_count(link)
+            << ") txs in (" << usecs << ") usecs.");
     }
 
     --validate_backlog_;
