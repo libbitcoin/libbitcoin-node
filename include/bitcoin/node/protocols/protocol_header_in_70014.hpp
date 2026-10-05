@@ -80,9 +80,11 @@ protected:
     virtual void do_organize_compact(const code& ec,
         const compact_block::cptr& message) NOEXCEPT;
     virtual void handle_submit_compact(const code& ec, size_t index,
-        const system::hash_digest& hash, size_t height) NOEXCEPT;
+        const system::hash_digest& hash, size_t height, size_t pooled,
+        size_t count) NOEXCEPT;
     virtual void do_submit_compact(const code& ec,
-        const system::hash_digest& hash, size_t height) NOEXCEPT;
+        const system::hash_digest& hash, size_t height, size_t pooled,
+        size_t count) NOEXCEPT;
 
 private:
     bool scan(fill& block) NOEXCEPT;
