@@ -209,7 +209,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 
         const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
-        const auto silent = height >= query.silent_start_height();
+        const auto silent = query.is_silent(link, height);
 
         switch (ec.value())
         {
