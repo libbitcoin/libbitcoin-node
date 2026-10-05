@@ -129,13 +129,26 @@ void protocol_header_in_31800::synchronize(const headers& message,
         return;
     }
 
-    // A message not extending the branch restarts from its stored parent.
-    // An unstored parent (announcement) is requested from the candidate.
+    // A message that does not extend the branch restarts from the parent of
+    // its first header. A single header with an unknown parent is an
+    // announcement from a peer that is ahead, so headers are requested from
+    // the top candidate. Multiple headers with an unknown parent are a
+    // response from a peer that does not connect to our locator, so the
+    // peer is dropped.
     const auto& first = ptrs.front()->previous_block_hash();
     if ((!state_ || first != state_->hash()) && !restart(first))
     {
+        const code ec{ error::orphan_header };
+        if (!is_one(ptrs.size()))
+        {
+            LOGR("Headers (" << ptrs.size() << ") from [" << opposite()
+                << "] " << ec.message());
+            stop(ec);
+            return;
+        }
+
         LOGP("Header [" << encode_hash(ptrs.front()->get_hash()) << "] from ["
-            << opposite() << "] " << code{ error::orphan_header }.message());
+            << opposite() << "] " << ec.message());
         SEND(create_get_headers(), handle_send, _1);
         return;
     }
