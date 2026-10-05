@@ -28,6 +28,26 @@ using namespace system;
 using namespace database;
 using namespace std::chrono;
 
+// Non-coinbase txs of the block that cannot be validated from the pool.
+static size_t unpooled_count(const query& query, const header_link& link,
+    const chain::context& ctx) NOEXCEPT
+{
+    size_t count{};
+    const auto txs = query.to_transactions(link);
+    if (txs.empty())
+        return count;
+
+    for (auto tx = std::next(txs.cbegin()); tx != txs.cend(); ++tx)
+    {
+        pooled_tx out{};
+        out.prevouts.resize(query.input_count(*tx));
+        if (query.get_pooled(out, *tx, context::from(ctx)))
+            ++count;
+    }
+
+    return count;
+}
+
 // Parallel execution path (concurrent by block).
 // ----------------------------------------------------------------------------
 
@@ -86,9 +106,19 @@ void chaser_validate::validate_block(const header_link& link,
         const auto elapsed = network::logger::now() - start;
         const auto usecs = duration_cast<microseconds>(elapsed).count();
         fire(events::validate_usecs, usecs);
-        LOGN("Validated " << (pooled ? "pooled" : "full") << " block ["
-            << ctx.height << "] of (" << query.get_tx_count(link)
-            << ") txs in (" << usecs << ") usecs.");
+        if (pooled)
+        {
+            LOGN("Validated pooled block [" << ctx.height << "] of ("
+                << query.get_tx_count(link) << ") txs in (" << usecs
+                << ") usecs.");
+        }
+        else
+        {
+            LOGN("Validated full block [" << ctx.height << "] of ("
+                << query.get_tx_count(link) << ") txs with ("
+                << unpooled_count(query, link, ctx) << ") unpooled in ("
+                << usecs << ") usecs.");
+        }
     }
 
     --validate_backlog_;
