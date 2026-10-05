@@ -216,7 +216,7 @@ code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
 
     // Defer block state change when batched.
     // Valid must be set after set_prevouts, set_filter_body, and set_silent.
-    if (!batched && !bypass && !query.set_block_valid(link))
+    if (!batched && !query.set_block_valid(link))
         return error::validate10;
 
     return error::success;
