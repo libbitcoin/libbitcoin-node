@@ -51,11 +51,33 @@ void protocol_transaction_in_106::start() NOEXCEPT
     protocol_peer::start();
 }
 
+// Identity.
+// ----------------------------------------------------------------------------
+
+type_id protocol_transaction_in_106::inventory_type() const NOEXCEPT
+{
+    return type_id::transaction;
+}
+
+type_id protocol_transaction_in_106::get_data_type() const NOEXCEPT
+{
+    return tx_type_;
+}
+
+hash_digest protocol_transaction_in_106::identifier(
+    const chain::transaction& tx) const NOEXCEPT
+{
+    return tx.get_hash(false);
+}
+
+bool protocol_transaction_in_106::is_archived(
+    const hash_digest& hash) const NOEXCEPT
+{
+    return archive().is_tx(hash);
+}
+
 // Inbound (inv).
 // ----------------------------------------------------------------------------
-// TODO: bip339: "After a node has received a wtxidrelay message from a peer,
-// the node SHOULD use a MSG_WTX getdata message to request any announced
-// transactions."
 
 bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
@@ -66,7 +88,7 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
         return false;
 
     // Ignore non-tx inventory.
-    if (is_zero(message->count(type_id::transaction)))
+    if (is_zero(message->count(inventory_type())))
         return true;
 
     // Relay is implied by protocol attachment, so peer is not in violation.
@@ -101,15 +123,15 @@ get_data protocol_transaction_in_106::create_get_data(
     // bip144: get_data uses witness type_id but inv does not.
 
     get_data getter{};
-    getter.items.reserve(message.count(type_id::transaction));
-    for (const auto& item: message.view(type_id::transaction))
+    getter.items.reserve(message.count(inventory_type()));
+    for (const auto& item: message.view(inventory_type()))
     {
         // The peer has the tx, so it is not announced back to it.
         set_announced(item.hash);
 
-        if (!archive().is_tx(item.hash))
+        if (!is_archived(item.hash))
         {
-            getter.items.emplace_back(tx_type_, item.hash);
+            getter.items.emplace_back(get_data_type(), item.hash);
             requested_.insert(item.hash);
         }
     }
@@ -139,9 +161,9 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
         return false;
 
     const auto& tx = message->transaction_ptr;
-    if (!erase_requested(tx->get_hash(false)))
+    if (!erase_requested(identifier(*tx)))
     {
-        LOGR("Unrequested tx [" << encode_hash(tx->get_hash(false))
+        LOGR("Unrequested tx [" << encode_hash(identifier(*tx))
             << "] from [" << opposite() << "].");
         stop(network::error::protocol_violation);
         return false;

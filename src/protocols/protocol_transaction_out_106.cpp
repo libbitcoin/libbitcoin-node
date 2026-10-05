@@ -59,6 +59,26 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
     protocol_peer::stopping(ec);
 }
 
+// Identity.
+// ----------------------------------------------------------------------------
+
+type_id protocol_transaction_out_106::inventory_type() const NOEXCEPT
+{
+    return type_id::transaction;
+}
+
+hash_digest protocol_transaction_out_106::identifier(
+    transaction_t link) const NOEXCEPT
+{
+    return archive().get_tx_key(link);
+}
+
+database::tx_link protocol_transaction_out_106::to_transaction(
+    const inventory_item& item) const NOEXCEPT
+{
+    return archive().to_tx(item.hash);
+}
+
 // handle events (transaction)
 // ----------------------------------------------------------------------------
 
@@ -87,8 +107,6 @@ bool protocol_transaction_out_106::handle_chase(const code&,
 
 // Outbound (inv).
 // ----------------------------------------------------------------------------
-// TODO: bip339: "After a node has received a wtxidrelay message from a peer,
-// the node MUST use the MSG_WTX inv type when announcing transactions..."
 
 bool protocol_transaction_out_106::do_announce(transaction_t link) NOEXCEPT
 {
@@ -97,7 +115,7 @@ bool protocol_transaction_out_106::do_announce(transaction_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    return announce(archive().get_tx_key(link));
+    return announce(identifier(link));
 }
 
 bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT
@@ -115,7 +133,7 @@ bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT
     }
 
     // bip144: get_data uses witness type_id but inv does not.
-    const inventory inv{ { { type_id::transaction, hash } } };
+    const inventory inv{ { { inventory_type(), hash } } };
     NOTIFY(inv, handle_send, _1);
     return true;
 }
@@ -137,10 +155,6 @@ bool protocol_transaction_out_106::handle_receive_get_data(const code& ec,
 
 // Outbound (tx).
 // ----------------------------------------------------------------------------
-// TODO: bip339: "After a node has received a wtxidrelay message from a peer,
-// the node SHOULD use a MSG_WTX getdata message to request any announced
-// transactions. A node MAY still request transactions from that peer
-// using MSG_TX getdata messages." (derived protocol)
 
 void protocol_transaction_out_106::send_transaction(const code& ec,
     size_t index, const get_data::cptr& message,
@@ -163,7 +177,8 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         if (!item.is_transaction_type())
             continue;
 
-        witness = item.is_witness_type();
+        // A witness hash identifies a witness serialization (bip339).
+        witness = item.is_witness_type() || item.is_type(type_id::wtxid);
         if (!node_witness_ && witness)
         {
             LOGR("Unsupported witness get_data from [" << opposite() << "].");
@@ -174,7 +189,7 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         // Tx could be always queried with witness and therefore safely cached.
         // If can then be serialized according to channel configuration, however
         // that is currently fixed to witness as available in the object.
-        ptr = query.get_transaction(query.to_tx(item.hash), witness);
+        ptr = query.get_transaction(to_transaction(item), witness);
         if (ptr)
             break;
 

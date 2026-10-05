@@ -179,7 +179,7 @@ bool p2p_setup_fixture::received(const std::string& command,
 }
 
 bool p2p_setup_fixture::handshake(uint64_t services, uint32_t value,
-    bool relay)
+    bool relay, bool witness_tx)
 {
     version out{};
     out.value = value;
@@ -190,6 +190,10 @@ bool p2p_setup_fixture::handshake(uint64_t services, uint32_t value,
     out.start_height = 0;
     out.relay = relay;
     send(out, value);
+
+    // Signaled after version and before verack (bip339).
+    if (witness_tx)
+        send(witness_tx_id_relay{}, value);
 
     // The node sends its version upon attach and verack upon our version.
     auto got_version = false;

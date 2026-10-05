@@ -49,6 +49,19 @@ protected:
     /// Clear the request record, false if the tx was not requested.
     bool erase_requested(const system::hash_digest& hash) NOEXCEPT;
 
+    /// The inventory type of tx announcements accepted from the peer.
+    virtual type_id inventory_type() const NOEXCEPT;
+
+    /// The inventory type of tx requests sent to the peer.
+    virtual type_id get_data_type() const NOEXCEPT;
+
+    /// The hash by which the peer identifies the tx.
+    virtual system::hash_digest identifier(
+        const system::chain::transaction& tx) const NOEXCEPT;
+
+    /// The tx identified by the hash is archived.
+    virtual bool is_archived(const system::hash_digest& hash) const NOEXCEPT;
+
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::peer::inventory::cptr& message) NOEXCEPT;
