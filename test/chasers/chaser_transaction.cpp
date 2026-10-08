@@ -772,7 +772,16 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_
     BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
 
     node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    // The announcement of a subsequent tx orders the missing tx event.
+    const auto tx = spend(parent_value);
+    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+
+    const auto payload = receive(peer::inventory::command);
+    const auto message = peer::inventory::deserialize(node_version->value, payload);
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->items.size(), one);
+    BOOST_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70013__stopped_suspended, chaser_transaction_pooling_setup_fixture)
@@ -782,8 +791,6 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_
 
     node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
     BOOST_REQUIRE(suspended());
-
-    send(peer::ping{ 42 }, node_version->value);
     BOOST_REQUIRE_THROW(receive(peer::pong::command), boost::system::system_error);
 }
 

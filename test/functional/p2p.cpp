@@ -739,14 +739,14 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__send_compact__unknown_block_event__not_s
     send(ping{ 42 }, node_version->value);
     receive(pong::command);
 
+    // The announcement of a subsequent block orders the unknown block event.
     node_.notify({}, node::chases::block{ node::header_t{ database::header_link::terminal } });
+    node_.notify({}, node::chases::block{ node::header_t{ query_.to_header(header1()->hash()).value } });
 
-    constexpr uint64_t expected = 43;
-    send(ping{ expected }, node_version->value);
-
-    const auto message = pong::deserialize(node_version->value, receive(pong::command));
+    const auto message = headers::deserialize(node_version->value, receive(headers::command));
     BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, expected);
+    BOOST_REQUIRE_EQUAL(message->header_ptrs.size(), one);
+    BOOST_REQUIRE(message->header_ptrs.front()->hash() == header1()->hash());
 }
 
 // cmpctblock/blocktxn (in, 70014)

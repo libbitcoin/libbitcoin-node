@@ -20,6 +20,9 @@
 #define LIBBITCOIN_NODE_TEST_FUNCTIONAL_P2P_SETUP_FIXTURE
 
 #include "../test.hpp"
+#include <condition_variable>
+#include <deque>
+#include <mutex>
 
 #define P2P_FUNCTIONAL_ENDPOINT "127.0.0.1:65009"
 
@@ -64,7 +67,41 @@ struct p2p_setup_fixture
     /// The node's version message (set by handshake).
     network::messages::peer::version::cptr node_version{};
 
+    /// Subscribe to chaser events, returning the subscription key.
+    object_key subscribe();
+
+    /// Wait (bounded) for the next event of the payload's type.
+    template <class Payload>
+    bool await(Payload& payload)
+    {
+        std::unique_lock lock(subscription_->mutex);
+        return subscription_->signal.wait_for(lock, std::chrono::seconds(10),
+            [&]()
+            {
+                auto& values = subscription_->values;
+                while (!values.empty())
+                {
+                    const auto value = values.front();
+                    values.pop_front();
+                    if (to_chase(value) == Payload::id)
+                    {
+                        payload = std::get<Payload>(value);
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+    }
+
 protected:
+    struct subscription
+    {
+        std::mutex mutex{};
+        std::condition_variable signal{};
+        std::deque<event_value> values{};
+    };
+
     configuration config_;
     node::store store_;
     node::query query_;
@@ -74,6 +111,10 @@ protected:
 private:
     boost::asio::io_context io_{};
     boost::asio::ip::tcp::socket socket_{ io_ };
+    std::shared_ptr<subscription> subscription_
+    {
+        std::make_shared<subscription>()
+    };
 };
 
 // A node configured to reply not_found.

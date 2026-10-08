@@ -42,13 +42,6 @@ struct chaser_check_setup_fixture
         job::ptr racer;
     };
 
-    struct subscription
-    {
-        std::mutex mutex{};
-        std::condition_variable signal{};
-        std::deque<event_value> values{};
-    };
-
     inline chaser_check_setup_fixture(const initializer& setup={},
         const configurator& configure={})
       : p2p_setup_fixture(setup, [=](configuration& config)
@@ -59,52 +52,6 @@ struct chaser_check_setup_fixture
                 configure(config);
         })
     {
-    }
-
-    /// Subscribe to chaser events, returning the subscription key.
-    object_key subscribe()
-    {
-        const auto state = subscription_;
-        std::promise<object_key> subscribed{};
-        node_.subscribe_chase([state](const code&, event_value value) NOEXCEPT
-        {
-            {
-                std::lock_guard lock(state->mutex);
-                state->values.push_back(value);
-            }
-
-            state->signal.notify_all();
-            return true;
-        }, [&](const code&, const object_key& key) NOEXCEPT
-        {
-            subscribed.set_value(key);
-        });
-
-        return subscribed.get_future().get();
-    }
-
-    /// Wait (bounded) for the next event of the payload's type.
-    template <class Payload>
-    bool await(Payload& payload)
-    {
-        std::unique_lock lock(subscription_->mutex);
-        return subscription_->signal.wait_for(lock, std::chrono::seconds(10),
-            [&]()
-            {
-                auto& values = subscription_->values;
-                while (!values.empty())
-                {
-                    const auto value = values.front();
-                    values.pop_front();
-                    if (to_chase(value) == Payload::id)
-                    {
-                        payload = std::get<Payload>(value);
-                        return true;
-                    }
-                }
-
-                return false;
-            });
     }
 
     /// Wait (bounded) for the block to be associated in the store.
@@ -167,12 +114,6 @@ struct chaser_check_setup_fixture
         map->merge(*get_hashes().map);
         return map;
     }
-
-private:
-    std::shared_ptr<subscription> subscription_
-    {
-        std::make_shared<subscription>()
-    };
 };
 
 // Mainnet blocks 1 and 2 are unassociated candidates.
@@ -639,8 +580,11 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__report__not_stopp
 {
     BOOST_REQUIRE(handshake(peer_services));
     receive(get_data::command);
+    subscribe();
 
     node_.notify({}, chases::report{ 1 });
+    chases::report report{};
+    BOOST_REQUIRE(await(report));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
@@ -696,8 +640,11 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_with_wor
 {
     BOOST_REQUIRE(handshake(peer_services));
     receive(get_data::command);
+    subscribe();
 
     node_.notify({}, chases::download{ 1 });
+    chases::download download{};
+    BOOST_REQUIRE(await(download));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
@@ -714,6 +661,8 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_without_wor
     BOOST_REQUIRE(await(starved));
 
     node_.notify({}, chases::purge{ 0 });
+    node_.notify({}, chases::download{ 1 });
+    BOOST_REQUIRE(await(starved));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
@@ -725,8 +674,11 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__split_single__not
 {
     BOOST_REQUIRE(handshake(peer_services));
     receive(get_data::command);
+    subscribe();
 
     node_.notify({}, chases::split{ 42 });
+    chases::split split{};
+    BOOST_REQUIRE(await(split));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
