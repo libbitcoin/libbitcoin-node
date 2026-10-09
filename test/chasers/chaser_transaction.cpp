@@ -521,6 +521,22 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__invalid_tx_link__int
     BOOST_REQUIRE(!query_.is_associated(link));
 }
 
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__pooled, chaser_transaction_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto tx = spend(parent_value);
+    BOOST_REQUIRE(query_.set(*tx));
+
+    const auto stored = query_.to_tx(tx->hash(false));
+    BOOST_REQUIRE(!query_.is_pooled(stored));
+
+    const auto result = submit_compact(package({ tx }), { database::tx_link{ 0 }, database::tx_link::terminal }, link);
+    BOOST_REQUIRE_EQUAL(result.first, node::error::success);
+    BOOST_REQUIRE(query_.is_associated(link));
+    BOOST_REQUIRE(query_.is_pooled(stored));
+    BOOST_REQUIRE_EQUAL(query_.to_tx(tx->hash(false)), stored);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(protocol_transaction_tests)

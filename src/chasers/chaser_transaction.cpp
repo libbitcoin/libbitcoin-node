@@ -310,15 +310,32 @@ database::tx_link chaser_transaction::to_stored(
 code chaser_transaction::fill(database::tx_link& out,
     const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
 {
+    auto& query = archive();
     out = to_stored(tx);
     if (!out.is_terminal())
+    {
+        if (tx.is_coinbase() || !query.is_pooling() ||
+            query.is_pooled(out) || query.is_confirmed_tx(out))
+            return error::success;
+
+        if (const auto ec = validate(tx, ctx))
+            return ec;
+
+        if (!query.set_pooled(out, tx, ctx))
+            return fault(error::transaction2);
+
+        if (ctx.height >= query.silent_start_height() &&
+            ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
+            return fault(error::transaction6);
+
+        notify(error::success, chases::transaction{ out });
         return error::success;
+    }
 
     if (const auto ec = validate(tx, ctx))
         return ec;
 
     bool pooled{};
-    auto& query = archive();
 
     // Disk full may leave txs partly archived, resolves by resubmit.
     if (const auto ec = query.set_code(out, pooled, tx))
