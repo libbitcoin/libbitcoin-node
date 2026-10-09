@@ -278,12 +278,162 @@ bool chaser_validate::is_mature(bool residual) NOEXCEPT
         (schnorr >= batch_target_);
 }
 
+// Silent batch is committed while the candidate is not current.
+bool chaser_validate::is_silent_capturing(const header_link& link) NOEXCEPT
+{
+    return batch_enabled_ && !is_current_header(link);
+}
+
+bool chaser_validate::is_silent_mature(bool residual) NOEXCEPT
+{
+    const auto rows = archive().silent_records(silent_bank_.load());
+    return is_nonzero(rows) && (residual || rows >= batch_target_);
+}
+
 std::string chaser_validate::log_rate(const std::string& name,
     size_t signatures, size_t milliseconds) const NOEXCEPT
 {
     const auto rate = (signatures * 1000u) / greater(milliseconds, one);
     return std::format("{} ({} / {} ms) = {} sps", name, signatures,
         milliseconds, rate);
+}
+
+// Silent batch.
+// ----------------------------------------------------------------------------
+// protected
+
+// Silent batch is not validation state, so it drains whether or not batching
+// is enabled.
+code chaser_validate::start_silent_batch() NOEXCEPT
+{
+    for (const auto bank: { false, true })
+    {
+        if (is_zero(archive().silent_records(bank)))
+            continue;
+
+        if (const auto ec = do_process_silent_batch(bank))
+            return ec;
+    }
+
+    return {};
+}
+
+void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
+{
+    // Cheap pre-test, retested in critical section.
+    if (closed() || !is_silent_mature(residual))
+        return;
+
+    // Claim the drain (at most one, losers rely on the winner).
+    if (silent_draining_.exchange(true))
+        return;
+
+    // Retest under the claim, another drain may have just emptied the bank.
+    if (!is_silent_mature(residual))
+    {
+        silent_draining_.store(false);
+        return;
+    }
+
+    // Admit arriving commits to the other bank (changed only under claim).
+    const auto bank = silent_bank_.load();
+    silent_bank_.store(!bank);
+
+    // Wait for in-flight commits to the bank to complete or abandon on close.
+    while (is_nonzero(silent_writers_.at(to_int<size_t>(bank)).load()))
+    {
+        if (closed())
+        {
+            silent_draining_.store(false);
+            return;
+        }
+
+        std::this_thread::yield();
+    }
+
+    // Bank is now quiescent (no writers admitted, none in flight).
+    // ========================================================================
+
+    const auto ec = do_process_silent_batch(bank);
+    silent_draining_.store(false);
+    if (ec == network::error::operation_canceled)
+        return;
+
+    if (ec)
+        fault(ec);
+
+    // ========================================================================
+}
+
+// Guarded by the drain claim (or single-threaded at startup).
+code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
+{
+    auto& query = archive();
+    const auto rows = query.silent_records(bank);
+    const auto start = network::logger::now();
+    const auto ec = query.compute_silents(stopping_, bank);
+    if (ec == database::error::query_canceled)
+    {
+        LOGN("Batch silent canceled (" << rows << ").");
+        return network::error::operation_canceled;
+    }
+
+    if (ec)
+        return error::batch7;
+
+    const auto elapsed = network::logger::now() - start;
+    LOGN(log_rate("Compute silent...", rows,
+        duration_cast<milliseconds>(elapsed).count()));
+
+    if (!query.purge_silents(bank))
+        return error::batch8;
+
+    // Blocks indexed by the drain may now be confirmable.
+    notify(error::success, chases::bump{});
+    return error::success;
+}
+
+// A block without rows is indexed here, as nothing awaits its batch.
+code chaser_validate::commit_silent_batch(bool& committed,
+    const header_link& link, const chain::block& block) NOEXCEPT
+{
+    size_t rows{};
+    auto& query = archive();
+    const auto bank = enter_silent_capture();
+    committed = query.set_silents(rows, link, block, bank);
+    exit_silent_capture(bank);
+
+    // Store decline (e.g. disk full), recoverable once faulted.
+    if (!committed)
+    {
+        fault(error::batch6);
+        return error::success;
+    }
+
+    if (is_zero(rows) && !query.set_silent_indexed(link))
+        return error::validate9;
+
+    return error::success;
+}
+
+// A writer admitted to a bank that is then switched retries on the other, so
+// that a drain observes every writer of its bank.
+bool chaser_validate::enter_silent_capture() NOEXCEPT
+{
+    while (true)
+    {
+        const auto bank = silent_bank_.load();
+        ++silent_writers_.at(to_int<size_t>(bank));
+        if (bank == silent_bank_.load())
+            return bank;
+
+        --silent_writers_.at(to_int<size_t>(bank));
+    }
+}
+
+void chaser_validate::exit_silent_capture(bool bank) NOEXCEPT
+{
+    --silent_writers_.at(to_int<size_t>(bank));
 }
 
 // Turnstile.

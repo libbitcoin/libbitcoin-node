@@ -96,6 +96,17 @@ protected:
     virtual bool enter_capture() NOEXCEPT;
     virtual void exit_capture(bool bank) NOEXCEPT;
 
+    /// Silent payment batch.
+    /// Banked and drained independently of signatures, and computed in the
+    /// drain, after which their blocks are indexed (not a validation state).
+    virtual code start_silent_batch() NOEXCEPT;
+    virtual void process_silent_batch(bool residual) NOEXCEPT;
+    virtual code do_process_silent_batch(bool bank) NOEXCEPT;
+    virtual code commit_silent_batch(bool& committed, const header_link& link,
+        const system::chain::block& block) NOEXCEPT;
+    virtual bool enter_silent_capture() NOEXCEPT;
+    virtual void exit_silent_capture(bool bank) NOEXCEPT;
+
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
     bool stranded() const NOEXCEPT override;
@@ -132,6 +143,8 @@ private:
     // Batching helpers.
     bool is_residual() NOEXCEPT;
     bool is_mature(bool residual) NOEXCEPT;
+    bool is_silent_capturing(const header_link& link) NOEXCEPT;
+    bool is_silent_mature(bool residual) NOEXCEPT;
     std::string log_rate(const std::string& name, size_t signatures,
         size_t milliseconds) const NOEXCEPT;
 
@@ -148,6 +161,9 @@ private:
     std::atomic_bool draining_{};
     std::atomic_bool bank_{};
     std::array<atomic_counter, two> writers_{};
+    std::atomic_bool silent_draining_{};
+    std::atomic_bool silent_bank_{};
+    std::array<atomic_counter, two> silent_writers_{};
     counters counters_{};
     stopper stopping_{};
 

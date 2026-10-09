@@ -131,7 +131,10 @@ enum error_t : uint8_t
     batch2,
     batch3,
     batch4,
-    batch5
+    batch5,
+    batch6,
+    batch7,
+    batch8
 };
 
 // No current need for error_code equivalence mapping.

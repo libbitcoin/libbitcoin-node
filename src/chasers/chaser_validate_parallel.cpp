@@ -177,7 +177,7 @@ code chaser_validate::complete_pooled(const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
-    if (filter_ || (ctx.height >= query.silent_start_height()))
+    if (filter_ || query.is_silent(link, ctx.height))
     {
         bool batched{}, capturing{};
         constexpr auto bypass = true;
@@ -193,7 +193,7 @@ code chaser_validate::complete_pooled(const header_link& link,
             return ec;
     }
 
-    // Valid must be set after set_prevouts, set_filter_body, and set_silent.
+    // Valid must be set after set_prevouts and set_filter_body.
     return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
@@ -243,12 +243,21 @@ code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
     if (!query.set_filter_body(link, block))
         return error::validate8;
 
-    if ((ctx.height >= query.silent_start_height()) &&
-        !query.set_silent(link, block))
-        return error::validate9;
+    // Batched records are indexed when the batch drains.
+    if (query.is_silent(link, ctx.height))
+    {
+        bool committed{};
+        if (is_silent_capturing(link))
+            if (const auto ec = commit_silent_batch(committed, link, block))
+                return ec;
+
+        if (!committed && (!query.set_silent(link, block) ||
+            !query.set_silent_indexed(link)))
+            return error::validate9;
+    }
 
     // Defer block state change when batched.
-    // Valid must be set after set_prevouts, set_filter_body, and set_silent.
+    // Valid must be set after set_prevouts and set_filter_body.
     if (!batched && !query.set_block_valid(link))
         return error::validate10;
 
