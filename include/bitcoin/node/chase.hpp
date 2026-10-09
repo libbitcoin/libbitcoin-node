@@ -153,6 +153,10 @@ enum class chase
     /// Issued by 'confirm' and handled by 'protocol_header/block_out/estimator'.
     block,
 
+    /// The store has been pruned (once, following the first current block).
+    /// Issued by 'snapshot' and handled by 'estimate'.
+    pruned,
+
     /// The confirmed chain is no longer current.
     /// Issued by 'confirm' and handled by 'protocol_transaction_out'.
     stale,
@@ -325,6 +329,12 @@ struct block
     header_t link;
 };
 
+struct pruned
+{
+    static constexpr chase id{ chase::pruned };
+    header_t link;
+};
+
 struct stale
 {
     static constexpr chase id{ chase::stale };
@@ -388,6 +398,7 @@ using event_value = std::variant
     chases::confirmable,
     chases::unconfirmable,
     chases::block,
+    chases::pruned,
     chases::stale,
     chases::organized,
     chases::reorganized,

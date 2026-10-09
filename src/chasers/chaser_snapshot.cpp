@@ -137,7 +137,7 @@ bool chaser_snapshot::handle_chase(const code&, event_value value) NOEXCEPT
 // events
 // ----------------------------------------------------------------------------
 
-void chaser_snapshot::do_prune(header_t) NOEXCEPT
+void chaser_snapshot::do_prune(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (pruned_.load(std::memory_order_relaxed) ||
@@ -163,6 +163,7 @@ void chaser_snapshot::do_prune(header_t) NOEXCEPT
     {
         // The resumption is observable, so the prune is marked before it.
         pruned_.store(true, std::memory_order_relaxed);
+        notify(error::success, chases::pruned{ link });
 
         // Could become full before prune start (and it could still succeed).
         if (running && !archive().is_full())
