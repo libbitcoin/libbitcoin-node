@@ -161,11 +161,12 @@ void chaser_snapshot::do_prune(header_t) NOEXCEPT
     }
     else
     {
+        // The resumption is observable, so the prune is marked before it.
+        pruned_.store(true, std::memory_order_relaxed);
+
         // Could become full before prune start (and it could still succeed).
         if (running && !archive().is_full())
             resume();
-
-        pruned_.store(true, std::memory_order_relaxed);
         LOG_ONLY(const auto time = logger::now() - start;)
         LOG_ONLY(const auto span = duration_cast<milliseconds>(time);)
         LOGN("Pruned prevout cache at height [" << archive().get_top_confirmed()
