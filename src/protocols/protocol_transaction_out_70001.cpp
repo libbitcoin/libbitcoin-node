@@ -43,7 +43,7 @@ bool protocol_transaction_out_70001::handle_unservable(
     BC_ASSERT(stranded());
 
     if (!enable_not_found_)
-        return protocol_transaction_out_106::handle_unservable(item);
+        return protocol_transaction_out_60002::handle_unservable(item);
 
     unservable_.push_back(item);
     return true;

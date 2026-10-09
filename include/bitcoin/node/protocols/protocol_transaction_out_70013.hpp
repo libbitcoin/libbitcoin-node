@@ -53,6 +53,9 @@ protected:
     /// Bypasses announcement of a tx below the peer's minimum fee rate.
     bool do_announce(transaction_t link) NOEXCEPT override;
 
+    /// True if the tx is below the peer's minimum fee rate.
+    bool is_filtered(transaction_t link) NOEXCEPT override;
+
 private:
     bool insufficient(const database::fee_rate& rate) const NOEXCEPT;
     void do_send_fee_filter() NOEXCEPT;

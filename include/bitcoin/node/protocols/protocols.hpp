@@ -40,6 +40,7 @@
 #include <bitcoin/node/protocols/protocol_transaction_in_70013.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in_70016.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out_60002.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_70001.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_70013.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_70016.hpp>

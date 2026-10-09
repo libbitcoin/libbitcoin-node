@@ -93,6 +93,7 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/protocols/protocol_transaction_in_70013.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_in_70016.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_out_106.cpp \
+    ${srcdir}/../../src/protocols/protocol_transaction_out_60002.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_out_70001.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_out_70013.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_out_70016.cpp \
@@ -178,6 +179,7 @@ include_bitcoin_node_protocols_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_in_70013.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_in_70016.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
+    ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_60002.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_70001.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_70013.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_70016.hpp \
