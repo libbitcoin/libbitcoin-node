@@ -165,6 +165,9 @@ public:
     /// The confirmed chain is confirmed to maximum height or is current.
     virtual bool is_recent() const NOEXCEPT;
 
+    /// Confirmation is limited to below the lowest banked silent block height.
+    virtual size_t silent_limit() const NOEXCEPT;
+
     /// Zulu time at which the node started.
     virtual time_t start_time() const NOEXCEPT;
 

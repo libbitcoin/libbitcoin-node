@@ -388,32 +388,41 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
     if (!query.purge_silents(bank))
         return error::batch8;
 
-    // Blocks indexed by the drain may now be confirmable.
+    // Blocks of the bank may now be confirmable.
+    silent_heights_.at(to_int<size_t>(bank)).store(max_size_t);
     notify(error::success, chases::bump{});
     return error::success;
 }
 
-// A block without rows is indexed here, as nothing awaits its batch.
-code chaser_validate::commit_silent_batch(bool& committed,
-    const header_link& link, const chain::block& block) NOEXCEPT
+// The bank height is lowered before exit, so that its drain observes it.
+bool chaser_validate::commit_silent_batch(const header_link& link,
+    const chain::block& block, size_t height) NOEXCEPT
 {
     size_t rows{};
-    auto& query = archive();
     const auto bank = enter_silent_capture();
-    committed = query.set_silents(rows, link, block, bank);
+    const auto committed = archive().set_silents(rows, link, block, bank);
+    if (committed && is_nonzero(rows))
+    {
+        auto& lowest = silent_heights_.at(to_int<size_t>(bank));
+        auto current = lowest.load();
+        while (height < current)
+            if (lowest.compare_exchange_weak(current, height))
+                break;
+    }
+
     exit_silent_capture(bank);
 
     // Store decline (e.g. disk full), recoverable once faulted.
     if (!committed)
-    {
         fault(error::batch6);
-        return error::success;
-    }
 
-    if (is_zero(rows) && !query.set_silent_indexed(link))
-        return error::validate9;
+    return committed;
+}
 
-    return error::success;
+size_t chaser_validate::silent_limit() const NOEXCEPT
+{
+    return std::min(silent_heights_.front().load(),
+        silent_heights_.back().load());
 }
 
 // A writer admitted to a bank that is then switched retries on the other, so

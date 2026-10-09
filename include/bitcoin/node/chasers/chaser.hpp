@@ -141,6 +141,9 @@ protected:
     /// The confirmed chain is confirmed to maximum height or is current.
     bool is_recent() const NOEXCEPT;
 
+    /// Confirmation is limited to below the lowest banked silent block height.
+    size_t silent_limit() const NOEXCEPT;
+
     /// The height is at or below the top checkpoint.
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
 

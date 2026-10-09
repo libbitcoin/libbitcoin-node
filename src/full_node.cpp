@@ -459,6 +459,11 @@ bool full_node::is_current_header(const header_link& link) const NOEXCEPT
     return is_current_time(timestamp);
 }
 
+size_t full_node::silent_limit() const NOEXCEPT
+{
+    return chaser_validate_.silent_limit();
+}
+
 bool full_node::is_recent() const NOEXCEPT
 {
     if (is_nonzero(config_.node.maximum_height) &&

@@ -171,6 +171,11 @@ bool chaser::is_recent() const NOEXCEPT
     return node_.is_recent();
 }
 
+size_t chaser::silent_limit() const NOEXCEPT
+{
+    return node_.silent_limit();
+}
+
 bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
 {
     return height <= checkpoint();

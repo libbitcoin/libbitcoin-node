@@ -41,6 +41,9 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
     void stop() NOEXCEPT override;
 
+    /// Confirmation is limited to below the lowest banked silent block height.
+    size_t silent_limit() const NOEXCEPT;
+
 protected:
     using header_link = database::header_link;
     using header_links = database::header_links;
@@ -98,12 +101,12 @@ protected:
 
     /// Silent payment batch.
     /// Banked and drained independently of signatures, and computed in the
-    /// drain, after which their blocks are indexed (not a validation state).
+    /// drain, after which their blocks can be confirmed if also valid.
     virtual code start_silent_batch() NOEXCEPT;
     virtual void process_silent_batch(bool residual) NOEXCEPT;
     virtual code do_process_silent_batch(bool bank) NOEXCEPT;
-    virtual code commit_silent_batch(bool& committed, const header_link& link,
-        const system::chain::block& block) NOEXCEPT;
+    virtual bool commit_silent_batch(const header_link& link,
+        const system::chain::block& block, size_t height) NOEXCEPT;
     virtual bool enter_silent_capture() NOEXCEPT;
     virtual void exit_silent_capture(bool bank) NOEXCEPT;
 
@@ -113,6 +116,7 @@ protected:
 
 private:
     using atomic_counter = std::atomic<size_t>;
+    using atomic_height = std::atomic<size_t>;
     struct counters
     {
         atomic_counter ecdsa_{};
@@ -164,6 +168,7 @@ private:
     std::atomic_bool silent_draining_{};
     std::atomic_bool silent_bank_{};
     std::array<atomic_counter, two> silent_writers_{};
+    std::array<atomic_height, two> silent_heights_{ max_size_t, max_size_t };
     counters counters_{};
     stopper stopping_{};
 

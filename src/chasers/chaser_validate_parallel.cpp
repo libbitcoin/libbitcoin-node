@@ -243,16 +243,13 @@ code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
     if (!query.set_filter_body(link, block))
         return error::validate8;
 
-    // Batched records are indexed when the batch drains.
+    // Banked records are set when the bank drains.
     if (query.is_silent(link, ctx.height))
     {
-        bool committed{};
-        if (is_silent_capturing(link))
-            if (const auto ec = commit_silent_batch(committed, link, block))
-                return ec;
+        const auto committed = is_silent_capturing(link) &&
+            commit_silent_batch(link, block, ctx.height);
 
-        if (!committed && (!query.set_silent(link, block) ||
-            !query.set_silent_indexed(link)))
+        if (!committed && !query.set_silent(link, block))
             return error::validate9;
     }
 
