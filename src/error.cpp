@@ -116,6 +116,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { estimates_push2, "estimates_push2" },
     { estimates_pop1, "estimates_pop1" },
     { estimates_pop2, "estimates_pop2" },
+    { estimates_pool, "estimates_pool" },
     { batch1, "batch1" },
     { batch2, "batch2" },
     { batch3, "batch3" },

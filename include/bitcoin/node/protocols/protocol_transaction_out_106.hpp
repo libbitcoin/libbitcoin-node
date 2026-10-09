@@ -48,6 +48,17 @@ public:
 
 protected:
     using inventory_items = network::messages::peer::inventory_items;
+    using inventory_item = network::messages::peer::inventory_item;
+
+    /// The inventory type of tx announcements sent to the peer.
+    virtual type_id inventory_type() const NOEXCEPT;
+
+    /// The hash by which the tx is announced to the peer.
+    virtual system::hash_digest identifier(transaction_t link) const NOEXCEPT;
+
+    /// The tx of a tx inventory item, terminal if not archived.
+    virtual database::tx_link to_transaction(
+        const inventory_item& item) const NOEXCEPT;
 
     /// Handle chaser events.
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
@@ -62,8 +73,7 @@ protected:
         const gate_t::ptr& gate) NOEXCEPT;
 
     /// The item cannot be served, false terminates the send loop.
-    virtual bool handle_unservable(
-        const network::messages::peer::inventory_item& item) NOEXCEPT;
+    virtual bool handle_unservable(const inventory_item& item) NOEXCEPT;
 
     /// Replies not_found with the accumulated items, false if none.
     virtual bool report_unservable(size_t index,

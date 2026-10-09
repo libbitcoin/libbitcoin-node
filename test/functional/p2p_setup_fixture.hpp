@@ -20,6 +20,9 @@
 #define LIBBITCOIN_NODE_TEST_FUNCTIONAL_P2P_SETUP_FIXTURE
 
 #include "../test.hpp"
+#include <condition_variable>
+#include <deque>
+#include <mutex>
 
 #define P2P_FUNCTIONAL_ENDPOINT "127.0.0.1:65009"
 
@@ -59,12 +62,46 @@ struct p2p_setup_fixture
     /// Perform the version handshake, retains the node's version message.
     bool handshake(uint64_t services=0,
         uint32_t version=network::messages::peer::level::maximum_protocol,
-        bool relay=false);
+        bool relay=false, bool witness_tx=false);
 
     /// The node's version message (set by handshake).
     network::messages::peer::version::cptr node_version{};
 
+    /// Subscribe to chaser events, returning the subscription key.
+    object_key subscribe();
+
+    /// Wait (bounded) for the next event of the payload's type.
+    template <class Payload>
+    bool await(Payload& payload)
+    {
+        std::unique_lock lock(subscription_->mutex);
+        return subscription_->signal.wait_for(lock, std::chrono::seconds(10),
+            [&]()
+            {
+                auto& values = subscription_->values;
+                while (!values.empty())
+                {
+                    const auto value = values.front();
+                    values.pop_front();
+                    if (to_chase(value) == Payload::id)
+                    {
+                        payload = std::get<Payload>(value);
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+    }
+
 protected:
+    struct subscription
+    {
+        std::mutex mutex{};
+        std::condition_variable signal{};
+        std::deque<event_value> values{};
+    };
+
     configuration config_;
     node::store store_;
     node::query query_;
@@ -74,6 +111,10 @@ protected:
 private:
     boost::asio::io_context io_{};
     boost::asio::ip::tcp::socket socket_{ io_ };
+    std::shared_ptr<subscription> subscription_
+    {
+        std::make_shared<subscription>()
+    };
 };
 
 // A node configured to reply not_found.
@@ -98,6 +139,22 @@ struct p2p_relay_setup_fixture
         {
             config.network.enable_relay = true;
             config.network.enable_not_found = true;
+        })
+    {
+    }
+};
+
+// A current node that relays transactions by witness hash.
+struct p2p_witness_setup_fixture
+  : p2p_setup_fixture
+{
+    inline p2p_witness_setup_fixture()
+      : p2p_setup_fixture({}, [](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.network.enable_not_found = true;
+            config.network.enable_witness_tx = true;
+            config.node.currency_window_minutes = 0;
         })
     {
     }

@@ -126,6 +126,7 @@ enum error_t : uint8_t
     estimates_push2,
     estimates_pop1,
     estimates_pop2,
+    estimates_pool,
     batch1,
     batch2,
     batch3,

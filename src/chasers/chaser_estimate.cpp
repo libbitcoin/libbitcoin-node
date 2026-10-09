@@ -152,6 +152,16 @@ bool chaser_estimate::handle_chase(const code&, event_value value) NOEXCEPT
 
             break;
         }
+        case chase::transaction:
+        {
+            if (initialized())
+            {
+                POST(do_transaction,
+                    to_payload<chase::transaction>(value).link);
+            }
+
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -235,6 +245,14 @@ void chaser_estimate::do_reorganized(header_t link) NOEXCEPT
         if (!estimator_->pop(query))
             fault(error::estimates_pop2);
     }
+}
+
+void chaser_estimate::do_transaction(transaction_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (initialized() && !estimator_->pool(archive(), link))
+        fault(error::estimates_pool);
 }
 
 BC_POP_WARNING()

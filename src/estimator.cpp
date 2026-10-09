@@ -87,10 +87,11 @@ bool estimator::initialize(const std::atomic_bool& cancel, const query& query,
     if (count > add1(top))
         return false;
 
+    rates pooled{};
     rate_sets blocks{};
     const auto start = top - sub1(count);
     return query.get_branch_fees(cancel, blocks, start, count) &&
-        initialize(blocks);
+        query.get_pool_fees(pooled) && initialize(blocks, pooled, top);
 }
 
 bool estimator::push(const query& query) NOEXCEPT
@@ -113,6 +114,12 @@ bool estimator::pop(const query& query) NOEXCEPT
     return query.get_block_fees(block, link) && pop(block);
 }
 
+bool estimator::pool(const query& query, const database::tx_link& link) NOEXCEPT
+{
+    rate tx{};
+    return query.get_tx_fees(tx, link) && pool(tx);
+}
+
 size_t estimator::top_height() const NOEXCEPT
 {
     return fees_.top_height.load(std::memory_order_relaxed);
@@ -120,6 +127,24 @@ size_t estimator::top_height() const NOEXCEPT
 
 // protected
 // ----------------------------------------------------------------------------
+
+bool estimator::to_bin(size_t& out, const rate& tx) NOEXCEPT
+{
+    // std::log (replace static with constexpr in c++26).
+    static const auto growth = std::log(sizing::step);
+
+    if (is_zero(tx.fee))
+        return false;
+
+    const auto rate = to_floating(tx.fee) / tx.bytes;
+    if (rate < sizing::min)
+        return false;
+
+    // Clamp overflow to last bin.
+    const auto bin = std::log(rate / sizing::min) / growth;
+    out = std::min(to_floored_integer(bin), sub1(sizing::count));
+    return true;
+}
 
 estimator::accumulator& estimator::history() NOEXCEPT
 {
@@ -131,21 +156,24 @@ const estimator::accumulator& estimator::history() const NOEXCEPT
     return fees_;
 }
 
-bool estimator::initialize(const rate_sets& blocks) NOEXCEPT
+// Blocks end at the top height, pooled txs are entered as unconfirmed.
+bool estimator::initialize(const rate_sets& blocks, const rates& pooled,
+    size_t top) NOEXCEPT
 {
     const auto count = blocks.size();
-    if (is_zero(count))
-        return true;
-
-    auto height = top_height();
-    if (system::is_add_overflow(height, sub1(count)))
+    if (count > add1(top))
         return false;
 
-    fees_.top_height.fetch_add(sub1(count), std::memory_order_relaxed);
+    fees_.top_height.store(top, std::memory_order_relaxed);
+    auto height = add1(top) - count;
 
     // 3-4 secs slower when parallel at 1008 blocks.
     for (const auto& block: blocks)
         if (!update(block, height++, true))
+            return false;
+
+    for (const auto& tx: pooled)
+        if (!pool(tx))
             return false;
 
     return true;
@@ -168,6 +196,23 @@ bool estimator::pop(const rates& block) NOEXCEPT
     return result;
 }
 
+// A tx is pending from its pool entry height until confirmed.
+bool estimator::pool(const rate& tx) NOEXCEPT
+{
+    if (is_zero(tx.bytes))
+        return false;
+
+    // The store does not pool, so there is no entry height.
+    if (tx.height == max_size_t)
+        return true;
+
+    size_t bin{};
+    if (to_bin(bin, tx))
+        pend(bin, tx.height, true);
+
+    return true;
+}
+
 uint64_t estimator::compute(size_t target, double confidence,
     bool geometric) const NOEXCEPT
 {
@@ -181,6 +226,10 @@ uint64_t estimator::compute(size_t target, double confidence,
     {
         return power(part / total, target);
     };
+
+    // Pending txs that have waited beyond the target have failed it.
+    bins failed{};
+    pending(failed, target);
 
     const auto call = [&](const auto& buckets) NOEXCEPT
     {
@@ -196,8 +245,8 @@ uint64_t estimator::compute(size_t target, double confidence,
         for (const auto& bucket: std::views::reverse(buckets))
         {
             --index;
-            total += to_floating(bucket.total);
-            part += to_floating(bucket.confirmed.at(target));
+            total += to_floating(bucket.total + failed.at(index));
+            part += to_floating(bucket.confirmed.at(target) + failed.at(index));
             if (total < at_least_four)
                 continue;
 
@@ -243,58 +292,124 @@ void estimator::decay(auto& buckets, double factor) NOEXCEPT
 
 bool estimator::update(const rates& block, size_t height, bool push) NOEXCEPT
 {
-    // std::log (replace static with constexpr in c++26).
-    static const auto growth = std::log(sizing::step);
-    std::array<size_t, sizing::count> counts{};
+    constexpr auto large = maximum_horizon;
+    bins counts{};
 
     for (const auto& tx: block)
     {
         if (is_zero(tx.bytes))
             return false;
 
-        if (is_zero(tx.fee))
+        // A tx not pooled before its block has no wait.
+        if (tx.height == max_size_t)
             continue;
 
-        const auto rate = to_floating(tx.fee) / tx.bytes;
-        if (rate < sizing::min)
+        size_t bin{};
+        if (!to_bin(bin, tx))
             continue;
 
-        // Clamp overflow to last bin.
-        const auto bin = std::log(rate / sizing::min) / growth;
-        ++counts.at(std::min(to_floored_integer(bin), sub1(sizing::count)));
+        // Blocks waited beyond the first eligible, capped at the horizon.
+        const auto waited = std::min(floored_subtract(height, tx.height), large);
+        ++counts.at(bin);
+        ++waits_.at(bin).at(waited);
+        pend(bin, tx.height, !push);
     }
 
     // At age zero scale term is one.
     const auto age = top_height() - height;
     const auto scale = to_scale_term(age);
+    const auto term = [&](size_t count) NOEXCEPT
+    {
+        const auto scaled = to_floored_integer(count * scale);
+        return push ? scaled : twos_complement(scaled);
+    };
+
     const auto call = [&](auto& buckets) NOEXCEPT
     {
         // The array count of the buckets element type.
         const auto horizon = buckets.front().confirmed.size();
 
-        size_t bin{};
-        for (const auto count: counts)
+        for (size_t bin{}; bin < counts.size(); ++bin)
         {
+            const auto count = counts.at(bin);
             if (is_zero(count))
-            {
-                ++bin;
                 continue;
+
+            auto& bucket = buckets.at(bin);
+            const auto& wait = waits_.at(bin);
+            bucket.total += term(count);
+
+            // Txs that waited beyond the target failed it.
+            size_t failing{};
+            for (auto waited = add1(horizon); waited <= large; ++waited)
+                failing += wait.at(waited);
+
+            for (auto target = horizon; !is_zero(target); --target)
+            {
+                failing += wait.at(target);
+                bucket.confirmed.at(sub1(target)) += term(failing);
             }
-
-            auto& bucket = buckets.at(bin++);
-            const auto scaled = to_floored_integer(count * scale);
-            const auto signed_term = push ? scaled : twos_complement(scaled);
-
-            bucket.total += signed_term;
-            for (auto target = age; target < horizon; ++target)
-                bucket.confirmed.at(target) += signed_term;
         }
     };
 
     call(fees_.large);
     call(fees_.medium);
     call(fees_.small);
+
+    for (size_t bin{}; bin < counts.size(); ++bin)
+        if (!is_zero(counts.at(bin)))
+            waits_.at(bin).fill(zero);
+
     return true;
+}
+
+// A slot holds the txs of one entry height, displacing those of an earlier.
+void estimator::pend(size_t bin, size_t height, bool enter) NOEXCEPT
+{
+    const auto slot = height % horizon::large;
+    auto& entry = fees_.entries.at(slot);
+    auto& counts = fees_.pending.at(slot);
+
+    if (entry != height)
+    {
+        // Displaced to aged (leaving), or displaced by the slot (entering).
+        if (!enter || (entry > height))
+        {
+            auto& aged = fees_.aged.at(bin);
+            aged = enter ? add1(aged) : floored_subtract(aged, one);
+            return;
+        }
+
+        for (size_t index{}; index < counts.size(); ++index)
+            fees_.aged.at(index) += counts.at(index);
+
+        counts.fill(zero);
+        entry = height;
+    }
+
+    auto& count = counts.at(bin);
+    count = enter ? add1(count) : floored_subtract(count, one);
+}
+
+// Pending txs by bin that have waited beyond the target blocks.
+void estimator::pending(bins& failed, size_t target) const NOEXCEPT
+{
+    const auto top = top_height();
+    for (size_t slot{}; slot < horizon::large; ++slot)
+    {
+        // Eligible blocks passed without confirmation.
+        const auto entry = fees_.entries.at(slot);
+        const auto waited = (top < entry) ? zero : add1(top - entry);
+        if (waited <= target)
+            continue;
+
+        const auto& counts = fees_.pending.at(slot);
+        for (size_t bin{}; bin < counts.size(); ++bin)
+            failed.at(bin) += counts.at(bin);
+    }
+
+    for (size_t bin{}; bin < failed.size(); ++bin)
+        failed.at(bin) += fees_.aged.at(bin);
 }
 
 } // namespace node

@@ -146,9 +146,11 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_70013.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_70016.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70013.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70016.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp" />
@@ -199,9 +201,11 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_70013.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_70016.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_70013.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_70016.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />

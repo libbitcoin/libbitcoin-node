@@ -57,6 +57,7 @@ protected:
     virtual void do_initialize(header_t link) NOEXCEPT;
     virtual void do_organized(header_t link) NOEXCEPT;
     virtual void do_reorganized(header_t link) NOEXCEPT;
+    virtual void do_transaction(transaction_t link) NOEXCEPT;
 
 private:
     void do_estimate(size_t target, estimator::mode mode,

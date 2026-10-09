@@ -152,8 +152,14 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     // Relay is configured, active, and txs are ready (txs in/out).
     if (txs_in_out)
     {
+        // Witness tx id relay was signaled by both in the version handshake.
+        const auto witness_tx = this->network_settings().enable_witness_tx &&
+            peer->wants_witness_tx() && peer->is_negotiated(level::bip339);
+
         // Relay was requested in the version handshake (txs in).
-        if (peer->is_negotiated(level::bip133))
+        if (witness_tx)
+            channel->attach<protocol_transaction_in_70016>(self)->start();
+        else if (peer->is_negotiated(level::bip133))
             channel->attach<protocol_transaction_in_70013>(self)->start();
         else if (peer->is_negotiated(level::bip37))
             channel->attach<protocol_transaction_in_70001>(self)->start();
@@ -163,7 +169,9 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
         // The peer requested relay in the version handshake (txs out).
         if (peer->peer_version()->relay)
         {
-            if (peer->is_negotiated(level::bip133))
+            if (witness_tx)
+                channel->attach<protocol_transaction_out_70016>(self)->start();
+            else if (peer->is_negotiated(level::bip133))
                 channel->attach<protocol_transaction_out_70013>(self)->start();
             else if (peer->is_negotiated(level::bip37))
                 channel->attach<protocol_transaction_out_70001>(self)->start();

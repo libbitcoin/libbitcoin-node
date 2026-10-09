@@ -91,9 +91,11 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/protocols/protocol_transaction_in_106.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_in_70001.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_in_70013.cpp \
+    ${srcdir}/../../src/protocols/protocol_transaction_in_70016.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_out_106.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_out_70001.cpp \
     ${srcdir}/../../src/protocols/protocol_transaction_out_70013.cpp \
+    ${srcdir}/../../src/protocols/protocol_transaction_out_70016.cpp \
     ${srcdir}/../../src/sessions/session.cpp \
     ${srcdir}/../../src/sessions/session_inbound.cpp \
     ${srcdir}/../../src/sessions/session_manual.cpp \
@@ -174,9 +176,11 @@ include_bitcoin_node_protocols_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_in_70001.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_in_70013.hpp \
+    ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_in_70016.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_70001.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_70013.hpp \
+    ${srcdir}/../../include/bitcoin/node/protocols/protocol_transaction_out_70016.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = \
@@ -236,6 +240,7 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/functional/p2p.cpp \
     ${srcdir}/../../test/functional/p2p_compact.cpp \
     ${srcdir}/../../test/functional/p2p_setup_fixture.cpp \
+    ${srcdir}/../../test/functional/p2p_witness.cpp \
     ${srcdir}/../../test/protocols/protocol.cpp \
     ${srcdir}/../../test/sessions/session.cpp
 

@@ -53,6 +53,13 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
     network_settings.outbound.seeds.clear();
     node_settings.delay_inbound = false;
 
+    // Timed channel drops are not under test (a test of one enables it).
+    network_settings.handshake_timeout_seconds = 0;
+    network_settings.channel_heartbeat_minutes = 0;
+    network_settings.inbound.inactivity_minutes = 0;
+    network_settings.inbound.expiration_minutes = 0;
+    node_settings.sample_period_seconds = 0;
+
     // Apply test-specific configuration overrides.
     if (configure)
         configure(config_);
@@ -126,6 +133,27 @@ std::pair<std::string, data_chunk> p2p_setup_fixture::receive()
     return { head->command, std::move(payload) };
 }
 
+object_key p2p_setup_fixture::subscribe()
+{
+    const auto state = subscription_;
+    std::promise<object_key> subscribed{};
+    node_.subscribe_chase([state](const code&, event_value value) NOEXCEPT
+    {
+        {
+            std::lock_guard lock(state->mutex);
+            state->values.push_back(value);
+        }
+
+        state->signal.notify_all();
+        return true;
+    }, [&](const code&, const object_key& key) NOEXCEPT
+    {
+        subscribed.set_value(key);
+    });
+
+    return subscribed.get_future().get();
+}
+
 data_chunk p2p_setup_fixture::receive(const std::string& command)
 {
     while (true)
@@ -151,7 +179,7 @@ bool p2p_setup_fixture::received(const std::string& command,
 }
 
 bool p2p_setup_fixture::handshake(uint64_t services, uint32_t value,
-    bool relay)
+    bool relay, bool witness_tx)
 {
     version out{};
     out.value = value;
@@ -162,6 +190,10 @@ bool p2p_setup_fixture::handshake(uint64_t services, uint32_t value,
     out.start_height = 0;
     out.relay = relay;
     send(out, value);
+
+    // Signaled after version and before verack (bip339).
+    if (witness_tx)
+        send(witness_tx_id_relay{}, value);
 
     // The node sends its version upon attach and verack upon our version.
     auto got_version = false;
