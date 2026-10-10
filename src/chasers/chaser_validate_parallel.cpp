@@ -205,12 +205,12 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
         error::validate11 : ec;
 }
 
-// A pooled block is valid, so is produced only as required for indexes.
+// A pooled block is valid and SP indexed, so produce only for client filters.
 code chaser_validate::complete_pooled(const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
-    if (filter_ || query.is_silent(link, ctx.height))
+    if (filter_)
     {
         bool batched{}, capturing{};
         constexpr auto bypass = true;
