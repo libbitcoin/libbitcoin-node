@@ -124,27 +124,28 @@ bool protocol_header_in_70014::handle_receive_compact_block(const code& ec,
     if (link.is_terminal())
     {
         organize_compact(header,
-            BIND(handle_organize_compact, _1, _2, message));
+            BIND(handle_organize_compact, _1, _2, message, gate()));
         return true;
     }
 
-    collect(*message, link);
+    collect(*message, link, gate());
     return true;
 }
 
 // not stranded
 void protocol_header_in_70014::handle_organize_compact(const code& ec,
-    size_t, const compact_block::cptr& message) NOEXCEPT
+    size_t, const compact_block::cptr& message,
+    const gate_t::ptr& gate) NOEXCEPT
 {
     // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    POST(do_organize_compact, ec, message);
+    POST(do_organize_compact, ec, message, gate);
 }
 
 void protocol_header_in_70014::do_organize_compact(const code& ec,
-    const compact_block::cptr& message) NOEXCEPT
+    const compact_block::cptr& message, const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -171,14 +172,14 @@ void protocol_header_in_70014::do_organize_compact(const code& ec,
     // The header of a weak branch is not stored.
     const auto link = archive().to_header(hash);
     if (!link.is_terminal())
-        collect(*message, link);
+        collect(*message, link, gate);
 }
 
 // Collect (short ids).
 // ----------------------------------------------------------------------------
 
 void protocol_header_in_70014::collect(const compact_block& message,
-    const database::header_link& link) NOEXCEPT
+    const database::header_link& link, const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
@@ -220,7 +221,7 @@ void protocol_header_in_70014::collect(const compact_block& message,
 
     fill_.emplace(std::move(block));
     if (fill_->missing.empty())
-        identify();
+        identify(gate);
     else
         request();
 }
@@ -376,14 +377,14 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
     }
 
     block.missing.clear();
-    identify();
+    identify(gate());
     return true;
 }
 
 // Identify and submit.
 // ----------------------------------------------------------------------------
 
-void protocol_header_in_70014::identify() NOEXCEPT
+void protocol_header_in_70014::identify(const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -428,7 +429,7 @@ void protocol_header_in_70014::identify() NOEXCEPT
     const auto count = block.txs.size();
     submit_compact(unpooled, block.links, block.link,
         BIND(handle_submit_compact, _1, _2, block.hash, block.height,
-            count - block.unpooled.size(), count));
+            count - block.unpooled.size(), count, gate));
     fill_.reset();
 }
 
@@ -486,19 +487,19 @@ bool protocol_header_in_70014::is_malleated64(const fill& block) NOEXCEPT
 
 // not stranded
 void protocol_header_in_70014::handle_submit_compact(const code& ec, size_t,
-    const hash_digest& hash, size_t height, size_t pooled,
-    size_t count) NOEXCEPT
+    const hash_digest& hash, size_t height, size_t pooled, size_t count,
+    const gate_t::ptr& gate) NOEXCEPT
 {
     // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    POST(do_submit_compact, ec, hash, height, pooled, count);
+    POST(do_submit_compact, ec, hash, height, pooled, count, gate);
 }
 
 void protocol_header_in_70014::do_submit_compact(const code& ec,
-    const hash_digest& hash, size_t height, size_t pooled,
-    size_t count) NOEXCEPT
+    const hash_digest& hash, size_t height, size_t pooled, size_t count,
+    const gate_t::ptr&) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

@@ -76,15 +76,15 @@ protected:
     virtual bool handle_receive_compact_transactions(const code& ec,
         const compact_transactions::cptr& message) NOEXCEPT;
     virtual void handle_organize_compact(const code& ec, size_t height,
-        const compact_block::cptr& message) NOEXCEPT;
+        const compact_block::cptr& message, const gate_t::ptr& gate) NOEXCEPT;
     virtual void do_organize_compact(const code& ec,
-        const compact_block::cptr& message) NOEXCEPT;
+        const compact_block::cptr& message, const gate_t::ptr& gate) NOEXCEPT;
     virtual void handle_submit_compact(const code& ec, size_t index,
         const system::hash_digest& hash, size_t height, size_t pooled,
-        size_t count) NOEXCEPT;
+        size_t count, const gate_t::ptr& gate) NOEXCEPT;
     virtual void do_submit_compact(const code& ec,
         const system::hash_digest& hash, size_t height, size_t pooled,
-        size_t count) NOEXCEPT;
+        size_t count, const gate_t::ptr& gate) NOEXCEPT;
 
 private:
     bool scan(fill& block) NOEXCEPT;
@@ -95,11 +95,11 @@ private:
 
     void upgrade() NOEXCEPT;
     void request() NOEXCEPT;
-    void identify() NOEXCEPT;
+    void identify(const gate_t::ptr& gate) NOEXCEPT;
     bool resolve(const database::header_link& link) NOEXCEPT;
     bool matched(const database::header_link& link) const NOEXCEPT;
     void collect(const compact_block& message,
-        const database::header_link& link) NOEXCEPT;
+        const database::header_link& link, const gate_t::ptr& gate) NOEXCEPT;
 
     // These are protected by strand.
     bool compact_{};

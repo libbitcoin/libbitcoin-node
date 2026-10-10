@@ -176,6 +176,47 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id__requested_
     BOOST_REQUIRE(associated(block.hash()));
 }
 
+BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__replayed_while_organizing__requested_once)
+{
+    BOOST_REQUIRE(handshake(full_node));
+
+    const auto& block = block1();
+    send(shortened(block), node_version->value);
+    send(shortened(block), node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    receive(get_compact_transactions::command);
+    BOOST_REQUIRE(!received(get_compact_transactions::command, pong::command));
+}
+
+BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__replayed_while_submitting__not_requested)
+{
+    BOOST_REQUIRE(handshake(full_node));
+
+    const auto& block = block1();
+    send(shortened(block), node_version->value);
+    receive(get_compact_transactions::command);
+
+    send(compact_transactions{ block.hash(), { block.transactions_ptr()->front() } }, node_version->value);
+    send(shortened(block), node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    BOOST_REQUIRE(!received(get_compact_transactions::command, pong::command));
+    BOOST_REQUIRE(associated(block.hash()));
+}
+
+// An unstored parent is resolved by header synchronization.
+BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__orphan__not_stopped)
+{
+    BOOST_REQUIRE(handshake(full_node));
+
+    const auto& block = block2();
+    send(prefilled(block, block.transactions_ptr()->front()), node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    BOOST_REQUIRE(!receive(pong::command).empty());
+}
+
 // The pool holds none of the block, so it is downloaded (not requested).
 BOOST_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__short_id_unpooled__not_requested, p2p_compact_pooled_setup_fixture)
 {
