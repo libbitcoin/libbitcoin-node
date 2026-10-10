@@ -78,6 +78,10 @@ void chaser_validate::validate_block(const header_link& link,
     {
         ec = complete_pooled(link, ctx);
     }
+    else if (bypass && !filter_ && query.is_silent(link, ctx.height))
+    {
+        ec = validate_silent(link, ctx);
+    }
     else
     {
         // TODO: implement allocator parameter resulting in full allocation to
@@ -153,6 +157,37 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     }
     
     return error::success;
+}
+
+// Bypassed without client filters, a block is read only for its silent
+// payment records, so it is not materialized.
+code chaser_validate::validate_silent(const header_link& link,
+    const chain::context& ctx) NOEXCEPT
+{
+    auto& query = archive();
+    auto wire = query.get_wire_block(link, node_witness_);
+    chain::view::block block{ std::move(wire), node_witness_ };
+
+    if (!block.is_valid())
+        return error::validate2;
+
+    // Internal maturity and locks are not checked under bypass.
+    data_chunk prevouts{};
+    prevout_spends spends{};
+    database::tx_links conflicts{};
+    if (!query.get_block_prevouts(prevouts, spends, conflicts, link) ||
+        block.populate(ctx, std::move(prevouts)) ==
+            system::error::missing_previous_output)
+        return query.set_block_unconfirmable(link) ?
+            code{ system::error::missing_previous_output } : error::validate4;
+
+    const auto committed = is_silent_capturing(link) &&
+        commit_silent_batch(link, block, ctx.height);
+
+    if (!committed && !query.set_silent(link, block))
+        return error::validate9;
+
+    return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
 // A block with all txs pooled under a sufficient context requires only block

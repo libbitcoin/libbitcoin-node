@@ -395,8 +395,9 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
 }
 
 // The bank height is lowered before exit, so that its drain observes it.
-bool chaser_validate::commit_silent_batch(const header_link& link,
-    const chain::block& block, size_t height) NOEXCEPT
+template <typename Block>
+bool chaser_validate::commit_silent_(const header_link& link,
+    const Block& block, size_t height) NOEXCEPT
 {
     size_t rows{};
     const auto bank = enter_silent_capture();
@@ -417,6 +418,18 @@ bool chaser_validate::commit_silent_batch(const header_link& link,
         fault(error::batch6);
 
     return committed;
+}
+
+bool chaser_validate::commit_silent_batch(const header_link& link,
+    const chain::block& block, size_t height) NOEXCEPT
+{
+    return commit_silent_(link, block, height);
+}
+
+bool chaser_validate::commit_silent_batch(const header_link& link,
+    const chain::view::block& block, size_t height) NOEXCEPT
+{
+    return commit_silent_(link, block, height);
 }
 
 size_t chaser_validate::silent_limit() const NOEXCEPT

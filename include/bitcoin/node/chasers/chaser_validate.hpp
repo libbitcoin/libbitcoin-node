@@ -47,6 +47,7 @@ public:
 protected:
     using header_link = database::header_link;
     using header_links = database::header_links;
+    using prevout_spends = query::prevout_spends;
     using signatures = system::chain::signatures;
     using race = network::race_unity<const code&, const database::tx_link&>;
 
@@ -72,6 +73,8 @@ protected:
         const system::chain::block& block, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
+        const system::chain::context& ctx) NOEXCEPT;
+    virtual code validate_silent(const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code validate_pooled(bool& pooled, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
@@ -107,6 +110,8 @@ protected:
     virtual code do_process_silent_batch(bool bank) NOEXCEPT;
     virtual bool commit_silent_batch(const header_link& link,
         const system::chain::block& block, size_t height) NOEXCEPT;
+    virtual bool commit_silent_batch(const header_link& link,
+        const system::chain::view::block& block, size_t height) NOEXCEPT;
     virtual bool enter_silent_capture() NOEXCEPT;
     virtual void exit_silent_capture(bool bank) NOEXCEPT;
 
@@ -145,6 +150,9 @@ private:
     void log_captures() const NOEXCEPT;
 
     // Batching helpers.
+    template <typename Block>
+    bool commit_silent_(const header_link& link, const Block& block,
+        size_t height) NOEXCEPT;
     bool is_residual() NOEXCEPT;
     bool is_mature(bool residual) NOEXCEPT;
     bool is_silent_capturing(const header_link& link) NOEXCEPT;
