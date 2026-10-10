@@ -331,7 +331,7 @@ code chaser_transaction::fill(database::tx_link& out,
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
-            !query.set_silent(out, tx))
+            ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
             return fault(error::transaction6);
     }
 

@@ -161,7 +161,8 @@ void chaser_confirm::do_bumped(height_t) NOEXCEPT
     // Guarded by candidate interlock.
     size_t fork_point{};
     const auto& query = archive();
-    auto fork = query.get_validated_fork(fork_point, checkpoint());
+    auto fork = query.get_validated_fork(fork_point, checkpoint(),
+        silent_limit());
 
     // Fork may be empty if candidates were reorganized.
     if (fork.empty())

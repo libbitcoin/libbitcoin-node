@@ -41,6 +41,9 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
     void stop() NOEXCEPT override;
 
+    /// Confirmation is limited to below the lowest banked silent block height.
+    size_t silent_limit() const NOEXCEPT;
+
 protected:
     using header_link = database::header_link;
     using header_links = database::header_links;
@@ -70,6 +73,8 @@ protected:
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
+    virtual code validate_silent(const header_link& link,
+        const system::chain::context& ctx) NOEXCEPT;
     virtual code validate_pooled(bool& pooled, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code complete_pooled(const header_link& link,
@@ -96,12 +101,26 @@ protected:
     virtual bool enter_capture() NOEXCEPT;
     virtual void exit_capture(bool bank) NOEXCEPT;
 
+    /// Silent payment batch.
+    /// Banked and drained independently of signatures, and computed in the
+    /// drain, after which their blocks can be confirmed if also valid.
+    virtual code start_silent_batch() NOEXCEPT;
+    virtual void process_silent_batch(bool residual) NOEXCEPT;
+    virtual code do_process_silent_batch(bool bank) NOEXCEPT;
+    virtual bool commit_silent_batch(const header_link& link,
+        const system::chain::block& block, size_t height) NOEXCEPT;
+    virtual bool commit_silent_batch(const header_link& link,
+        const system::chain::view::block& block, size_t height) NOEXCEPT;
+    virtual bool enter_silent_capture() NOEXCEPT;
+    virtual void exit_silent_capture(bool bank) NOEXCEPT;
+
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
     bool stranded() const NOEXCEPT override;
 
 private:
     using atomic_counter = std::atomic<size_t>;
+    using atomic_height = std::atomic<size_t>;
     struct counters
     {
         atomic_counter ecdsa_{};
@@ -130,8 +149,13 @@ private:
     void log_captures() const NOEXCEPT;
 
     // Batching helpers.
+    template <typename Block>
+    bool commit_silent_(const header_link& link, const Block& block,
+        size_t height) NOEXCEPT;
     bool is_residual() NOEXCEPT;
     bool is_mature(bool residual) NOEXCEPT;
+    bool is_silent_capturing(const header_link& link) NOEXCEPT;
+    bool is_silent_mature(bool residual) NOEXCEPT;
     std::string log_rate(const std::string& name, size_t signatures,
         size_t milliseconds) const NOEXCEPT;
 
@@ -148,6 +172,10 @@ private:
     std::atomic_bool draining_{};
     std::atomic_bool bank_{};
     std::array<atomic_counter, two> writers_{};
+    std::atomic_bool silent_draining_{};
+    std::atomic_bool silent_bank_{};
+    std::array<atomic_counter, two> silent_writers_{};
+    std::array<atomic_height, two> silent_heights_{ max_size_t, max_size_t };
     counters counters_{};
     stopper stopping_{};
 

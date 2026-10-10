@@ -78,6 +78,10 @@ void chaser_validate::validate_block(const header_link& link,
     {
         ec = complete_pooled(link, ctx);
     }
+    else if (bypass && !filter_ && query.is_silent(link, ctx.height))
+    {
+        ec = validate_silent(link, ctx);
+    }
     else
     {
         // TODO: implement allocator parameter resulting in full allocation to
@@ -155,6 +159,35 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     return error::success;
 }
 
+// Bypassed without client filters, a block is read only for its silent
+// payment records, so it is not materialized.
+code chaser_validate::validate_silent(const header_link& link,
+    const chain::context& ctx) NOEXCEPT
+{
+    auto& query = archive();
+    auto wire = query.get_wire_block(link, node_witness_);
+    chain::view::block block{ std::move(wire), node_witness_ };
+
+    if (!block.is_valid())
+        return error::validate2;
+
+    // Only the prevouts of silent payment eligible txs are populated.
+    data_chunk prevouts{};
+    std::vector<bool> selected{};
+    if (!query.get_silent_prevouts(prevouts, selected, link, block) ||
+        !block.populate(std::move(prevouts), selected))
+        return query.set_block_unconfirmable(link) ?
+            code{ system::error::missing_previous_output } : error::validate4;
+
+    const auto committed = is_silent_capturing(link) &&
+        commit_silent_batch(link, block, ctx.height);
+
+    if (!committed && !query.set_silent(link, block))
+        return error::validate9;
+
+    return query.set_block_valid(link) ? error::success : error::validate10;
+}
+
 // A block with all txs pooled under a sufficient context requires only block
 // checks, performed by the store. Insufficiency implies full validation.
 code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
@@ -172,12 +205,12 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
         error::validate11 : ec;
 }
 
-// A pooled block is valid, so is produced only as required for indexes.
+// A pooled block is valid and SP indexed, so produce only for client filters.
 code chaser_validate::complete_pooled(const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
-    if (filter_ || (ctx.height >= query.silent_start_height()))
+    if (filter_)
     {
         bool batched{}, capturing{};
         constexpr auto bypass = true;
@@ -193,7 +226,7 @@ code chaser_validate::complete_pooled(const header_link& link,
             return ec;
     }
 
-    // Valid must be set after set_prevouts, set_filter_body, and set_silent.
+    // Valid must be set after set_prevouts and set_filter_body.
     return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
@@ -243,12 +276,18 @@ code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
     if (!query.set_filter_body(link, block))
         return error::validate8;
 
-    if ((ctx.height >= query.silent_start_height()) &&
-        !query.set_silent(link, block))
-        return error::validate9;
+    // Banked records are set when the bank drains.
+    if (query.is_silent(link, ctx.height))
+    {
+        const auto committed = is_silent_capturing(link) &&
+            commit_silent_batch(link, block, ctx.height);
+
+        if (!committed && !query.set_silent(link, block))
+            return error::validate9;
+    }
 
     // Defer block state change when batched.
-    // Valid must be set after set_prevouts, set_filter_body, and set_silent.
+    // Valid must be set after set_prevouts and set_filter_body.
     if (!batched && !query.set_block_valid(link))
         return error::validate10;
 

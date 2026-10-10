@@ -62,6 +62,9 @@ code chaser_validate::start() NOEXCEPT
     if (const auto ec = start_batch())
         return fault(ec);
 
+    if (const auto ec = start_silent_batch())
+        return fault(ec);
+
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
@@ -105,6 +108,7 @@ bool chaser_validate::handle_chase(const code&, event_value value) NOEXCEPT
         {
             // A windowed drain may have been elided during suspension.
             process_batch(is_residual());
+            process_silent_batch(is_residual());
             POST(do_bump, height_t{});
             break;
         }
@@ -120,6 +124,7 @@ bool chaser_validate::handle_chase(const code&, event_value value) NOEXCEPT
             // entire window (strand for admission-side control, never for
             // release-side).
             process_batch(is_residual());
+            process_silent_batch(is_residual());
             break;
         }
         case chase::regressed:
@@ -296,14 +301,17 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     if (closed() || !batch_enabled_)
         return;
 
+    // Capturing disabled when confirmed chain current (and not under bypass).
+    const auto current = !capturing && !bypass;
+
+    // Silent batch drains when mature or recent, independent of signatures.
+    process_silent_batch(current || is_residual());
+
     if (batched)
     {
         process_batch(is_residual());
         return;
     }
-
-    // Capturing disabled when confirmed chain current (and not under bypass).
-    const auto current = !capturing && !bypass;
 
     // Drain batch when recent (current, or window/maximum without backlog).
     if (current || is_residual())
