@@ -20,13 +20,13 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_OUT_70001_HPP
 
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out_60002.hpp>
 
 namespace libbitcoin {
 namespace node {
     
 class BCN_API protocol_transaction_out_70001
-  : public protocol_transaction_out_106,
+  : public protocol_transaction_out_60002,
     protected network::tracker<protocol_transaction_out_70001>
 {
 public:
@@ -34,7 +34,7 @@ public:
 
     protocol_transaction_out_70001(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : protocol_transaction_out_106(session, channel),
+      : protocol_transaction_out_60002(session, channel),
         enable_not_found_(session->network_settings().enable_not_found),
         network::tracker<protocol_transaction_out_70001>(session->log)
     {

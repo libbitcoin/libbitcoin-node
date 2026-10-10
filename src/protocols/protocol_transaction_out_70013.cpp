@@ -117,19 +117,25 @@ bool protocol_transaction_out_70013::do_announce(transaction_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    // The tx is archived and its prevouts populated, so the rate is known.
+    if (is_filtered(link))
+        return true;
+
+    return protocol_transaction_out_70001::do_announce(link);
+}
+
+// The tx is archived and its prevouts populated, so the rate is known.
+bool protocol_transaction_out_70013::is_filtered(transaction_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
     database::fee_rate rate{};
     if (!archive().get_tx_fees(rate, link))
     {
         fault(database::error::integrity);
-        return false;
+        return true;
     }
 
     // bip133: the peer is not sent a tx below the rate it advertised.
-    if (insufficient(rate))
-        return true;
-
-    return protocol_transaction_out_70001::do_announce(link);
+    return insufficient(rate);
 }
 
 // private

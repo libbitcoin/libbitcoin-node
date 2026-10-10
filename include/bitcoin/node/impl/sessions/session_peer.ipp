@@ -175,6 +175,8 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
                 channel->attach<protocol_transaction_out_70013>(self)->start();
             else if (peer->is_negotiated(level::bip37))
                 channel->attach<protocol_transaction_out_70001>(self)->start();
+            else if (peer->is_negotiated(level::bip35))
+                channel->attach<protocol_transaction_out_60002>(self)->start();
             else
                 channel->attach<protocol_transaction_out_106>(self)->start();
         }
