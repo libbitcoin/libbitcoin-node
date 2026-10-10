@@ -105,7 +105,7 @@ void protocol_transaction_out_60002::send_memory_pool(const code& ec,
             if (is_filtered(link))
                 continue;
 
-            if (const auto hash = identifier(link); hash != null_hash)
+            if (const auto hash = tx_identifier(link); hash != null_hash)
                 items.emplace_back(inventory_type(), hash);
         }
     }

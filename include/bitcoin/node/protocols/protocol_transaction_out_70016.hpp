@@ -42,7 +42,8 @@ public:
 protected:
     /// Transactions are announced, requested and served by witness hash.
     type_id inventory_type() const NOEXCEPT override;
-    system::hash_digest identifier(transaction_t link) const NOEXCEPT override;
+    system::hash_digest tx_identifier(
+        transaction_t link) const NOEXCEPT override;
     database::tx_link to_transaction(
         const inventory_item& item) const NOEXCEPT override;
 };

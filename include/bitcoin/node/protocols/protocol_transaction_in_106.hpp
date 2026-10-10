@@ -56,7 +56,7 @@ protected:
     virtual type_id get_data_type() const NOEXCEPT;
 
     /// The hash by which the peer identifies the tx.
-    virtual system::hash_digest identifier(
+    virtual system::hash_digest tx_identifier(
         const system::chain::transaction& tx) const NOEXCEPT;
 
     /// The tx identified by the hash is archived.

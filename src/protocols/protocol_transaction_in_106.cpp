@@ -64,7 +64,7 @@ type_id protocol_transaction_in_106::get_data_type() const NOEXCEPT
     return tx_type_;
 }
 
-hash_digest protocol_transaction_in_106::identifier(
+hash_digest protocol_transaction_in_106::tx_identifier(
     const chain::transaction& tx) const NOEXCEPT
 {
     return tx.get_hash(false);
@@ -161,9 +161,9 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
         return false;
 
     const auto& tx = message->transaction_ptr;
-    if (!erase_requested(identifier(*tx)))
+    if (!erase_requested(tx_identifier(*tx)))
     {
-        LOGR("Unrequested tx [" << encode_hash(identifier(*tx))
+        LOGR("Unrequested tx [" << encode_hash(tx_identifier(*tx))
             << "] from [" << opposite() << "].");
         stop(network::error::protocol_violation);
         return false;
