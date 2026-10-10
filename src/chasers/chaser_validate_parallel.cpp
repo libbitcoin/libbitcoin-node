@@ -171,13 +171,11 @@ code chaser_validate::validate_silent(const header_link& link,
     if (!block.is_valid())
         return error::validate2;
 
-    // Internal maturity and locks are not checked under bypass.
+    // Only the prevouts of silent payment eligible txs are populated.
     data_chunk prevouts{};
-    prevout_spends spends{};
-    database::tx_links conflicts{};
-    if (!query.get_block_prevouts(prevouts, spends, conflicts, link) ||
-        block.populate(ctx, std::move(prevouts)) ==
-            system::error::missing_previous_output)
+    std::vector<bool> selected{};
+    if (!query.get_silent_prevouts(prevouts, selected, link, block) ||
+        !block.populate(std::move(prevouts), selected))
         return query.set_block_unconfirmable(link) ?
             code{ system::error::missing_previous_output } : error::validate4;
 

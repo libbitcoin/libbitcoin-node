@@ -47,7 +47,6 @@ public:
 protected:
     using header_link = database::header_link;
     using header_links = database::header_links;
-    using prevout_spends = query::prevout_spends;
     using signatures = system::chain::signatures;
     using race = network::race_unity<const code&, const database::tx_link&>;
 
