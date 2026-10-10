@@ -43,7 +43,7 @@ protected:
     /// Transactions are announced, requested and identified by witness hash.
     type_id inventory_type() const NOEXCEPT override;
     type_id get_data_type() const NOEXCEPT override;
-    system::hash_digest identifier(
+    system::hash_digest tx_identifier(
         const system::chain::transaction& tx) const NOEXCEPT override;
     bool is_archived(const system::hash_digest& hash) const NOEXCEPT override;
 };

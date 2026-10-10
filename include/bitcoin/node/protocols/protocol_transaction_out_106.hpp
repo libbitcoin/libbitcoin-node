@@ -54,7 +54,8 @@ protected:
     virtual type_id inventory_type() const NOEXCEPT;
 
     /// The hash by which the tx is announced to the peer.
-    virtual system::hash_digest identifier(transaction_t link) const NOEXCEPT;
+    virtual system::hash_digest tx_identifier(
+        transaction_t link) const NOEXCEPT;
 
     /// The tx of a tx inventory item, terminal if not archived.
     virtual database::tx_link to_transaction(

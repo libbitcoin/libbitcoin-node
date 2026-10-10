@@ -54,6 +54,7 @@ public:
 protected:
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
+    virtual void do_pruned(header_t link) NOEXCEPT;
     virtual void do_initialize(header_t link) NOEXCEPT;
     virtual void do_organized(header_t link) NOEXCEPT;
     virtual void do_reorganized(header_t link) NOEXCEPT;
@@ -67,8 +68,9 @@ private:
     std::atomic_bool stopping_{};
     std::atomic_bool initialized_{};
 
-    // This is protected by strand.
+    // These are protected by strand.
     estimator::ptr estimator_{};
+    bool pruned_{};
 };
 
 } // namespace node

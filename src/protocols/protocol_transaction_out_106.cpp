@@ -67,7 +67,7 @@ type_id protocol_transaction_out_106::inventory_type() const NOEXCEPT
     return type_id::transaction;
 }
 
-hash_digest protocol_transaction_out_106::identifier(
+hash_digest protocol_transaction_out_106::tx_identifier(
     transaction_t link) const NOEXCEPT
 {
     return archive().get_tx_key(link);
@@ -115,7 +115,7 @@ bool protocol_transaction_out_106::do_announce(transaction_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    return announce(identifier(link));
+    return announce(tx_identifier(link));
 }
 
 bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT

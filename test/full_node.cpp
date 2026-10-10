@@ -352,6 +352,17 @@ BOOST_AUTO_TEST_CASE(full_node__notify__snap__resumed)
     BOOST_REQUIRE_EQUAL(future.get(), error::success);
 }
 
+BOOST_AUTO_TEST_CASE(full_node__notify__block__pruned)
+{
+    BOOST_REQUIRE(initialize());
+    BOOST_REQUIRE(!start());
+    BOOST_REQUIRE(!run());
+    auto pruned = subscribe(chase::pruned);
+    node_.notify(error::success, chases::block{ 0 });
+    BOOST_REQUIRE(ready(pruned));
+    BOOST_REQUIRE_EQUAL(pruned.get(), error::success);
+}
+
 BOOST_AUTO_TEST_CASE(full_node__notify__block_after_prune__not_suspended)
 {
     BOOST_REQUIRE(initialize());

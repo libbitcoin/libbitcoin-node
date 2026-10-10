@@ -119,10 +119,17 @@ bool chaser_estimate::handle_chase(const code&, event_value value) NOEXCEPT
 
     switch (to_chase(value))
     {
-        // chase::block is only sent when current. This is captured as a cheap
-        // way to test currency for initialization. Once initialized it is not
-        // used again. chase::organized is used instead, to ensure that there
-        // are no push() gaps due to falling out of currency.
+        // Initialization follows the prune (which rewrites the pool) and
+        // retries on each current block until the chain reaches the horizon.
+        case chase::pruned:
+        {
+            if (!initialized())
+            {
+                POST(do_pruned, to_payload<chase::pruned>(value).link);
+            }
+
+            break;
+        }
         case chase::block:
         {
             if (!initialized())
@@ -175,11 +182,18 @@ bool chaser_estimate::handle_chase(const code&, event_value value) NOEXCEPT
     return true;
 }
 
+void chaser_estimate::do_pruned(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    pruned_ = true;
+    do_initialize(link);
+}
+
 void chaser_estimate::do_initialize(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (initialized())
+    if (!pruned_ || initialized())
         return;
 
     // Preempt initialize fault when horizon exceeds chain length.

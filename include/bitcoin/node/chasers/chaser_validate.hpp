@@ -119,8 +119,9 @@ protected:
     bool stranded() const NOEXCEPT override;
 
 private:
-    using atomic_counter = std::atomic<size_t>;
     using atomic_height = std::atomic<size_t>;
+    using atomic_counter = std::atomic<size_t>;
+    using bank_heights = std::array<atomic_height, two>;
     struct counters
     {
         atomic_counter ecdsa_{};
@@ -175,7 +176,7 @@ private:
     std::atomic_bool silent_draining_{};
     std::atomic_bool silent_bank_{};
     std::array<atomic_counter, two> silent_writers_{};
-    std::array<atomic_height, two> silent_heights_{ max_size_t, max_size_t };
+    bank_heights silent_heights_{ max_size_t, max_size_t };
     counters counters_{};
     stopper stopping_{};
 

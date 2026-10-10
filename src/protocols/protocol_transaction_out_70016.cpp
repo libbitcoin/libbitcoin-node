@@ -41,7 +41,7 @@ type_id protocol_transaction_out_70016::inventory_type() const NOEXCEPT
     return type_id::wtxid;
 }
 
-hash_digest protocol_transaction_out_70016::identifier(
+hash_digest protocol_transaction_out_70016::tx_identifier(
     transaction_t link) const NOEXCEPT
 {
     return archive().get_wtxid(link);

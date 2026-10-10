@@ -189,7 +189,8 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__replayed_while_organ
     BOOST_REQUIRE(!received(get_compact_transactions::command, pong::command));
 }
 
-BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__replayed_while_submitting__not_requested)
+// Block 2 remains an unassociated candidate, so the chain never coalesces.
+BOOST_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__replayed_while_submitting__not_requested, p2p_compact_candidate_setup_fixture)
 {
     BOOST_REQUIRE(handshake(full_node));
 

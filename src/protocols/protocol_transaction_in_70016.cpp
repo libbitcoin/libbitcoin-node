@@ -44,7 +44,7 @@ type_id protocol_transaction_in_70016::get_data_type() const NOEXCEPT
     return type_id::wtxid;
 }
 
-hash_digest protocol_transaction_in_70016::identifier(
+hash_digest protocol_transaction_in_70016::tx_identifier(
     const chain::transaction& tx) const NOEXCEPT
 {
     return tx.get_hash(true);
