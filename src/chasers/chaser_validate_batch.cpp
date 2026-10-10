@@ -136,9 +136,10 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
     const auto ecdsa = query.ecdsa_records(bank);
     if (is_nonzero(ecdsa))
     {
+        bool device{};
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_ecdsa_signatures(stopping_, invalids, bank))
+        if (!query.verify_ecdsa_signatures(stopping_, invalids, device, bank))
         {
             LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return network::error::operation_canceled;
@@ -149,7 +150,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
         if (!startup)
         {
             LOGN(log_rate("Verify ecdsa.....", ecdsa,
-                duration_cast<milliseconds>(elapsed).count()));
+                duration_cast<milliseconds>(elapsed).count(), device));
         }
 
         if (!mark_invalids(prevalids, invalids, startup))
@@ -159,9 +160,10 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
     const auto schnorr = query.schnorr_records(bank);
     if (is_nonzero(schnorr))
     {
+        bool device{};
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_schnorr_signatures(stopping_, invalids, bank))
+        if (!query.verify_schnorr_signatures(stopping_, invalids, device, bank))
         {
             LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return network::error::operation_canceled;
@@ -172,7 +174,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
         if (!startup)
         {
             LOGN(log_rate("Verify schnorr...", schnorr,
-                duration_cast<milliseconds>(elapsed).count()));
+                duration_cast<milliseconds>(elapsed).count(), device));
         }
 
         if (!mark_invalids(prevalids, invalids, startup))
@@ -295,11 +297,11 @@ bool chaser_validate::is_silent_mature(bool residual) NOEXCEPT
 }
 
 std::string chaser_validate::log_rate(const std::string& name,
-    size_t signatures, size_t milliseconds) const NOEXCEPT
+    size_t signatures, size_t milliseconds, bool device) const NOEXCEPT
 {
     const auto rate = (signatures * 1000u) / greater(milliseconds, one);
-    return std::format("{} ({} / {} ms) = {} sps", name, signatures,
-        milliseconds, rate);
+    return std::format("{} ({} / {} ms) = {} sps on {}", name, signatures,
+        milliseconds, rate, device ? "device" : "cpu");
 }
 
 // Silent batch.
@@ -381,9 +383,10 @@ void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
 code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
 {
     auto& query = archive();
+    bool device{};
     const auto rows = query.silent_records(bank);
     const auto start = network::logger::now();
-    const auto ec = query.compute_silents(stopping_, bank);
+    const auto ec = query.compute_silents(stopping_, device, bank);
     if (ec == database::error::query_canceled)
     {
         LOGN("Batch silent canceled (" << rows << ").");
@@ -395,7 +398,7 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
 
     const auto elapsed = network::logger::now() - start;
     LOGN(log_rate("Compute silent...", rows,
-        duration_cast<milliseconds>(elapsed).count()));
+        duration_cast<milliseconds>(elapsed).count(), device));
 
     if (!query.purge_silents(bank))
         return error::batch8;
