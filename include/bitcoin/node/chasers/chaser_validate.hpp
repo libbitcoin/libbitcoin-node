@@ -158,7 +158,7 @@ private:
     bool is_silent_capturing(const header_link& link) NOEXCEPT;
     bool is_silent_mature(bool residual) NOEXCEPT;
     std::string log_rate(const std::string& name, size_t signatures,
-        size_t milliseconds) const NOEXCEPT;
+        size_t milliseconds, bool device) const NOEXCEPT;
 
     // This is not thread safe.
     network::threadpool validation_threadpool_;

@@ -79,48 +79,52 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         return;
 
     // Retest under the claim, another drain may have just emptied the bank.
-    if (!is_mature(residual))
+    // Losers commit before testing, so the retest after each drain observes
+    // commits that lost the claim during it.
+    while (!closed() && is_mature(residual || is_residual()))
     {
-        draining_.store(false);
-        return;
-    }
+        // Admit arriving commits to the other bank (changed only under claim).
+        const auto bank = bank_.load();
+        bank_.store(!bank);
 
-    // Admit arriving commits to the other bank (changed only under claim).
-    const auto bank = bank_.load();
-    bank_.store(!bank);
+        // Wait for in-flight commits to the bank to complete or abandon on
+        // close. Bounded: the writer epoch spans only the per-block slab
+        // commit, and arriving commits go to the other bank.
+        while (is_nonzero(writers_.at(to_int<size_t>(bank)).load()))
+        {
+            if (closed())
+            {
+                draining_.store(false);
+                return;
+            }
 
-    // Wait for in-flight commits to the bank to complete or abandon on close.
-    // Bounded: the writer epoch spans only the per-block slab commit, and
-    // arriving commits go to the other bank.
-    while (is_nonzero(writers_.at(to_int<size_t>(bank)).load()))
-    {
-        if (closed())
+            std::this_thread::yield();
+        }
+
+        // Bank is now quiescent (no writers admitted, none in flight).
+        // ====================================================================
+
+        const auto ec = do_process_batch(bank, false);
+        if (ec == network::error::operation_canceled)
         {
             draining_.store(false);
             return;
         }
 
-        std::this_thread::yield();
+        if (ec)
+        {
+            draining_.store(false);
+            fault(ec);
+            return;
+        }
+
+        // ====================================================================
+
+        // Log only when batch executes (non-verbose).
+        log_captures();
     }
 
-    // Bank is now quiescent (no writers admitted, none in flight).
-    // ========================================================================
-
-    const auto ec = do_process_batch(bank, false);
     draining_.store(false);
-    if (ec == network::error::operation_canceled)
-        return;
-
-    if (ec)
-    {
-        fault(ec);
-        return;
-    }
-
-    // ========================================================================
-
-    // Log outside of drain claim, and only when batch executes (non-verbose).
-    log_captures();
 }
 
 // Guarded by the drain claim (or single-threaded at startup).
@@ -132,9 +136,10 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
     const auto ecdsa = query.ecdsa_records(bank);
     if (is_nonzero(ecdsa))
     {
+        bool device{};
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_ecdsa_signatures(stopping_, invalids, bank))
+        if (!query.verify_ecdsa_signatures(stopping_, invalids, device, bank))
         {
             LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return network::error::operation_canceled;
@@ -145,7 +150,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
         if (!startup)
         {
             LOGN(log_rate("Verify ecdsa.....", ecdsa,
-                duration_cast<milliseconds>(elapsed).count()));
+                duration_cast<milliseconds>(elapsed).count(), device));
         }
 
         if (!mark_invalids(prevalids, invalids, startup))
@@ -155,9 +160,10 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
     const auto schnorr = query.schnorr_records(bank);
     if (is_nonzero(schnorr))
     {
+        bool device{};
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_schnorr_signatures(stopping_, invalids, bank))
+        if (!query.verify_schnorr_signatures(stopping_, invalids, device, bank))
         {
             LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return network::error::operation_canceled;
@@ -168,7 +174,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
         if (!startup)
         {
             LOGN(log_rate("Verify schnorr...", schnorr,
-                duration_cast<milliseconds>(elapsed).count()));
+                duration_cast<milliseconds>(elapsed).count(), device));
         }
 
         if (!mark_invalids(prevalids, invalids, startup))
@@ -291,11 +297,11 @@ bool chaser_validate::is_silent_mature(bool residual) NOEXCEPT
 }
 
 std::string chaser_validate::log_rate(const std::string& name,
-    size_t signatures, size_t milliseconds) const NOEXCEPT
+    size_t signatures, size_t milliseconds, bool device) const NOEXCEPT
 {
     const auto rate = (signatures * 1000u) / greater(milliseconds, one);
-    return std::format("{} ({} / {} ms) = {} sps", name, signatures,
-        milliseconds, rate);
+    return std::format("{} ({} / {} ms) = {} sps on {}", name, signatures,
+        milliseconds, rate, device ? "device" : "cpu");
 }
 
 // Silent batch.
@@ -329,49 +335,58 @@ void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
         return;
 
     // Retest under the claim, another drain may have just emptied the bank.
-    if (!is_silent_mature(residual))
+    // Losers commit before testing, so the retest after each drain observes
+    // commits that lost the claim during it.
+    while (!closed() && is_silent_mature(residual || is_residual()))
     {
-        silent_draining_.store(false);
-        return;
-    }
+        // Admit arriving commits to the other bank (changed only under claim).
+        const auto bank = silent_bank_.load();
+        silent_bank_.store(!bank);
 
-    // Admit arriving commits to the other bank (changed only under claim).
-    const auto bank = silent_bank_.load();
-    silent_bank_.store(!bank);
+        // Wait for in-flight commits to the bank to complete or abandon on
+        // close.
+        while (is_nonzero(silent_writers_.at(to_int<size_t>(bank)).load()))
+        {
+            if (closed())
+            {
+                silent_draining_.store(false);
+                return;
+            }
 
-    // Wait for in-flight commits to the bank to complete or abandon on close.
-    while (is_nonzero(silent_writers_.at(to_int<size_t>(bank)).load()))
-    {
-        if (closed())
+            std::this_thread::yield();
+        }
+
+        // Bank is now quiescent (no writers admitted, none in flight).
+        // ====================================================================
+
+        const auto ec = do_process_silent_batch(bank);
+        if (ec == network::error::operation_canceled)
         {
             silent_draining_.store(false);
             return;
         }
 
-        std::this_thread::yield();
+        if (ec)
+        {
+            silent_draining_.store(false);
+            fault(ec);
+            return;
+        }
+
+        // ====================================================================
     }
 
-    // Bank is now quiescent (no writers admitted, none in flight).
-    // ========================================================================
-
-    const auto ec = do_process_silent_batch(bank);
     silent_draining_.store(false);
-    if (ec == network::error::operation_canceled)
-        return;
-
-    if (ec)
-        fault(ec);
-
-    // ========================================================================
 }
 
 // Guarded by the drain claim (or single-threaded at startup).
 code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
 {
     auto& query = archive();
+    bool device{};
     const auto rows = query.silent_records(bank);
     const auto start = network::logger::now();
-    const auto ec = query.compute_silents(stopping_, bank);
+    const auto ec = query.compute_silents(stopping_, device, bank);
     if (ec == database::error::query_canceled)
     {
         LOGN("Batch silent canceled (" << rows << ").");
@@ -383,7 +398,7 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
 
     const auto elapsed = network::logger::now() - start;
     LOGN(log_rate("Compute silent...", rows,
-        duration_cast<milliseconds>(elapsed).count()));
+        duration_cast<milliseconds>(elapsed).count(), device));
 
     if (!query.purge_silents(bank))
         return error::batch8;
