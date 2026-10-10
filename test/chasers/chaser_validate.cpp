@@ -468,6 +468,53 @@ struct validate_current_overspent_fixture
 
 BOOST_AUTO_TEST_SUITE(chaser_validate_tests)
 
+static bool validate_noncandidates(node::query& query)
+{
+    return validate_noncandidate(query) && validate_store(query, validate_a1(), 1);
+}
+
+struct validate_noncandidates_fixture
+  : validate_setup_fixture
+{
+    validate_noncandidates_fixture()
+      : validate_setup_fixture(validate_noncandidates, {})
+    {
+    }
+};
+
+// Commits a prevalid to the admitting bank and loses the drain claim during
+// the first drain, as a completing validation does.
+struct validate_drain_accessor
+  : chaser_validate
+{
+    validate_drain_accessor(full_node& node, const database::header_link& link) NOEXCEPT
+      : chaser_validate(node), link_(link)
+    {
+    }
+
+    void drain() NOEXCEPT
+    {
+        process_batch(true);
+    }
+
+    code do_process_batch(bool bank, bool startup) NOEXCEPT override
+    {
+        if (!lost_)
+        {
+            lost_ = true;
+            if (!archive().set_prevalid(link_, !bank))
+                return node::error::batch1;
+
+            process_batch(true);
+        }
+
+        return chaser_validate::do_process_batch(bank, startup);
+    }
+
+    const database::header_link link_;
+    bool lost_{};
+};
+
 BOOST_FIXTURE_TEST_CASE(chaser_validate__start__unvalidated_candidates__confirmable, validate_unvalidated_fixture)
 {
     BOOST_REQUIRE(confirmed(2));
@@ -525,6 +572,21 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_second_bank__validated_if
 {
     BOOST_REQUIRE_EQUAL(query_.prevalid_records(true), zero);
     BOOST_REQUIRE_EQUAL(state(validate_x1()) == database::error::block_valid, system::batched::accelerated());
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__process_batch__residual_commit_during_drain__drained, validate_noncandidates_fixture)
+{
+    const auto first = query_.to_header(validate_x1().hash());
+    const auto second = query_.to_header(validate_a1().hash());
+    BOOST_REQUIRE(query_.set_prevalid(first, false));
+
+    validate_drain_accessor instance{ node_, second };
+    instance.drain();
+    BOOST_REQUIRE(instance.lost_);
+    BOOST_REQUIRE(is_zero(query_.prevalid_records(false)));
+    BOOST_REQUIRE(is_zero(query_.prevalid_records(true)));
+    BOOST_REQUIRE_EQUAL(state(validate_x1()), database::error::block_valid);
+    BOOST_REQUIRE_EQUAL(state(validate_a1()), database::error::block_valid);
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__prevalid__valid, validate_windowed_fixture)

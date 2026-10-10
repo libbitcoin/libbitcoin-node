@@ -79,48 +79,52 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         return;
 
     // Retest under the claim, another drain may have just emptied the bank.
-    if (!is_mature(residual))
+    // Losers commit before testing, so the retest after each drain observes
+    // commits that lost the claim during it.
+    while (!closed() && is_mature(residual || is_residual()))
     {
-        draining_.store(false);
-        return;
-    }
+        // Admit arriving commits to the other bank (changed only under claim).
+        const auto bank = bank_.load();
+        bank_.store(!bank);
 
-    // Admit arriving commits to the other bank (changed only under claim).
-    const auto bank = bank_.load();
-    bank_.store(!bank);
+        // Wait for in-flight commits to the bank to complete or abandon on
+        // close. Bounded: the writer epoch spans only the per-block slab
+        // commit, and arriving commits go to the other bank.
+        while (is_nonzero(writers_.at(to_int<size_t>(bank)).load()))
+        {
+            if (closed())
+            {
+                draining_.store(false);
+                return;
+            }
 
-    // Wait for in-flight commits to the bank to complete or abandon on close.
-    // Bounded: the writer epoch spans only the per-block slab commit, and
-    // arriving commits go to the other bank.
-    while (is_nonzero(writers_.at(to_int<size_t>(bank)).load()))
-    {
-        if (closed())
+            std::this_thread::yield();
+        }
+
+        // Bank is now quiescent (no writers admitted, none in flight).
+        // ====================================================================
+
+        const auto ec = do_process_batch(bank, false);
+        if (ec == network::error::operation_canceled)
         {
             draining_.store(false);
             return;
         }
 
-        std::this_thread::yield();
+        if (ec)
+        {
+            draining_.store(false);
+            fault(ec);
+            return;
+        }
+
+        // ====================================================================
+
+        // Log only when batch executes (non-verbose).
+        log_captures();
     }
 
-    // Bank is now quiescent (no writers admitted, none in flight).
-    // ========================================================================
-
-    const auto ec = do_process_batch(bank, false);
     draining_.store(false);
-    if (ec == network::error::operation_canceled)
-        return;
-
-    if (ec)
-    {
-        fault(ec);
-        return;
-    }
-
-    // ========================================================================
-
-    // Log outside of drain claim, and only when batch executes (non-verbose).
-    log_captures();
 }
 
 // Guarded by the drain claim (or single-threaded at startup).
@@ -329,40 +333,48 @@ void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
         return;
 
     // Retest under the claim, another drain may have just emptied the bank.
-    if (!is_silent_mature(residual))
+    // Losers commit before testing, so the retest after each drain observes
+    // commits that lost the claim during it.
+    while (!closed() && is_silent_mature(residual || is_residual()))
     {
-        silent_draining_.store(false);
-        return;
-    }
+        // Admit arriving commits to the other bank (changed only under claim).
+        const auto bank = silent_bank_.load();
+        silent_bank_.store(!bank);
 
-    // Admit arriving commits to the other bank (changed only under claim).
-    const auto bank = silent_bank_.load();
-    silent_bank_.store(!bank);
+        // Wait for in-flight commits to the bank to complete or abandon on
+        // close.
+        while (is_nonzero(silent_writers_.at(to_int<size_t>(bank)).load()))
+        {
+            if (closed())
+            {
+                silent_draining_.store(false);
+                return;
+            }
 
-    // Wait for in-flight commits to the bank to complete or abandon on close.
-    while (is_nonzero(silent_writers_.at(to_int<size_t>(bank)).load()))
-    {
-        if (closed())
+            std::this_thread::yield();
+        }
+
+        // Bank is now quiescent (no writers admitted, none in flight).
+        // ====================================================================
+
+        const auto ec = do_process_silent_batch(bank);
+        if (ec == network::error::operation_canceled)
         {
             silent_draining_.store(false);
             return;
         }
 
-        std::this_thread::yield();
+        if (ec)
+        {
+            silent_draining_.store(false);
+            fault(ec);
+            return;
+        }
+
+        // ====================================================================
     }
 
-    // Bank is now quiescent (no writers admitted, none in flight).
-    // ========================================================================
-
-    const auto ec = do_process_silent_batch(bank);
     silent_draining_.store(false);
-    if (ec == network::error::operation_canceled)
-        return;
-
-    if (ec)
-        fault(ec);
-
-    // ========================================================================
 }
 
 // Guarded by the drain claim (or single-threaded at startup).
