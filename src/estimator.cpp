@@ -94,13 +94,13 @@ bool estimator::initialize(const std::atomic_bool& cancel, const query& query,
         query.get_confirmable_fees(pooled) && initialize(blocks, pooled, top);
 }
 
-bool estimator::push(const query& query) NOEXCEPT
+bool estimator::push(const query& query,
+    const database::header_link& link) NOEXCEPT
 {
     if (is_add_overflow(top_height(), one))
         return false;
 
     rates block{}, conflicts{};
-    const auto link = query.to_confirmed(add1(top_height()));
     if (!query.get_block_fees(block, link) ||
         !query.get_block_conflict_fees(conflicts, link) || !push(block))
         return false;

@@ -63,7 +63,7 @@ public:
         size_t count=maximum_horizon) NOEXCEPT;
 
     /// Update accumulator (not thread safe).
-    bool push(const query& query) NOEXCEPT;
+    bool push(const query& query, const database::header_link& link) NOEXCEPT;
     bool pool(const query& query, const database::tx_link& link) NOEXCEPT;
     bool pop(const query& query, const database::header_link& link) NOEXCEPT;
 

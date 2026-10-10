@@ -232,7 +232,7 @@ void chaser_estimate::do_organized(header_t link) NOEXCEPT
         if (height.value <= estimator_->top_height())
             return;
 
-        if (!estimator_->push(query))
+        if (!estimator_->push(query, link))
             fault(error::estimates_push2);
     }
 }
