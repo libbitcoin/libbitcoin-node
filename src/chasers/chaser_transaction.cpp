@@ -60,9 +60,13 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
     switch (to_chase(value))
     {
         case chase::organized:
-        case chase::reorganized:
         {
             POST(do_bump);
+            break;
+        }
+        case chase::reorganized:
+        {
+            POST(do_reorganized, to_payload<chase::reorganized>(value).link);
             break;
         }
         case chase::stop:
@@ -105,6 +109,49 @@ void chaser_transaction::do_bump() NOEXCEPT
     pool_ = chain_state{ *state, system_settings() }.context();
     query.set_pooling();
     pooling_ = true;
+}
+
+// Pooled in block order under the block context, excluding any confirmed (by
+// another block).
+void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    do_bump();
+    if (!pooling_)
+        return;
+
+    auto& query = archive();
+    chain::context ctx{};
+    const auto txs = query.to_transactions(link);
+    if (txs.empty() || !query.get_context(ctx, link))
+    {
+        fault(error::transaction7);
+        return;
+    }
+
+    // The coinbase is never pooled.
+    for (auto it = std::next(txs.cbegin()); it != txs.cend(); ++it)
+    {
+        const database::tx_link fk{ *it };
+        if (query.is_pooled(fk) || query.is_confirmed_tx(fk))
+            continue;
+
+        const auto tx = query.get_transaction(fk, true);
+        if (!tx || !query.populate_with_metadata(*tx))
+        {
+            fault(error::transaction7);
+            return;
+        }
+
+        // Block txs are already silent indexed.
+        if (!query.set_pooled(fk, *tx, ctx))
+        {
+            fault(error::transaction2);
+            return;
+        }
+
+        notify(error::success, chases::transaction{ fk });
+    }
 }
 
 // methods

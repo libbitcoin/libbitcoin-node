@@ -62,6 +62,9 @@ protected:
     /// Recompute the pool context, closing the pool if not current.
     virtual void do_bump() NOEXCEPT;
 
+    /// Pool the unpooled txs of a reorganized block.
+    virtual void do_reorganized(header_t link) NOEXCEPT;
+
 private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
 

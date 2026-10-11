@@ -111,6 +111,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { transaction4, "transaction4" },
     { transaction5, "transaction5" },
     { transaction6, "transaction6" },
+    { transaction7, "transaction7" },
     { estimates_initialize, "estimates_initialize" },
     { estimates_push1, "estimates_push1" },
     { estimates_push2, "estimates_push2" },
