@@ -91,7 +91,7 @@ bool estimator::initialize(const std::atomic_bool& cancel, const query& query,
     rate_sets blocks{};
     const auto start = top - sub1(count);
     return query.get_branch_fees(cancel, blocks, start, count) &&
-        query.get_pool_fees(pooled) && initialize(blocks, pooled, top);
+        query.get_confirmable_fees(pooled) && initialize(blocks, pooled, top);
 }
 
 bool estimator::push(const query& query) NOEXCEPT
@@ -99,9 +99,14 @@ bool estimator::push(const query& query) NOEXCEPT
     if (is_add_overflow(top_height(), one))
         return false;
 
-    rates block{};
+    rates block{}, conflicts{};
     const auto link = query.to_confirmed(add1(top_height()));
-    return query.get_block_fees(block, link) && push(block);
+    if (!query.get_block_fees(block, link) ||
+        !query.get_block_conflict_fees(conflicts, link) || !push(block))
+        return false;
+
+    conflict(conflicts, true);
+    return true;
 }
 
 bool estimator::pop(const query& query,
@@ -110,8 +115,13 @@ bool estimator::pop(const query& query,
     if (is_subtract_overflow(top_height(), one))
         return false;
 
-    rates block{};
-    return query.get_block_fees(block, link) && pop(block);
+    rates block{}, conflicts{};
+    if (!query.get_block_fees(block, link) ||
+        !query.get_block_conflict_fees(conflicts, link))
+        return false;
+
+    conflict(conflicts, false);
+    return pop(block);
 }
 
 bool estimator::pool(const query& query, const database::tx_link& link) NOEXCEPT
@@ -211,6 +221,17 @@ bool estimator::pool(const rate& tx) NOEXCEPT
         pend(bin, tx.height, true);
 
     return true;
+}
+
+// Txs conflicted by a block leave pending when it is pushed, reenter on pop.
+void estimator::conflict(const rates& txs, bool push) NOEXCEPT
+{
+    for (const auto& tx: txs)
+    {
+        size_t bin{};
+        if (tx.height != max_size_t && to_bin(bin, tx))
+            pend(bin, tx.height, !push);
+    }
 }
 
 uint64_t estimator::compute(size_t target, double confidence,

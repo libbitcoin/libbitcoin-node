@@ -47,6 +47,7 @@ struct acessor
     using estimator::push;
     using estimator::pop;
     using estimator::pool;
+    using estimator::conflict;
     using estimator::compute;
 };
 
@@ -503,6 +504,57 @@ BOOST_AUTO_TEST_CASE(estimator__pop__reverses_push__restores_buckets_and_pending
     BOOST_REQUIRE_EQUAL(large0.total, 0u);
     BOOST_REQUIRE_EQUAL(large0.confirmed[0], 0u);
     BOOST_REQUIRE_EQUAL(large0.confirmed[1007], 0u);
+}
+
+// conflict
+
+BOOST_AUTO_TEST_CASE(estimator__conflict__push__leaves_pending)
+{
+    const auto instance = acessor::create();
+    instance->history().top_height = 4u;
+    BOOST_REQUIRE(instance->pool({ bin0_bytes, bin0_fee, 2u }));
+    BOOST_REQUIRE(instance->pool({ bin0_bytes, bin0_fee, 2u }));
+
+    instance->conflict({ { bin0_bytes, bin0_fee, 2u } }, true);
+    BOOST_REQUIRE_EQUAL(instance->history().pending.at(2).at(0), 1u);
+    BOOST_REQUIRE_EQUAL(instance->history().small.at(0).total, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__conflict__pop__reenters_pending)
+{
+    const auto instance = acessor::create();
+    instance->history().top_height = 4u;
+    BOOST_REQUIRE(instance->pool({ bin0_bytes, bin0_fee, 2u }));
+
+    const acessor::rates conflicts{ { bin0_bytes, bin0_fee, 2u } };
+    instance->conflict(conflicts, true);
+    BOOST_REQUIRE_EQUAL(instance->history().pending.at(2).at(0), 0u);
+
+    instance->conflict(conflicts, false);
+    BOOST_REQUIRE_EQUAL(instance->history().pending.at(2).at(0), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__conflict__aged__leaves_aged)
+{
+    const auto instance = acessor::create();
+    constexpr auto large = acessor::horizon::large;
+    instance->history().top_height = large;
+    BOOST_REQUIRE(instance->pool({ bin0_bytes, bin0_fee, 1u }));
+    BOOST_REQUIRE(instance->pool({ bin0_bytes, bin0_fee, add1(large) }));
+    BOOST_REQUIRE_EQUAL(instance->history().aged.at(0), 1u);
+
+    instance->conflict({ { bin0_bytes, bin0_fee, 1u } }, true);
+    BOOST_REQUIRE_EQUAL(instance->history().aged.at(0), 0u);
+    BOOST_REQUIRE_EQUAL(instance->history().pending.at(1).at(0), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(estimator__conflict__unpooled__not_pending)
+{
+    const auto instance = acessor::create();
+    BOOST_REQUIRE(instance->pool({ bin0_bytes, bin0_fee, 2u }));
+
+    instance->conflict({ { bin0_bytes, bin0_fee, max_size_t } }, true);
+    BOOST_REQUIRE_EQUAL(instance->history().pending.at(2).at(0), 1u);
 }
 
 // compute

@@ -167,6 +167,7 @@ protected:
     bool push(const rates& block) NOEXCEPT;
     bool pop(const rates& block) NOEXCEPT;
     bool pool(const rate& tx) NOEXCEPT;
+    void conflict(const rates& txs, bool push) NOEXCEPT;
     uint64_t compute(size_t target, double confidence,
         bool geometric=false) const NOEXCEPT;
 
