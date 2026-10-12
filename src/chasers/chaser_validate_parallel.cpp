@@ -179,10 +179,8 @@ code chaser_validate::validate_silent(const header_link& link,
         return query.set_block_unconfirmable(link) ?
             code{ system::error::missing_previous_output } : error::validate4;
 
-    const auto committed = is_silent_capturing(link) &&
-        commit_silent_batch(link, block, ctx.height);
-
-    if (!committed && !query.set_silent(link, block))
+    if (is_silent_capturing(link) ? !commit_silent_batch(link, block) :
+        !query.set_silent(link, block))
         return error::validate9;
 
     return query.set_block_valid(link) ? error::success : error::validate10;
@@ -226,7 +224,10 @@ code chaser_validate::complete_pooled(const header_link& link,
             return ec;
     }
 
-    // Valid must be set after set_prevouts and set_filter_body.
+    // Pooled txs are scanned, and valid must be set after set_filter_body.
+    if (!query.set_block_scanned(link))
+        return error::validate9;
+
     return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
@@ -277,14 +278,9 @@ code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
         return error::validate8;
 
     // Banked records are set when the bank drains.
-    if (query.is_silent(link, ctx.height))
-    {
-        const auto committed = is_silent_capturing(link) &&
-            commit_silent_batch(link, block, ctx.height);
-
-        if (!committed && !query.set_silent(link, block))
-            return error::validate9;
-    }
+    if (query.is_silent(link, ctx.height) && (is_silent_capturing(link) ?
+        !commit_silent_batch(link, block) : !query.set_silent(link, block)))
+        return error::validate9;
 
     // Defer block state change when batched.
     // Valid must be set after set_prevouts and set_filter_body.
