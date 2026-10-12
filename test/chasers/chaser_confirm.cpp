@@ -173,15 +173,15 @@ static bool confirm_candidates(node::query& query)
         confirm_candidate(query, confirm_d2(), 2);
 }
 
-static bool confirm_unfiltered(node::query& query)
+static bool confirm_filtered(node::query& query, const chain::block& block)
 {
-    return confirm_candidate(query, confirm_d1(), 1) &&
-        query.set_block_valid(query.to_header(confirm_d1().hash()));
+    return query.set_filter_body(query.to_header(block.hash()), block);
 }
 
 static bool confirm_confirmable(node::query& query)
 {
     return confirm_candidate(query, confirm_d1(), 1) &&
+        confirm_filtered(query, confirm_d1()) &&
         query.set_block_confirmable(query.to_header(confirm_d1().hash()));
 }
 
@@ -189,6 +189,7 @@ static bool confirm_confirmables(node::query& query)
 {
     return confirm_confirmable(query) &&
         confirm_candidate(query, confirm_d2(), 2) &&
+        confirm_filtered(query, confirm_d2()) &&
         query.set_block_confirmable(query.to_header(confirm_d2().hash()));
 }
 
@@ -202,16 +203,6 @@ static bool confirm_headerless_confirmed(node::query& query)
         confirm_confirmables(query);
 }
 
-static bool confirm_headerless_candidate(node::query& query)
-{
-    const auto& genesis = confirm_genesis().header();
-    const database::context context{ 0, 1, genesis.timestamp() };
-    const auto work = genesis.proof() * 2u;
-    return query.set(confirm_d1().header(), context, work, false) &&
-        query.push_candidate(query.to_header(confirm_d1().hash())) &&
-        query.set_block_confirmable(query.to_header(confirm_d1().hash()));
-}
-
 static bool confirm_unheaded(node::query& query)
 {
     return confirm_confirmed(query, confirm_c1(), 1) &&
@@ -223,6 +214,7 @@ static bool confirm_unprevouted(node::query& query)
 {
     return confirm_confirmable(query) &&
         confirm_candidate(query, confirm_e2(), 2) &&
+        confirm_filtered(query, confirm_e2()) &&
         query.set_block_valid(query.to_header(confirm_e2().hash()));
 }
 
@@ -234,11 +226,6 @@ static bool confirm_c1_confirmed(node::query& query)
 static void confirm_uncheckpointed(configuration& config)
 {
     config.bitcoin.checkpoints.clear();
-}
-
-static bool is_valid_only(database::block_state state)
-{
-    return database::is_validated(state) && !database::is_confirmable(state);
 }
 
 struct confirm_setup_fixture
@@ -389,15 +376,6 @@ struct confirm_current_fixture
     }
 };
 
-struct confirm_unfiltered_fixture
-  : confirm_setup_fixture
-{
-    confirm_unfiltered_fixture()
-      : confirm_setup_fixture(confirm_unfiltered, confirm_uncheckpointed)
-    {
-    }
-};
-
 ////struct confirm_windowed_fixture
 ////  : confirm_setup_fixture
 ////{
@@ -457,15 +435,6 @@ struct confirm_headerless_confirmed_fixture
     }
 };
 
-struct confirm_headerless_candidate_fixture
-  : confirm_setup_fixture
-{
-    confirm_headerless_candidate_fixture()
-      : confirm_setup_fixture(confirm_headerless_candidate, confirm_uncheckpointed)
-    {
-    }
-};
-
 struct confirm_unheaded_fixture
   : confirm_setup_fixture
 {
@@ -521,13 +490,6 @@ BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__current_candidates__organized, co
     BOOST_REQUIRE(stated(confirm_d2(), database::is_confirmable));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__valid_candidate_without_filter_body__suspended, confirm_unfiltered_fixture)
-{
-    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
-    BOOST_REQUIRE(stated(confirm_d1(), is_valid_only));
-    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
-}
-
 ////BOOST_FIXTURE_TEST_CASE(chaser_confirm__bump__recent_confirmable_candidate__organized_stale, confirm_windowed_fixture)
 ////{
 ////    const auto block = confirm_recent();
@@ -550,6 +512,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_confirm__bump__unstored_confirmed_top__suspended,
 {
     BOOST_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
     BOOST_REQUIRE(confirm_candidate(query_, confirm_d1(), 1));
+    BOOST_REQUIRE(confirm_filtered(query_, confirm_d1()));
     BOOST_REQUIRE(query_.set_block_valid(link(confirm_d1())));
     node_.notify(node::error::success, chases::bump{ 0 });
     BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
@@ -563,12 +526,6 @@ BOOST_FIXTURE_TEST_CASE(chaser_confirm__bump__unstored_confirmed_top__suspended,
 ////    BOOST_REQUIRE(confirmed(confirm_c1(), 1));
 ////    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), 1u);
 ////}
-
-BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__headerless_confirmable_candidate__suspended, confirm_headerless_candidate_fixture)
-{
-    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
-    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
-}
 
 BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__bypassed_candidate_unheaded_parent__suspended, confirm_unheaded_fixture)
 {

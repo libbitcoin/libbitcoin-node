@@ -48,19 +48,6 @@ code chaser_validate::start_batch() NOEXCEPT
             is_zero(query.schnorr_records(bank)))
             continue;
 
-        // Prevalid is not a validation state, so dropped blocks validate in
-        // place.
-        if (!verify_enabled_)
-        {
-            LOGN("Dropping staged batch rows ("
-                << query.prevalid_records(bank) << ").");
-
-            if (const auto ec = purge_batch(bank))
-                return ec;
-
-            continue;
-        }
-
         if (const auto ec = do_process_batch(bank, true))
             return ec;
     }
@@ -292,8 +279,24 @@ bool chaser_validate::is_silent_capturing(const header_link& link) NOEXCEPT
 
 bool chaser_validate::is_silent_mature(bool residual) NOEXCEPT
 {
-    const auto rows = archive().silent_records(silent_bank_.load());
-    return is_nonzero(rows) && (residual || rows >= silent_target_);
+    const auto& query = archive();
+    const auto bank = silent_bank_.load();
+    const auto rows = query.silent_records(bank);
+
+    // Nothing to compute and no links to release.
+    if (is_zero(rows) && is_zero(query.presilent_records(bank)))
+        return false;
+
+    // Compute residuals whenever, and non-residuals when mature.
+    return residual || (rows >= silent_target_);
+}
+
+// No block is banked while both banks are empty.
+bool chaser_validate::is_silent_empty() const NOEXCEPT
+{
+    const auto& query = archive();
+    return is_zero(query.presilent_records(false)) &&
+        is_zero(query.presilent_records(true));
 }
 
 std::string chaser_validate::log_rate(const std::string& name,
@@ -308,13 +311,13 @@ std::string chaser_validate::log_rate(const std::string& name,
 // ----------------------------------------------------------------------------
 // protected
 
-// Silent batch is not validation state, so it drains whether or not batching
-// is enabled.
 code chaser_validate::start_silent_batch() NOEXCEPT
 {
+    auto& query = archive();
     for (const auto bank: { false, true })
     {
-        if (is_zero(archive().silent_records(bank)))
+        if (is_zero(query.presilent_records(bank)) &&
+            is_zero(query.silent_records(bank)))
             continue;
 
         if (const auto ec = do_process_silent_batch(bank))
@@ -396,61 +399,53 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
     if (ec)
         return error::batch7;
 
-    const auto elapsed = network::logger::now() - start;
-    LOGN(log_rate("Compute silent...", rows,
-        duration_cast<milliseconds>(elapsed).count(), device));
+    if (is_nonzero(rows))
+    {
+        const auto elapsed = network::logger::now() - start;
+        fire(events::silent_secs, duration_cast<seconds>(elapsed).count());
+        LOGN(log_rate("Compute silent...", rows,
+            duration_cast<milliseconds>(elapsed).count(), device));
+    }
 
-    if (!query.purge_silents(bank))
+    // Purge presilents before silents.
+    if (!query.purge_presilents(bank) || !query.purge_silents(bank))
         return error::batch8;
 
     // Blocks of the bank may now be confirmable.
-    silent_heights_.at(to_int<size_t>(bank)).store(max_size_t);
     notify(error::success, chases::bump{});
     return error::success;
 }
 
-// The bank height is lowered before exit, so that its drain observes it.
+// Upon store decline the records are set directly, within the commit epoch,
+// so that a drain of the bank cannot precede them.
 template <typename Block>
 bool chaser_validate::commit_silent_(const header_link& link,
-    const Block& block, size_t height) NOEXCEPT
+    const Block& block) NOEXCEPT
 {
     size_t rows{};
+    auto& query = archive();
     const auto bank = enter_silent_capture();
-    const auto committed = archive().set_silents(rows, link, block, bank);
-    if (committed && is_nonzero(rows))
-    {
-        auto& lowest = silent_heights_.at(to_int<size_t>(bank));
-        auto current = lowest.load();
-        while (height < current)
-            if (lowest.compare_exchange_weak(current, height))
-                break;
-    }
-
-    exit_silent_capture(bank);
+    const auto committed = query.set_silents(rows, link, block, bank);
 
     // Store decline (e.g. disk full), recoverable once faulted.
     if (!committed)
         fault(error::batch6);
 
-    return committed;
+    const auto written = committed || query.set_silent(link, block);
+    exit_silent_capture(bank);
+    return written;
 }
 
 bool chaser_validate::commit_silent_batch(const header_link& link,
-    const chain::block& block, size_t height) NOEXCEPT
+    const chain::block& block) NOEXCEPT
 {
-    return commit_silent_(link, block, height);
+    return commit_silent_(link, block);
 }
 
 bool chaser_validate::commit_silent_batch(const header_link& link,
-    const chain::view::block& block, size_t height) NOEXCEPT
+    const chain::view::block& block) NOEXCEPT
 {
-    return commit_silent_(link, block, height);
-}
-
-size_t chaser_validate::silent_limit() const NOEXCEPT
-{
-    return std::min(silent_heights_.front().load(),
-        silent_heights_.back().load());
+    return commit_silent_(link, block);
 }
 
 // A writer admitted to a bank that is then switched retries on the other, so

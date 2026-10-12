@@ -37,6 +37,8 @@ public:
     chaser_transaction(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
+    void stop() NOEXCEPT override;
 
     /// Validate and archive a submitted package, accepted as a whole.
     /// The package is only validated when test, so nothing is archived.
@@ -59,11 +61,20 @@ protected:
         const database::tx_links& links, const database::header_link& link,
         const submit_handler& handler) NOEXCEPT;
 
-    /// Recompute the pool context, closing the pool if not current.
+    /// Recompute the pool context, closing the pool if not current, and map
+    /// scan starts: built once current, extended by block until pooling, and
+    /// remapped when a block archived before the latch is organized.
     virtual void do_bump() NOEXCEPT;
 
     /// Pool the unpooled txs of a reorganized block.
     virtual void do_reorganized(header_t link) NOEXCEPT;
+
+    /// Map scan starts from the confirmed top (scan threadpool).
+    virtual void do_scan(const database::header_link& top, size_t bound,
+        bool remap) NOEXCEPT;
+
+    /// Complete the scan start map.
+    virtual void do_scanned(bool mapped) NOEXCEPT;
 
 private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
@@ -79,10 +90,16 @@ private:
         const system::chain::context& ctx) NOEXCEPT;
     code unconfirmable(const database::header_link& link, size_t height,
         const code& ec) NOEXCEPT;
+    void start_scan(bool remap) NOEXCEPT;
+
+    // These are thread safe.
+    network::threadpool scan_threadpool_;
+    stopper stopping_{};
 
     // These are protected by strand.
     system::chain::context pool_{};
     bool pooling_{};
+    bool scanning_{};
 };
 
 } // namespace node
