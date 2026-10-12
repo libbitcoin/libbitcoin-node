@@ -72,12 +72,6 @@ code chaser_validate::start() NOEXCEPT
     if (const auto ec = start_silent_batch())
         return fault(ec);
 
-    if (const auto ec = start_silent_rescan())
-        return fault(ec);
-
-    if (const auto ec = start_silent_batch())
-        return fault(ec);
-
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
@@ -229,8 +223,26 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             return;
 
         const auto bypass = database::is_bypass(state);
-        if (database::is_validated(state) ||
-            (bypass && !filter_ && !query.is_silent(link, height)))
+        if (database::is_validated(state))
+        {
+            if (database::is_scanned(state))
+            {
+                complete_block(error::success, link, height, true);
+            }
+            else if (!is_silent_empty())
+            {
+                // Banked, scanned by the drain of its bank (which bumps).
+                process_silent_batch(true);
+                return;
+            }
+            else
+            {
+                // Its bank was dropped by restore.
+                ++validate_backlog_;
+                post_scan(link, bypass);
+            }
+        }
+        else if (bypass && !filter_ && !query.is_silent(link, height))
         {
             complete_block(error::success, link, height, true);
         }
@@ -251,6 +263,13 @@ void chaser_validate::post_block(const header_link& link,
 {
     BC_ASSERT(stranded());
     PARALLEL(validate_block, link, bypass);
+}
+
+void chaser_validate::post_scan(const header_link& link,
+    bool bypass) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    PARALLEL(scan_block, link, bypass);
 }
 
 // May be either concurrent or stranded.

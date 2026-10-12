@@ -155,6 +155,22 @@ static bool validate_store(node::query& query, const chain::block& block,
     return query.set(block, context, work, false, false);
 }
 
+static bool validate_silent_store(node::query& query,
+    const chain::block& block, uint32_t height)
+{
+    const auto& genesis = validate_genesis().header();
+    const database::context context{ chain::flags::bip341_rule, height, genesis.timestamp() };
+    const auto work = genesis.proof() * add1(height);
+    return query.set(block, context, work, false, false);
+}
+
+static bool validate_unscanned(node::query& query)
+{
+    return validate_silent_store(query, validate_a1(), 1) &&
+        query.push_candidate(query.to_header(validate_a1().hash())) &&
+        query.set_block_valid(query.to_header(validate_a1().hash()));
+}
+
 static bool validate_candidate(node::query& query, const chain::block& block,
     uint32_t height)
 {
@@ -339,6 +355,19 @@ struct validate_current_fixture
         {
             config.bitcoin.checkpoints.clear();
             config.node.currency_window_minutes = 0;
+            config.node.silent_start_height = 0;
+        })
+    {
+    }
+};
+
+struct validate_unscanned_fixture
+  : validate_setup_fixture
+{
+    validate_unscanned_fixture()
+      : validate_setup_fixture(validate_unscanned, [](configuration& config)
+        {
+            config.bitcoin.checkpoints.clear();
             config.node.silent_start_height = 0;
         })
     {
@@ -568,16 +597,23 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__start__maximum_height__confirmable, val
     BOOST_REQUIRE(stated(validate_a1(), database::is_confirmable));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_prevalid__validated_iff_accelerated, validate_staged_fixture)
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_prevalid__validated, validate_staged_fixture)
 {
     BOOST_REQUIRE_EQUAL(query_.prevalid0_records(), zero);
-    BOOST_REQUIRE_EQUAL(is_valid_only(state(validate_x1())), system::batched::accelerated());
+    BOOST_REQUIRE(is_valid_only(state(validate_x1())));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_second_bank__validated_iff_accelerated, validate_staged_second_fixture)
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__staged_second_bank__validated, validate_staged_second_fixture)
 {
     BOOST_REQUIRE_EQUAL(query_.prevalid_records(true), zero);
-    BOOST_REQUIRE_EQUAL(is_valid_only(state(validate_x1())), system::batched::accelerated());
+    BOOST_REQUIRE(is_valid_only(state(validate_x1())));
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__start__validated_unscanned__scanned, validate_unscanned_fixture)
+{
+    BOOST_REQUIRE(stated(validate_a1(), database::is_scanned));
+    BOOST_REQUIRE_EQUAL(query_.presilent_records(false), zero);
+    BOOST_REQUIRE_EQUAL(query_.presilent_records(true), zero);
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__process_batch__residual_commit_during_drain__drained, validate_noncandidates_fixture)

@@ -64,14 +64,15 @@ protected:
 
     /// Validation.
     virtual void post_block(const header_link& link, bool bypass) NOEXCEPT;
+    virtual void post_scan(const header_link& link, bool bypass) NOEXCEPT;
     virtual void validate_block(const header_link& link, bool bypass) NOEXCEPT;
+    virtual void scan_block(const header_link& link, bool bypass) NOEXCEPT;
     virtual code validate(bool& batched, bool& capturing, bool bypass,
         const system::chain::block& block, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
-    virtual code validate_silent(const header_link& link,
-        const system::chain::context& ctx) NOEXCEPT;
+    virtual code validate_silent(const header_link& link, bool bank) NOEXCEPT;
     virtual code validate_pooled(bool& pooled, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code complete_pooled(const header_link& link,
@@ -102,7 +103,6 @@ protected:
     /// Banked and drained independently of signatures, and computed in the
     /// drain, after which their blocks can be confirmed if also valid.
     virtual code start_silent_batch() NOEXCEPT;
-    virtual code start_silent_rescan() NOEXCEPT;
     virtual void process_silent_batch(bool residual) NOEXCEPT;
     virtual code do_process_silent_batch(bool bank) NOEXCEPT;
     virtual bool commit_silent_batch(const header_link& link,
@@ -153,6 +153,7 @@ private:
     bool is_mature(bool residual) NOEXCEPT;
     bool is_silent_capturing(const header_link& link) NOEXCEPT;
     bool is_silent_mature(bool residual) NOEXCEPT;
+    bool is_silent_empty() const NOEXCEPT;
     std::string log_rate(const std::string& name, size_t signatures,
         size_t milliseconds, bool device) const NOEXCEPT;
 

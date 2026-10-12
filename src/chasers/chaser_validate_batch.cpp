@@ -291,6 +291,14 @@ bool chaser_validate::is_silent_mature(bool residual) NOEXCEPT
     return residual || (rows >= silent_target_);
 }
 
+// No block is banked while both banks are empty.
+bool chaser_validate::is_silent_empty() const NOEXCEPT
+{
+    const auto& query = archive();
+    return is_zero(query.presilent_records(false)) &&
+        is_zero(query.presilent_records(true));
+}
+
 std::string chaser_validate::log_rate(const std::string& name,
     size_t signatures, size_t milliseconds, bool device) const NOEXCEPT
 {
@@ -372,32 +380,6 @@ void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
     }
 
     silent_draining_.store(false);
-}
-
-// Blocks validated in silent banks dropped by restore are not scanned, and
-// are rescanned into the bank, which is then drained.
-code chaser_validate::start_silent_rescan() NOEXCEPT
-{
-    const auto& query = archive();
-    for (auto height = add1(position()); !closed(); ++height)
-    {
-        const auto link = query.to_candidate(height);
-        const auto state = query.get_block_state(link);
-        if (!database::is_associated(state))
-            break;
-
-        if (!database::is_validated(state) || database::is_scanned(state))
-            continue;
-
-        chain::context ctx{};
-        if (!query.get_context(ctx, link))
-            return error::validate3;
-
-        if (const auto ec = validate_silent(link, ctx))
-            return ec;
-    }
-
-    return error::success;
 }
 
 // Guarded by the drain claim (or single-threaded at startup).

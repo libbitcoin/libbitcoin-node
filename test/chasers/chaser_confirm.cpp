@@ -228,11 +228,6 @@ static void confirm_uncheckpointed(configuration& config)
     config.bitcoin.checkpoints.clear();
 }
 
-static bool is_valid_only(database::block_state state)
-{
-    return database::is_validated(state) && !database::is_confirmable(state);
-}
-
 struct confirm_setup_fixture
 {
     DELETE_COPY_MOVE(confirm_setup_fixture);
