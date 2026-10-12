@@ -549,6 +549,10 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pool
     node_.notify(node::error::success, chases::reorganized{ link });
     BOOST_REQUIRE(pooled(stored));
     BOOST_REQUIRE(!query_.is_pooled(query_.to_tx(coinbase.hash(false))));
+
+    database::table::pool::record record{};
+    BOOST_REQUIRE(store_.pool.get(store_.pool.first(stored), record));
+    BOOST_REQUIRE_EQUAL(record.time, header.timestamp());
 }
 
 // submit_compact

@@ -144,7 +144,7 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         }
 
         // Block txs are already silent indexed.
-        if (!query.set_pooled(fk, *tx, ctx))
+        if (!query.set_pooled(fk, *tx, ctx, ctx.timestamp))
         {
             fault(error::transaction2);
             return;
@@ -216,6 +216,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     }
 
     // Parents precede children, so a parent is archived before it is resolved.
+    const auto time = network::unix_time();
     for (index = zero; index < txs->size(); ++index)
     {
         if (stored.at(index))
@@ -234,7 +235,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
         if (!pooled)
         {
-            if (!query.set_pooled(link, tx, pool_))
+            if (!query.set_pooled(link, tx, pool_, time))
             {
                 handler(fault(error::transaction2), index);
                 return;
@@ -368,7 +369,7 @@ code chaser_transaction::fill(database::tx_link& out,
         if (const auto ec = validate(tx, ctx))
             return ec;
 
-        if (!query.set_pooled(out, tx, ctx))
+        if (!query.set_pooled(out, tx, ctx, ctx.timestamp))
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
@@ -391,7 +392,7 @@ code chaser_transaction::fill(database::tx_link& out,
     const auto coinbase = tx.is_coinbase();
     if (!pooled && !coinbase)
     {
-        if (!query.set_pooled(out, tx, ctx))
+        if (!query.set_pooled(out, tx, ctx, ctx.timestamp))
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
