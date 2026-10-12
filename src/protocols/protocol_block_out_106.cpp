@@ -248,7 +248,7 @@ bool protocol_block_out_106::is_servable(const hash_digest& LOG_ONLY(hash),
     }
 
     const auto& query = archive();
-    if (node_pruned_ && (is_under_checkpoint(link) || query.is_milestone(link)))
+    if (node_pruned_ && query.is_bypass(link))
     {
         LOGV("Requested pruned block " << encode_hash(hash)
             << " from [" << opposite() << "].");
@@ -303,19 +303,6 @@ protocol_block_out_106::inventory protocol_block_out_106::create_inventory(
         archive().get_blocks(locator.start_hashes, locator.stop_hash,
             network::messages::peer::max_get_blocks), type_id::block
     );
-}
-
-bool protocol_block_out_106::is_under_checkpoint(
-    const database::header_link& link) NOEXCEPT
-{
-    const auto height = archive().get_height(link);
-    if (height.is_terminal())
-    {
-        fault(database::error::integrity);
-        return false;
-    }
-
-    return height <= top_checkpoint_height_;
 }
 
 BC_POP_WARNING()

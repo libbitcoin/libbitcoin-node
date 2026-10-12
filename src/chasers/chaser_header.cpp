@@ -566,18 +566,11 @@ code chaser_header::duplicate(size_t& height,
     const auto id = query.to_header(hash);
     if (!id.is_terminal())
     {
-        // database::error::block_unconfirmable
-        // database::error::block_confirmable
-        // database::error::block_valid
-        // database::error::unknown_state (debugging)
-        // database::error::unvalidated
-        const auto ec = query.get_header_state(id);
-
         // All header states are duplicates, one implies fail.
-        if (ec == database::error::block_unconfirmable)
+        if (query.is_unconfirmable(id))
         {
             height = query.get_height(id);
-            return ec;
+            return database::error::block_unconfirmable;
         }
 
         // height set to max_size_t unless unconfirmable.

@@ -161,8 +161,7 @@ void chaser_confirm::do_bumped(height_t) NOEXCEPT
     // Guarded by candidate interlock.
     size_t fork_point{};
     const auto& query = archive();
-    auto fork = query.get_validated_fork(fork_point, checkpoint(),
-        silent_limit());
+    auto fork = query.get_validated_fork(fork_point, silent_limit());
 
     // Fork may be empty if candidates were reorganized.
     if (fork.empty())
@@ -246,51 +245,40 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
     auto height = add1(fork_point);
 
     // Continue when suspended as write error terminates synchronous loop.
-    for (const auto& state: fork)
+    for (const auto& item: fork)
     {
         if (closed())
             return;
 
-        switch (state.ec.value())
+        if (database::is_bypass(item.state))
         {
-            case database::error::bypassed:
+            if (!query.set_filter_head(item.link))
             {
-                if (!query.set_filter_head(state.link))
-                {
-                    fault(error::confirm6);
-                    return;
-                }
-
-                complete_block(error::success, state.link, height, true);
-                break;
-            }
-            case database::error::block_valid:
-            {
-                // False always sets a store fault (including for disk full).
-                if (!confirm_block(state.link, height, popped, fork_point))
-                    return;
-
-                break;
-            }
-            case database::error::block_confirmable:
-            {
-                // Previously confirmable is not considered bypass.
-                complete_block(error::success, state.link, height, false);
-                break;
-            }
-            // error::unassociated
-            // error::unknown_state
-            // error::block_prevalid
-            // error::block_unconfirmable
-            default:
-            {
-                fault(error::confirm7);
+                fault(error::confirm6);
                 return;
             }
+
+            complete_block(error::success, item.link, height, true);
+        }
+        else if (database::is_confirmable(item.state))
+        {
+            // Previously confirmable is not considered bypass.
+            complete_block(error::success, item.link, height, false);
+        }
+        else if (database::is_validated(item.state))
+        {
+            // False always sets a store fault (including for disk full).
+            if (!confirm_block(item.link, height, popped, fork_point))
+                return;
+        }
+        else
+        {
+            fault(error::confirm7);
+            return;
         }
 
         // After set_block_confirmable.
-        if (!set_organized(state.link, height++))
+        if (!set_organized(item.link, height++))
         {
             fault(error::confirm8);
             return;

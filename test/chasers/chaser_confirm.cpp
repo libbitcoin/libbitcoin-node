@@ -236,6 +236,11 @@ static void confirm_uncheckpointed(configuration& config)
     config.bitcoin.checkpoints.clear();
 }
 
+static bool is_valid_only(database::block_state state)
+{
+    return database::is_validated(state) && !database::is_confirmable(state);
+}
+
 struct confirm_setup_fixture
 {
     DELETE_COPY_MOVE(confirm_setup_fixture);
@@ -325,11 +330,12 @@ struct confirm_setup_fixture
         });
     }
 
-    bool stated(const chain::block& block, const code& expected)
+    bool stated(const chain::block& block,
+        bool(*expected)(database::block_state))
     {
         return await([&]()
         {
-            return query_.get_block_state(link(block)) == expected;
+            return expected(query_.get_block_state(link(block)));
         });
     }
 };
@@ -484,27 +490,27 @@ BOOST_AUTO_TEST_SUITE(chaser_confirm_tests)
 ////{
 ////    BOOST_REQUIRE(confirmed(confirm_d2(), 2));
 ////    BOOST_REQUIRE(confirmed(confirm_d1(), 1));
-////    BOOST_REQUIRE(stated(confirm_d2(), database::error::block_confirmable));
+////    BOOST_REQUIRE(stated(confirm_d2(), database::is_confirmable));
 ////    BOOST_REQUIRE(!query_.is_confirmed_block(link(confirm_c1())));
 ////}
 
 ////BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__weaker_candidate_fork__not_reorganized, confirm_weaker_fixture)
 ////{
-////    BOOST_REQUIRE(stated(confirm_d1(), database::error::block_valid));
+////    BOOST_REQUIRE(stated(confirm_d1(), is_valid_only));
 ////    BOOST_REQUIRE(confirmed(confirm_c2(), 2));
 ////    BOOST_REQUIRE(confirmed(confirm_c1(), 1));
 ////}
 
 ////BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend__unconfirmable, confirm_immature_fixture)
 ////{
-////    BOOST_REQUIRE(stated(confirm_e2(), database::error::block_unconfirmable));
+////    BOOST_REQUIRE(stated(confirm_e2(), database::is_unconfirmable));
 ////    BOOST_REQUIRE(confirmed(confirm_d1(), 1));
 ////    BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), 1u);
 ////}
 
 ////BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend_fork__unconfirmable, confirm_immature_fork_fixture)
 ////{
-////    BOOST_REQUIRE(stated(confirm_e2(), database::error::block_unconfirmable));
+////    BOOST_REQUIRE(stated(confirm_e2(), database::is_unconfirmable));
 ////    BOOST_REQUIRE(await([&]() { return query_.get_top_confirmed() == 1u; }));
 ////    BOOST_REQUIRE(!query_.is_confirmed_block(link(confirm_e2())));
 ////}
@@ -512,13 +518,13 @@ BOOST_AUTO_TEST_SUITE(chaser_confirm_tests)
 BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__current_candidates__organized, confirm_current_fixture)
 {
     BOOST_REQUIRE(confirmed(confirm_d2(), 2));
-    BOOST_REQUIRE(stated(confirm_d2(), database::error::block_confirmable));
+    BOOST_REQUIRE(stated(confirm_d2(), database::is_confirmable));
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__valid_candidate_without_filter_body__suspended, confirm_unfiltered_fixture)
 {
     BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
-    BOOST_REQUIRE(stated(confirm_d1(), database::error::block_valid));
+    BOOST_REQUIRE(stated(confirm_d1(), is_valid_only));
     BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
 }
 
@@ -574,7 +580,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__bypassed_candidate_unheaded_paren
 ////BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__valid_candidate_without_prevouts__suspended_unconfirmable, confirm_unprevouted_fixture)
 ////{
 ////    BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
-////    BOOST_REQUIRE(stated(confirm_e2(), database::error::block_unconfirmable));
+////    BOOST_REQUIRE(stated(confirm_e2(), database::is_unconfirmable));
 ////    BOOST_REQUIRE(await([&]() { return query_.get_top_confirmed() == zero; }));
 ////}
 
