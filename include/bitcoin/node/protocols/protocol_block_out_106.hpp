@@ -35,8 +35,6 @@ public:
     protocol_block_out_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
-        top_checkpoint_height_(
-            session->system_settings().top_checkpoint().height()),
         node_pruned_(session->node_settings().limited_blocks),
         node_witness_(session->node_settings().provide_witness),
        network::tracker<protocol_block_out_106>(session->log)
@@ -85,11 +83,9 @@ protected:
 private:
     using inventory = network::messages::peer::inventory;
 
-    bool is_under_checkpoint(const database::header_link& link) NOEXCEPT;
     inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
 
     // These are thread safe.
-    const size_t top_checkpoint_height_;
     const bool node_pruned_;
     const bool node_witness_;
 };

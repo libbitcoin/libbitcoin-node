@@ -208,53 +208,30 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     while ((validate_backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
         const auto link = query.to_candidate(height);
-        const auto ec = query.get_block_state(link);
+        const auto state = query.get_block_state(link);
 
         // Must exit on unassociated so they are not set valid in bypass.
         // Given height-based iteration, any block state may be enountered.
-        if (ec == database::error::unassociated)
+        if (!database::is_associated(state))
             return;
 
         // The last job requiring validation has been posted.
         if (height == maximum_height_)
             maximum_posted_ = true;
 
-        const auto bypass = is_under_checkpoint(height) ||
-            query.is_milestone(link);
-        const auto silent = query.is_silent(link, height);
+        if (database::is_unconfirmable(state))
+            return;
 
-        switch (ec.value())
+        const auto bypass = database::is_bypass(state);
+        if (database::is_validated(state) ||
+            (bypass && !filter_ && !query.is_silent(link, height)))
         {
-            case database::error::unvalidated:
-            case database::error::unknown_state:
-            {
-                if (bypass && !filter_ && !silent)
-                {
-                    complete_block(error::success, link, height, true);
-                }
-                else
-                {
-                    ++validate_backlog_;
-                    post_block(link, bypass);
-                }
-                break;
-            }
-            case database::error::block_valid:
-            case database::error::block_confirmable:
-            {
-                complete_block(error::success, link, height, true);
-                break;
-            }
-            case database::error::block_unconfirmable:
-            {
-                return;
-            }
-            ////case database::error::unassociated
-            default:
-            {
-                fault(error::validate1);
-                return;
-            }
+            complete_block(error::success, link, height, true);
+        }
+        else
+        {
+            ++validate_backlog_;
+            post_block(link, bypass);
         }
 
         // All posted validations must complete or this is invalid.
