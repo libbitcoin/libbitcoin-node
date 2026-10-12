@@ -35,7 +35,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
-  : chaser(node)
+  : chaser(node),
+    scan_threadpool_(one, node.node_settings().thread_priority_())
 {
 }
 
@@ -47,6 +48,22 @@ code chaser_transaction::start() NOEXCEPT
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
     POST(do_bump);
     return error::success;
+}
+
+void chaser_transaction::stopping(const code& ec) NOEXCEPT
+{
+    stopping_.store(true);
+    scan_threadpool_.stop();
+    chaser::stopping(ec);
+}
+
+void chaser_transaction::stop() NOEXCEPT
+{
+    if (!scan_threadpool_.join())
+    {
+        BC_ASSERT_MSG(false, "failed to join threadpool");
+        std::abort();
+    }
 }
 
 // event handlers
@@ -89,26 +106,79 @@ void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
     pooling_ = false;
-
-    // Pooling is a permanent store property, so it requires relay.
-    if (closed() || !network_settings().enable_relay || !is_current_chain(true))
+    if (closed() || !is_current_chain(true))
         return;
 
+    // Pooling is a permanent store property, so it requires relay.
     auto& query = archive();
-    const auto top = query.get_top_confirmed();
-    const auto state = query.get_confirmed_chain_state(system_settings(),
-        query.to_confirmed(top), top);
-
-    if (!state)
+    if (network_settings().enable_relay)
     {
-        fault(error::transaction1);
+        const auto top = query.get_top_confirmed();
+        const auto state = query.get_confirmed_chain_state(system_settings(),
+            query.to_confirmed(top), top);
+
+        if (!state)
+        {
+            fault(error::transaction1);
+            return;
+        }
+
+        // The context of the next block, in which a pool tx would confirm.
+        pool_ = chain_state{ *state, system_settings() }.context();
+        query.set_pooling();
+        pooling_ = true;
+    }
+
+    // Scan starts are mapped after the latch, as pooled rows are unordered.
+    if (!query.silent_enabled() || scanning_)
+        return;
+
+    // A complete map reaches genesis, and keeps up with the top until latched.
+    // Rows of a block archived before the latch may precede mapped starts.
+    const auto top = query.to_confirmed(query.get_top_confirmed());
+    const auto unmapped = query.get_scan_start(top).is_terminal();
+    if (query.get_scan_start(query.to_confirmed(zero)).is_terminal())
+        start_scan(true);
+    else if (unmapped && !query.is_pooling())
+        start_scan(false);
+    else if (unmapped && query.to_coinbase(top) < query.get_latch_tx())
+        start_scan(true);
+}
+
+void chaser_transaction::start_scan(bool remap) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    scanning_ = true;
+
+    const auto& query = archive();
+    const auto bound = query.is_pooling() ? query.get_scan_frontier() :
+        max_size_t;
+    const auto top = query.to_confirmed(query.get_top_confirmed());
+    boost::asio::post(scan_threadpool_.service(),
+        BIND(do_scan, top, bound, remap));
+}
+
+void chaser_transaction::do_scan(const database::header_link& top,
+    size_t bound, bool remap) NOEXCEPT
+{
+    POST(do_scanned, archive().set_scan_starts(stopping_, top, bound, remap));
+}
+
+// Blocks organized during the map are mapped by the bump that follows.
+void chaser_transaction::do_scanned(bool mapped) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    scanning_ = false;
+    if (closed())
+        return;
+
+    if (!mapped)
+    {
+        fault(error::transaction8);
         return;
     }
 
-    // The context of the next block, in which a pool tx would confirm.
-    pool_ = chain_state{ *state, system_settings() }.context();
-    query.set_pooling();
-    pooling_ = true;
+    do_bump();
 }
 
 // Pooled in block order under the block context, excluding any confirmed (by
