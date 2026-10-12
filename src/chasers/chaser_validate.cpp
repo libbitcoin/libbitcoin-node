@@ -75,6 +75,9 @@ code chaser_validate::start() NOEXCEPT
     if (const auto ec = start_silent_rescan())
         return fault(ec);
 
+    if (const auto ec = start_silent_batch())
+        return fault(ec);
+
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }

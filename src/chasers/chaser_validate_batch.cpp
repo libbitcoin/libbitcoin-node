@@ -374,7 +374,8 @@ void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
     silent_draining_.store(false);
 }
 
-// Blocks validated in silent banks dropped by restore are not scanned.
+// Blocks validated in silent banks dropped by restore are not scanned, and
+// are rescanned into the bank, which is then drained.
 code chaser_validate::start_silent_rescan() NOEXCEPT
 {
     const auto& query = archive();
@@ -416,9 +417,12 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
     if (ec)
         return error::batch7;
 
-    const auto elapsed = network::logger::now() - start;
-    LOGN(log_rate("Compute silent...", rows,
-        duration_cast<milliseconds>(elapsed).count(), device));
+    if (is_nonzero(rows))
+    {
+        const auto elapsed = network::logger::now() - start;
+        LOGN(log_rate("Compute silent...", rows,
+            duration_cast<milliseconds>(elapsed).count(), device));
+    }
 
     // Purge presilents before silents.
     if (!query.purge_presilents(bank) || !query.purge_silents(bank))
