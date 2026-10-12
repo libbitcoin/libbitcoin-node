@@ -188,6 +188,21 @@ struct chaser_transaction_setup_fixture
         return false;
     }
 
+    bool pooled(const database::tx_link& link)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (query_.is_pooled(link))
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+
     // True if the command is received before the pong of a subsequent ping.
     bool received_before_pong(const std::string& command)
     {
@@ -508,6 +523,32 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__su
     node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
     BOOST_REQUIRE(suspended());
     BOOST_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::pooling_disabled);
+}
+
+// do_reorganized
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pooled, chaser_transaction_pooling_setup_fixture)
+{
+    const system::settings bitcoin{ chain::selection::mainnet };
+    const auto& genesis = bitcoin.genesis_block;
+    const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
+    const chain::transaction coinbase{ 1u, chain::inputs{ null }, chain::outputs{ { 42u, chain::script{} } }, 0u };
+    const auto tx = spend(parent_value);
+    const chain::header header{ 1u, genesis.hash(), null_hash, genesis.header().timestamp() + 1u, genesis.header().bits(), 0u };
+    const chain::block block{ header, { coinbase, *tx } };
+    BOOST_REQUIRE(query_.set(block, database::context{ 0, 1, 0 }, {}, false, true));
+
+    const auto link = query_.to_header(block.hash());
+    BOOST_REQUIRE(query_.push_candidate(link));
+    BOOST_REQUIRE(query_.push_confirmed(link, true));
+    BOOST_REQUIRE(query_.pop_confirmed());
+
+    const auto stored = query_.to_tx(tx->hash(false));
+    BOOST_REQUIRE(!query_.is_pooled(stored));
+
+    node_.notify(node::error::success, chases::reorganized{ link });
+    BOOST_REQUIRE(pooled(stored));
+    BOOST_REQUIRE(!query_.is_pooled(query_.to_tx(coinbase.hash(false))));
 }
 
 // submit_compact

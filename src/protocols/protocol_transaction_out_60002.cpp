@@ -78,7 +78,6 @@ bool protocol_transaction_out_60002::handle_receive_memory_pool(
 // Outbound (inv).
 // ----------------------------------------------------------------------------
 
-// Each inventory is sent upon completion of the previous.
 void protocol_transaction_out_60002::send_memory_pool(const code& ec,
     const database::pool_link& cursor, const database::pool_link& end,
     const gate_t::ptr& gate) NOEXCEPT
@@ -94,7 +93,8 @@ void protocol_transaction_out_60002::send_memory_pool(const code& ec,
     while (items.size() < max_inventory && next != end)
     {
         const auto limit = max_inventory - items.size();
-        if (const auto result = query.get_pooled_txs(next, links, end, limit))
+        const auto result = query.get_confirmable_txs(next, links, end, limit);
+        if (result)
         {
             stop(result);
             return;

@@ -63,9 +63,9 @@ public:
         size_t count=maximum_horizon) NOEXCEPT;
 
     /// Update accumulator (not thread safe).
-    bool push(const query& query) NOEXCEPT;
-    bool pop(const query& query) NOEXCEPT;
+    bool push(const query& query, const database::header_link& link) NOEXCEPT;
     bool pool(const query& query, const database::tx_link& link) NOEXCEPT;
+    bool pop(const query& query, const database::header_link& link) NOEXCEPT;
 
     /// Top height of accumulator (thread safe).
     size_t top_height() const NOEXCEPT;
@@ -167,6 +167,7 @@ protected:
     bool push(const rates& block) NOEXCEPT;
     bool pop(const rates& block) NOEXCEPT;
     bool pool(const rate& tx) NOEXCEPT;
+    void conflict(const rates& txs, bool push) NOEXCEPT;
     uint64_t compute(size_t target, double confidence,
         bool geometric=false) const NOEXCEPT;
 
