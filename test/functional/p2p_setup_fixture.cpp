@@ -26,25 +26,15 @@ using namespace bc::network::messages::peer;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
-    const configurator& configure)
-  : config_{ chain::selection::mainnet },
-    store_
-    {
-        [&]() NOEXCEPT -> const database::settings&
-        {
-            config_.database.path = TEST_DIRECTORY;
-            return config_.database;
-        }()
-    },
-    query_{ store_ },
-    node_{ query_, config_, log_ }
+// The store and the chasers copy settings at construction, so configuration
+// precedes them.
+configuration p2p_setup_fixture::configured(const configurator& configure)
 {
-    test::clear(test::directory);
+    configuration config{ chain::selection::mainnet };
+    auto& network_settings = config.network;
+    auto& node_settings = config.node;
 
-    auto& network_settings = config_.network;
-    auto& node_settings = config_.node;
-
+    config.database.path = TEST_DIRECTORY;
     network_settings.path = TEST_DIRECTORY;
     network_settings.inbound.connections = 1;
     network_settings.inbound.binds.clear();
@@ -62,7 +52,19 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
 
     // Apply test-specific configuration overrides.
     if (configure)
-        configure(config_);
+        configure(config);
+
+    return config;
+}
+
+p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
+    const configurator& configure)
+  : config_{ configured(configure) },
+    store_{ config_.database },
+    query_{ store_ },
+    node_{ query_, config_, log_ }
+{
+    test::clear(test::directory);
 
     // Create and populate the store.
     auto ec = store_.create([](auto, auto) {});
@@ -93,7 +95,7 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
     // Block until the node is running.
     ec = running.get_future().get();
     BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-    socket_.connect(network_settings.inbound.binds.back().to_endpoint());
+    socket_.connect(config_.network.inbound.binds.back().to_endpoint());
 }
 
 p2p_setup_fixture::~p2p_setup_fixture()

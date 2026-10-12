@@ -95,6 +95,8 @@ struct p2p_setup_fixture
     }
 
 protected:
+    static configuration configured(const configurator& configure);
+
     struct subscription
     {
         std::mutex mutex{};
