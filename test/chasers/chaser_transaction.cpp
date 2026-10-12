@@ -584,6 +584,199 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__
 
 BOOST_AUTO_TEST_SUITE_END()
 
+BOOST_AUTO_TEST_SUITE(chaser_transaction_scan_tests)
+
+// BIP352 send_and_receive_test_vectors.json: "Simple send: two inputs".
+static chain::input to_input(const hash_digest& hash, const data_chunk& script,
+    const data_chunk& prevout) NOEXCEPT
+{
+    chain::input in{ { hash, 0 }, { script, false }, {}, max_uint32 };
+    const chain::script prevout_script{ prevout, false };
+    in.prevout = to_shared<chain::output>(0u, prevout_script);
+    return in;
+}
+
+static const chain::transaction simple_send
+{
+    2u,
+    chain::inputs
+    {
+        to_input
+        (
+            base16_hash("f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16"),
+            base16_chunk("483046022100ad79e6801dd9a8727f342f31c71c4912866f59dc6e7981878e92c5844a0ce929022100fb0d2393e813968648b9753b7e9871d90ab3d815ebf91820d704b19f4ed224d621025a1e61f898173040e20616d43e9f496fba90338a39faa1ed98fcbaeee4dd9be5"),
+            base16_chunk("76a91419c2f3ae0ca3b642bd3e49598b8da89f50c1416188ac")
+        ),
+        to_input
+        (
+            base16_hash("a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d"),
+            base16_chunk("48304602210086783ded73e961037e77d49d9deee4edc2b23136e9728d56e4491c80015c3a63022100fda4c0f21ea18de29edbce57f7134d613e044ee150a89e2e64700de2d4e83d4e2103bd85685d03d111699b15d046319febe77f8de5286e9e512703cdee1bf3be3792"),
+            base16_chunk("76a914d9317c66f54ff0a152ec50b1d19c25be50c8e15988ac")
+        )
+    },
+    chain::outputs
+    {
+        { 0u, chain::script{ base16_chunk("51203e9fce73d4e77a4809908e3c3a2e54ee147b9312dc5044a193d1fc85de46e3c1"), false } }
+    },
+    0u
+};
+
+// Mainnet block 1 confirmed (coinbase link 1), scan rows linked 1 and 5.
+static bool stored_scan(node::query& query) NOEXCEPT
+{
+    const auto& block1 = p2p_compact_setup_fixture::block1();
+    const database::context context1{ 0, 1, 1231006505 };
+    const auto work1 = block1.header().proof() * 2u;
+    return query.set(block1, context1, work1, false, false)
+        && query.push_confirmed(1, true)
+        && query.set_silent(1, simple_send)
+        && query.set_silent(5, simple_send);
+}
+
+struct chaser_transaction_scan_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_scan_setup_fixture(bool relay, bool current,
+        const initializer& setup=stored_scan)
+      : chaser_transaction_setup_fixture([=](configuration& config)
+        {
+            config.network.enable_relay = relay;
+            config.node.currency_window_minutes = current ? 0 : 1440;
+            config.node.silent_start_height = 0;
+            config.database.initialize(config.bitcoin, false, 0);
+        }, setup)
+    {
+    }
+
+    bool mapped(const database::header_link& link)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (!query_.get_scan_start(link).is_terminal())
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+
+};
+
+struct scan_current_fixture
+  : chaser_transaction_scan_setup_fixture
+{
+    inline scan_current_fixture()
+      : chaser_transaction_scan_setup_fixture(false, true)
+    {
+    }
+};
+
+struct scan_pooling_fixture
+  : chaser_transaction_scan_setup_fixture
+{
+    inline scan_pooling_fixture()
+      : chaser_transaction_scan_setup_fixture(true, true)
+    {
+    }
+};
+
+struct scan_stale_fixture
+  : chaser_transaction_scan_setup_fixture
+{
+    inline scan_stale_fixture()
+      : chaser_transaction_scan_setup_fixture(false, false)
+    {
+    }
+};
+
+struct scan_complete_fixture
+  : chaser_transaction_scan_setup_fixture
+{
+    inline scan_complete_fixture()
+      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
+        {
+            return stored_scan(query)
+                && query.set_scan_start(0, 42)
+                && query.set_scan_start(1, 43);
+        })
+    {
+    }
+};
+
+struct scan_partial_fixture
+  : chaser_transaction_scan_setup_fixture
+{
+    inline scan_partial_fixture()
+      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
+        {
+            return stored_scan(query) && query.set_scan_start(1, 43);
+        })
+    {
+    }
+};
+
+struct scan_unextended_fixture
+  : chaser_transaction_scan_setup_fixture
+{
+    inline scan_unextended_fixture()
+      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
+        {
+            return stored_scan(query) && query.set_scan_start(0, 0);
+        })
+    {
+    }
+};
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__current_not_pooling__mapped, scan_current_fixture)
+{
+    BOOST_REQUIRE(mapped(0));
+    BOOST_REQUIRE(!query_.is_pooling());
+    BOOST_REQUIRE_EQUAL(query_.get_scan_frontier(), 0u);
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__current_pooling__mapped_and_latched, scan_pooling_fixture)
+{
+    BOOST_REQUIRE(mapped(0));
+    BOOST_REQUIRE(query_.is_pooling());
+    BOOST_REQUIRE_EQUAL(query_.get_scan_frontier(), 2u);
+    BOOST_REQUIRE_EQUAL(query_.get_latch_tx(), 2u);
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__not_current__unmapped, scan_stale_fixture)
+{
+    BOOST_REQUIRE(query_.get_scan_start(0).is_terminal());
+    BOOST_REQUIRE(query_.get_scan_start(1).is_terminal());
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__complete_map__unchanged, scan_complete_fixture)
+{
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 42u);
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 43u);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__partial_map__remapped, scan_partial_fixture)
+{
+    BOOST_REQUIRE(mapped(0));
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__unmapped_top__extended, scan_unextended_fixture)
+{
+    BOOST_REQUIRE(mapped(1));
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
 BOOST_AUTO_TEST_SUITE(protocol_transaction_tests)
 
 // protocol_transaction_in

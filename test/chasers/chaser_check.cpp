@@ -114,6 +114,21 @@ struct chaser_check_setup_fixture
         map->merge(*get_hashes().map);
         return map;
     }
+
+    /// Take work from the check chaser until count hashes (bounded).
+    map_ptr take(size_t count)
+    {
+        using namespace std::chrono;
+        const auto map = chaser_check::empty_map();
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline && map->size() < count)
+        {
+            map->merge(*get_hashes().map);
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return map;
+    }
 };
 
 // Mainnet blocks 1 and 2 are unassociated candidates.
@@ -393,9 +408,9 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__get_hashes__candidates__expected_map, chas
     const auto work = get_hashes();
     BOOST_REQUIRE(!work.ec);
     BOOST_REQUIRE(work.racer);
-    BOOST_REQUIRE_EQUAL(work.map->size(), one);
+    BOOST_REQUIRE_EQUAL(work.map->size(), two);
     BOOST_REQUIRE(work.map->exists(p2p_compact_setup_fixture::block1().hash()));
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
+    BOOST_REQUIRE(work.map->exists(p2p_compact_setup_fixture::block2().hash()));
     BOOST_REQUIRE(get_hashes().map->empty());
 }
 
@@ -441,7 +456,6 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__checked__window_downloaded__windowed, chas
     BOOST_REQUIRE(handshake(peer_services));
     receive(get_data::command);
     send(peer::block::command, p2p_compact_setup_fixture::block1().to_data(true));
-    receive(get_data::command);
     send(peer::block::command, p2p_compact_setup_fixture::block2().to_data(true));
 
     chases::windowed windowed{};
@@ -460,8 +474,11 @@ BOOST_FIXTURE_TEST_CASE(chaser_check__valid__requested_not_positioned__no_downlo
 
     chases::stall stall{};
     BOOST_REQUIRE(await(stall));
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
+
+    const auto map = get_hashes().map;
+    BOOST_REQUIRE_EQUAL(map->size(), two);
+    BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block1().hash()));
+    BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block2().hash()));
     BOOST_REQUIRE(get_hashes().map->empty());
 }
 
@@ -510,8 +527,9 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__subscribed__candidates__get_dat
 
     const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
     BOOST_REQUIRE(request);
-    BOOST_REQUIRE_EQUAL(request->items.size(), one);
+    BOOST_REQUIRE_EQUAL(request->items.size(), two);
     BOOST_REQUIRE(request->items.front().hash == p2p_compact_setup_fixture::block1().hash());
+    BOOST_REQUIRE(request->items.back().hash == p2p_compact_setup_fixture::block2().hash());
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__unrequested__not_stopped, chaser_check_candidate_setup_fixture)
@@ -611,9 +629,10 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__stall_with_work__
     node_.notify({}, chases::stall{ 42 });
     BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
 
-    const auto map = get_hashes().map;
-    BOOST_REQUIRE_EQUAL(map->size(), one);
+    const auto map = take(two);
+    BOOST_REQUIRE_EQUAL(map->size(), two);
     BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block1().hash()));
+    BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block2().hash()));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_then_split__stopped, chaser_check_candidate_setup_fixture)
@@ -672,6 +691,9 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_without_wor
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__split_single__not_stopped, chaser_check_candidate_setup_fixture)
 {
+    // The channel is given one of the two candidates (the other is held).
+    const auto work = get_hashes();
+    BOOST_REQUIRE(!put_hashes(chaser_check::split(work.map)));
     BOOST_REQUIRE(handshake(peer_services));
     receive(get_data::command);
     subscribe();
