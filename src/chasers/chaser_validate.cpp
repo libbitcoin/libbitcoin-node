@@ -46,9 +46,11 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     verify_target_(node.node_settings().batch_verify),
     silent_target_(node.node_settings().batch_silent),
     verify_enabled_(node.node_settings().batch_verify_enabled() &&
-        system::batched::accelerated()),
+        (node.node_settings().cpu_batch_verify ||
+            system::batched::accelerated())),
     silent_enabled_(node.node_settings().batch_silent_enabled() &&
-        system::batched::accelerated()),
+        (node.node_settings().cpu_batch_silent ||
+            system::batched::accelerated())),
     node_witness_(node.node_settings().require_witness),
     filter_(node.archive().filter_enabled())
 {
@@ -56,14 +58,21 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
 
 code chaser_validate::start() NOEXCEPT
 {
-    const auto reason = system::batched::compiled() ? "no device" :
-        "not compiled";
+    const auto reason = !system::batched::compiled() ? "not compiled" :
+        !node_settings().use_gpu ? "gpu disabled" : "no gpu";
 
     if (node_settings().batch_verify_enabled() && !verify_enabled_)
         LOGN("Signature batching disabled (" << reason << ").");
 
     if (node_settings().batch_silent_enabled() && !silent_enabled_)
         LOGN("Silent batching disabled (" << reason << ").");
+
+    const auto accelerated = system::batched::accelerated();
+    if (verify_enabled_ && !accelerated)
+        LOGN("Signature batching on the cpu (" << reason << ").");
+
+    if (silent_enabled_ && !accelerated)
+        LOGN("Silent batching on the cpu (" << reason << ").");
 
     set_position(archive().get_fork());
     if (const auto ec = start_batch())

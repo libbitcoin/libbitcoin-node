@@ -45,6 +45,9 @@ public:
     bool provide_filters;
     bool provide_privacy;
     bool limited_blocks;
+    bool use_gpu;
+    bool cpu_batch_verify;
+    bool cpu_batch_silent;
     float allowed_deviation;
     double minimum_fee_rate;
     double minimum_bump_rate;
