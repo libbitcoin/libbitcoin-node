@@ -159,7 +159,10 @@ static bool validate_silent_store(node::query& query,
     const chain::block& block, uint32_t height)
 {
     const auto& genesis = validate_genesis().header();
-    const database::context context{ chain::flags::bip341_rule, height, genesis.timestamp() };
+    const database::context context
+    {
+        chain::flags::bip341_rule, height, genesis.timestamp()
+    };
     const auto work = genesis.proof() * add1(height);
     return query.set(block, context, work, false, false);
 }

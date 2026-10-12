@@ -402,6 +402,7 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
     if (is_nonzero(rows))
     {
         const auto elapsed = network::logger::now() - start;
+        fire(events::silent_secs, duration_cast<seconds>(elapsed).count());
         LOGN(log_rate("Compute silent...", rows,
             duration_cast<milliseconds>(elapsed).count(), device));
     }
