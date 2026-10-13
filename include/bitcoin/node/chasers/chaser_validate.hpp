@@ -155,7 +155,7 @@ private:
     bool is_silent_mature(bool residual) NOEXCEPT;
     bool is_silent_empty() const NOEXCEPT;
     std::string log_rate(const std::string& name, size_t signatures,
-        size_t milliseconds, bool device) const NOEXCEPT;
+        size_t milliseconds, bool gpu) const NOEXCEPT;
 
     // This is not thread safe.
     network::threadpool validation_threadpool_;
