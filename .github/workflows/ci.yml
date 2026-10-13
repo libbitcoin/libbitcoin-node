@@ -18,6 +18,8 @@ on:
       - 'src/**'
       - 'test/**'
   push:
+    branches:
+      - "**"
     tags-ignore:
       - "**"
     paths:
