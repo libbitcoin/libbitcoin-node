@@ -76,8 +76,11 @@ public:
     virtual uint64_t services_provided() const NOEXCEPT;
     virtual uint64_t services_required() const NOEXCEPT;
     virtual bool fee_estimate_enabled() const NOEXCEPT;
+    virtual bool use_gpu_() const NOEXCEPT;
     virtual bool batch_verify_enabled() const NOEXCEPT;
     virtual bool batch_silent_enabled() const NOEXCEPT;
+    virtual bool batch_verify_() const NOEXCEPT;
+    virtual bool batch_silent_() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::steady_clock::duration compact_timeout() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;

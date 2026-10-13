@@ -47,17 +47,18 @@ code configuration::initialize() NOEXCEPT
     if (silent && node.limited_blocks && node.silent_start_height <= bypassed)
         return network::error::invalid_configuration;
 
-    // Batch tables are unused when their batching cannot run.
-    system::batched::enable(node.use_gpu);
-    const auto accelerated = system::batched::accelerated();
-    if (!node.cpu_batch_verify && !accelerated)
+    // Batch tables are unused when their batching does not run.
+    if (!node.batch_verify_())
     {
         database.ecdsa.size = 0;
         database.schnorr.size = 0;
     }
 
-    if (!node.cpu_batch_silent && !accelerated)
+    if (!node.batch_silent_())
         database.silent.size = 0;
+
+    if (!node.use_gpu_())
+        database.gpu_scan_minimum = max_uint32;
 
     database.initialize(bitcoin, node.limited_blocks, node.silent_start_height);
     return network.initialize();

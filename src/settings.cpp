@@ -139,6 +139,11 @@ bool settings::fee_estimate_enabled() const NOEXCEPT
     return to_bool(fee_estimate_horizon_());
 }
 
+bool settings::use_gpu_() const NOEXCEPT
+{
+    return use_gpu && system::batched::accelerated();
+}
+
 bool settings::batch_verify_enabled() const NOEXCEPT
 {
     return to_bool(batch_verify);
@@ -147,6 +152,16 @@ bool settings::batch_verify_enabled() const NOEXCEPT
 bool settings::batch_silent_enabled() const NOEXCEPT
 {
     return to_bool(batch_silent);
+}
+
+bool settings::batch_verify_() const NOEXCEPT
+{
+    return batch_verify_enabled() && (cpu_batch_verify || use_gpu_());
+}
+
+bool settings::batch_silent_() const NOEXCEPT
+{
+    return batch_silent_enabled() && (cpu_batch_silent || use_gpu_());
 }
 
 network::steady_clock::duration settings::sample_period() const NOEXCEPT
