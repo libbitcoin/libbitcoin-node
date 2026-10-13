@@ -119,14 +119,15 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
 {
     auto& query = archive();
     auto prevalids = query.get_prevalids(bank);
+    const auto& cancel = stopping_;
 
     const auto ecdsa = query.ecdsa_records(bank);
     if (is_nonzero(ecdsa))
     {
         bool device{};
-        header_links invalids{};
+        header_links fails{};
         const auto start = network::logger::now();
-        if (!query.verify_ecdsa_signatures(stopping_, invalids, device, bank))
+        if (!query.verify_ecdsa_signatures(cancel, fails, device, bank, gpu_))
         {
             LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return network::error::operation_canceled;
@@ -140,7 +141,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
                 duration_cast<milliseconds>(elapsed).count(), device));
         }
 
-        if (!mark_invalids(prevalids, invalids, startup))
+        if (!mark_invalids(prevalids, fails, startup))
             return error::batch1;
     }
 
@@ -148,9 +149,9 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
     if (is_nonzero(schnorr))
     {
         bool device{};
-        header_links invalids{};
+        header_links fails{};
         const auto start = network::logger::now();
-        if (!query.verify_schnorr_signatures(stopping_, invalids, device, bank))
+        if (!query.verify_schnorr_signatures(cancel, fails, device, bank, gpu_))
         {
             LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return network::error::operation_canceled;
@@ -164,7 +165,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
                 duration_cast<milliseconds>(elapsed).count(), device));
         }
 
-        if (!mark_invalids(prevalids, invalids, startup))
+        if (!mark_invalids(prevalids, fails, startup))
             return error::batch2;
     }
 
@@ -389,7 +390,7 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
     bool device{};
     const auto rows = query.silent_records(bank);
     const auto start = network::logger::now();
-    const auto ec = query.compute_silents(stopping_, device, bank);
+    const auto ec = query.compute_silents(stopping_, device, bank, gpu_);
     if (ec == database::error::query_canceled)
     {
         LOGN("Batch silent canceled (" << rows << ").");

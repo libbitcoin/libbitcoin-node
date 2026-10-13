@@ -477,6 +477,20 @@ struct validate_windowed_fixture
     }
 };
 
+struct validate_windowed_cpu_fixture
+  : validate_setup_fixture
+{
+    validate_windowed_cpu_fixture()
+      : validate_setup_fixture(validate_noncandidate, [](configuration& config)
+        {
+            config.node.use_gpu = false;
+            config.node.batch_verify = 1;
+            config.node.cpu_batch_verify = true;
+        })
+    {
+    }
+};
+
 struct validate_immature_fixture
   : validate_setup_fixture
 {
@@ -643,6 +657,18 @@ BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__prevalid__valid, validate_win
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__invalid_ecdsa_signature__unconfirmable, validate_windowed_fixture)
+{
+    const auto link = query_.to_header(validate_x1().hash());
+    chain::ecdsa_signatures signatures{};
+    BOOST_REQUIRE(signatures.append(null_hash, validate_generator, ec_signature{}));
+    BOOST_REQUIRE(query_.set_signatures(signatures, link, false));
+    BOOST_REQUIRE(query_.set_prevalid(link, false));
+    node_.notify(node::error::success, chases::windowed{ 1 });
+    BOOST_REQUIRE(stated(validate_x1(), database::is_unconfirmable));
+    BOOST_REQUIRE(await([&]() { return is_zero(query_.ecdsa0_records()) && is_zero(query_.prevalid0_records()); }));
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_validate__windowed__cpu_invalid_ecdsa_signature__unconfirmable, validate_windowed_cpu_fixture)
 {
     const auto link = query_.to_header(validate_x1().hash());
     chain::ecdsa_signatures signatures{};

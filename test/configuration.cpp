@@ -82,4 +82,40 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_silent_at_bypassed__su
     BOOST_REQUIRE(!instance.initialize());
 }
 
+BOOST_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables_sized)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.use_gpu = false;
+    instance.node.batch_verify = 1;
+    instance.node.batch_silent = 1;
+    instance.node.cpu_batch_verify = true;
+    instance.node.cpu_batch_silent = true;
+    instance.database.ecdsa.size = 42;
+    instance.database.schnorr.size = 42;
+    instance.database.silent.size = 42;
+    BOOST_REQUIRE(!instance.initialize());
+    BOOST_REQUIRE_EQUAL(instance.database.ecdsa.size, 42u);
+    BOOST_REQUIRE_EQUAL(instance.database.schnorr.size, 42u);
+    BOOST_REQUIRE_EQUAL(instance.database.silent.size, 42u);
+    BOOST_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
+}
+
+BOOST_AUTO_TEST_CASE(configuration__initialize__no_batching_without_gpu__tables_zero)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.use_gpu = false;
+    instance.node.batch_verify = 1;
+    instance.node.batch_silent = 1;
+    instance.node.cpu_batch_verify = false;
+    instance.node.cpu_batch_silent = false;
+    instance.database.ecdsa.size = 42;
+    instance.database.schnorr.size = 42;
+    instance.database.silent.size = 42;
+    BOOST_REQUIRE(!instance.initialize());
+    BOOST_REQUIRE_EQUAL(instance.database.ecdsa.size, 0u);
+    BOOST_REQUIRE_EQUAL(instance.database.schnorr.size, 0u);
+    BOOST_REQUIRE_EQUAL(instance.database.silent.size, 0u);
+    BOOST_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

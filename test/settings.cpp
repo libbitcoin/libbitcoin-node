@@ -41,6 +41,9 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.provide_filters, false);
     BOOST_REQUIRE_EQUAL(node.provide_privacy, false);
     BOOST_REQUIRE_EQUAL(node.limited_blocks, false);
+    BOOST_REQUIRE_EQUAL(node.use_gpu, true);
+    BOOST_REQUIRE_EQUAL(node.cpu_batch_verify, false);
+    BOOST_REQUIRE_EQUAL(node.cpu_batch_silent, false);
     BOOST_REQUIRE_EQUAL(node.minimum_fee_rate, 0.0);
     BOOST_REQUIRE_EQUAL(node.minimum_fee_rate_(), 0_u64);
     BOOST_REQUIRE_EQUAL(node.minimum_bump_rate, 0.0);
@@ -68,8 +71,11 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50'000_size);
     BOOST_REQUIRE_EQUAL(node.fee_estimate_horizon_(), 0_size);
     BOOST_REQUIRE(!node.fee_estimate_enabled());
+    BOOST_REQUIRE_EQUAL(node.use_gpu_(), system::batched::accelerated());
     BOOST_REQUIRE(!node.batch_verify_enabled());
     BOOST_REQUIRE(!node.batch_silent_enabled());
+    BOOST_REQUIRE(!node.batch_verify_());
+    BOOST_REQUIRE(!node.batch_silent_());
     BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(1440)));
     BOOST_REQUIRE(node.thread_priority_() == network::processing_priority::high);
@@ -88,6 +94,65 @@ BOOST_AUTO_TEST_CASE(settings__services_provided__filters_privacy__network_witne
     node.provide_filters = true;
     node.provide_privacy = true;
     BOOST_REQUIRE_EQUAL(node.services_provided(), 0x0849_u64);
+}
+
+BOOST_AUTO_TEST_CASE(settings__use_gpu___disabled__false)
+{
+    node::settings node{};
+    node.use_gpu = false;
+    BOOST_REQUIRE(!node.use_gpu_());
+}
+
+BOOST_AUTO_TEST_CASE(settings__batch_verify___cpu_without_gpu__true)
+{
+    node::settings node{};
+    node.use_gpu = false;
+    node.batch_verify = 1;
+    node.cpu_batch_verify = true;
+    BOOST_REQUIRE(node.batch_verify_());
+}
+
+BOOST_AUTO_TEST_CASE(settings__batch_verify___no_cpu_without_gpu__false)
+{
+    node::settings node{};
+    node.use_gpu = false;
+    node.batch_verify = 1;
+    node.cpu_batch_verify = false;
+    BOOST_REQUIRE(!node.batch_verify_());
+}
+
+BOOST_AUTO_TEST_CASE(settings__batch_verify___cpu_unconfigured__false)
+{
+    node::settings node{};
+    node.batch_verify = 0;
+    node.cpu_batch_verify = true;
+    BOOST_REQUIRE(!node.batch_verify_());
+}
+
+BOOST_AUTO_TEST_CASE(settings__batch_silent___cpu_without_gpu__true)
+{
+    node::settings node{};
+    node.use_gpu = false;
+    node.batch_silent = 1;
+    node.cpu_batch_silent = true;
+    BOOST_REQUIRE(node.batch_silent_());
+}
+
+BOOST_AUTO_TEST_CASE(settings__batch_silent___no_cpu_without_gpu__false)
+{
+    node::settings node{};
+    node.use_gpu = false;
+    node.batch_silent = 1;
+    node.cpu_batch_silent = false;
+    BOOST_REQUIRE(!node.batch_silent_());
+}
+
+BOOST_AUTO_TEST_CASE(settings__batch_silent___cpu_unconfigured__false)
+{
+    node::settings node{};
+    node.batch_silent = 0;
+    node.cpu_batch_silent = true;
+    BOOST_REQUIRE(!node.batch_silent_());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

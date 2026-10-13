@@ -183,6 +183,7 @@ private:
     const size_t maximum_height_;
     const uint64_t verify_target_;
     const uint64_t silent_target_;
+    const bool gpu_;
     const bool verify_enabled_;
     const bool silent_enabled_;
     const bool node_witness_;
