@@ -248,6 +248,10 @@ struct confirm_setup_fixture
         if (configurer)
             configurer(config);
 
+        // The store envelope is derived from the configured chain.
+        config.database.initialize(config.bitcoin, config.node.limited_blocks,
+            config.node.silent_start_height);
+
         return config;
     }
 

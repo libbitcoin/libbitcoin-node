@@ -643,7 +643,6 @@ struct chaser_transaction_scan_setup_fixture
             config.network.enable_relay = relay;
             config.node.currency_window_minutes = current ? 0 : 1440;
             config.node.silent_start_height = 0;
-            config.database.initialize(config.bitcoin, false, 0);
         }, setup)
     {
     }
