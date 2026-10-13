@@ -124,10 +124,10 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
     const auto ecdsa = query.ecdsa_records(bank);
     if (is_nonzero(ecdsa))
     {
-        bool device{};
+        bool use_gpu{ gpu_ };
         header_links fails{};
         const auto start = network::logger::now();
-        if (!query.verify_ecdsa_signatures(cancel, fails, device, bank, gpu_))
+        if (!query.verify_ecdsa_signatures(cancel, use_gpu, fails, bank))
         {
             LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return network::error::operation_canceled;
@@ -138,7 +138,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
         if (!startup)
         {
             LOGN(log_rate("Verify ecdsa.....", ecdsa,
-                duration_cast<milliseconds>(elapsed).count(), device));
+                duration_cast<milliseconds>(elapsed).count(), use_gpu));
         }
 
         if (!mark_invalids(prevalids, fails, startup))
@@ -148,10 +148,10 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
     const auto schnorr = query.schnorr_records(bank);
     if (is_nonzero(schnorr))
     {
-        bool device{};
+        bool use_gpu{ gpu_ };
         header_links fails{};
         const auto start = network::logger::now();
-        if (!query.verify_schnorr_signatures(cancel, fails, device, bank, gpu_))
+        if (!query.verify_schnorr_signatures(cancel, use_gpu, fails, bank))
         {
             LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return network::error::operation_canceled;
@@ -162,7 +162,7 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
         if (!startup)
         {
             LOGN(log_rate("Verify schnorr...", schnorr,
-                duration_cast<milliseconds>(elapsed).count(), device));
+                duration_cast<milliseconds>(elapsed).count(), use_gpu));
         }
 
         if (!mark_invalids(prevalids, fails, startup))
@@ -301,11 +301,11 @@ bool chaser_validate::is_silent_empty() const NOEXCEPT
 }
 
 std::string chaser_validate::log_rate(const std::string& name,
-    size_t signatures, size_t milliseconds, bool device) const NOEXCEPT
+    size_t signatures, size_t milliseconds, bool gpu) const NOEXCEPT
 {
     const auto rate = (signatures * 1000u) / greater(milliseconds, one);
     return std::format("{} ({} / {} ms) = {} sps on {}", name, signatures,
-        milliseconds, rate, device ? "device" : "cpu");
+        milliseconds, rate, gpu ? "gpu" : "cpu");
 }
 
 // Silent batch.
@@ -387,10 +387,10 @@ void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
 code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
 {
     auto& query = archive();
-    bool device{};
+    bool use_gpu{ gpu_ };
     const auto rows = query.silent_records(bank);
     const auto start = network::logger::now();
-    const auto ec = query.compute_silents(stopping_, device, bank, gpu_);
+    const auto ec = query.compute_silents(stopping_, use_gpu, bank);
     if (ec == database::error::query_canceled)
     {
         LOGN("Batch silent canceled (" << rows << ").");
@@ -405,7 +405,7 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
         const auto elapsed = network::logger::now() - start;
         fire(events::silent_secs, duration_cast<seconds>(elapsed).count());
         LOGN(log_rate("Compute silent...", rows,
-            duration_cast<milliseconds>(elapsed).count(), device));
+            duration_cast<milliseconds>(elapsed).count(), use_gpu));
     }
 
     // Purge presilents before silents.
