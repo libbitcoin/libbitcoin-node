@@ -240,7 +240,6 @@ struct chaser_header_setup_fixture
         if (configure)
             configure(config);
 
-        // The store envelope is derived from the configured chain.
         config.database.initialize(config.bitcoin, config.node.limited_blocks,
             config.node.provide_filters, config.node.require_witness,
             config.node.silent_start_height);

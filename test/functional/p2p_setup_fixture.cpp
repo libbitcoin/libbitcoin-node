@@ -26,8 +26,6 @@ using namespace bc::network::messages::peer;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// The store and the chasers copy settings at construction, so configuration
-// precedes them.
 configuration p2p_setup_fixture::configured(const configurator& configure)
 {
     configuration config{ test::node_configuration() };
@@ -54,7 +52,6 @@ configuration p2p_setup_fixture::configured(const configurator& configure)
     if (configure)
         configure(config);
 
-    // Derived values are computed from the configuration, as at startup.
     config.database.initialize(config.bitcoin, node_settings.limited_blocks,
         node_settings.provide_filters, node_settings.require_witness,
         node_settings.silent_start_height);
