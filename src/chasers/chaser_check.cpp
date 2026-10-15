@@ -531,10 +531,10 @@ size_t chaser_check::set_unassociated() NOEXCEPT
     const auto timeout = node_settings().compact_timeout();
     if (!is_zero(timeout.count()) && is_current_chain(false))
     {
-        const auto top = query.get_top_candidate();
-        const auto link = query.to_candidate(top);
+        size_t top{};
+        const auto link = query.to_top_candidate();
         if (link != expired_ && query.is_compact(link) &&
-            !query.is_associated(link))
+            !query.is_associated(link) && query.get_height(top, link))
         {
             stop = std::min(stop, sub1(top));
             if (link != deferred_)
