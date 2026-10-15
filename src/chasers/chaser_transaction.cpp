@@ -113,9 +113,16 @@ void chaser_transaction::do_bump() NOEXCEPT
     auto& query = archive();
     if (network_settings().enable_relay)
     {
-        const auto top = query.get_top_confirmed();
+        size_t height{};
+        const auto top = query.to_top_confirmed();
+        if (!query.get_height(height, top))
+        {
+            fault(error::transaction9);
+            return;
+        }
+
         const auto state = query.get_confirmed_chain_state(system_settings(),
-            query.to_confirmed(top), top);
+            top, height);
 
         if (!state)
         {
@@ -135,7 +142,7 @@ void chaser_transaction::do_bump() NOEXCEPT
 
     // A complete map reaches genesis, and keeps up with the top until latched.
     // Rows of a block archived before the latch may precede mapped starts.
-    const auto top = query.to_confirmed(query.get_top_confirmed());
+    const auto top = query.to_top_confirmed();
     const auto unmapped = query.get_scan_start(top).is_terminal();
     if (query.get_scan_start(query.to_confirmed(zero)).is_terminal())
         start_scan(true);
@@ -153,7 +160,7 @@ void chaser_transaction::start_scan(bool remap) NOEXCEPT
     const auto& query = archive();
     const auto bound = query.is_pooling() ? query.get_scan_frontier() :
         max_size_t;
-    const auto top = query.to_confirmed(query.get_top_confirmed());
+    const auto top = query.to_top_confirmed();
     boost::asio::post(scan_threadpool_.service(),
         BIND(do_scan, top, bound, remap));
 }
