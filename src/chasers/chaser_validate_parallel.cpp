@@ -76,29 +76,28 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else if (pooled)
     {
-        ec = complete_pooled(link, ctx);
+        ec = complete_pooled(link);
     }
-    else if (bypass && !filter_ && query.is_silent(link, ctx.height))
+    else if (bypass)
     {
-        ec = validate_silent(link, is_silent_capturing(link));
+        const auto silent = query.is_silent(link, ctx.height);
+        ec = complete_view(link, filter_, silent, silent &&
+            is_silent_capturing(link));
     }
     else
     {
-        // TODO: implement allocator parameter resulting in full allocation to
-        // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
         const auto block = query.get_block(link, node_witness_);
 
         if (!block)
         {
             ec = error::validate2;
         }
-        else if ((ec = populate(bypass, *block, ctx)))
+        else if ((ec = populate(*block, ctx)))
         {
             if (!query.set_block_unconfirmable(link))
                 ec = error::validate4;
         }
-        else if ((ec = validate(batched, capturing, bypass, *block, link,
-            ctx)))
+        else if ((ec = validate(batched, capturing, *block, link, ctx)))
         {
             if (!query.set_block_unconfirmable(link))
                 ec = error::validate5;
@@ -132,30 +131,18 @@ void chaser_validate::validate_block(const header_link& link,
 // helpers
 // ----------------------------------------------------------------------------
 
-code chaser_validate::populate(bool bypass, const chain::block& block,
+code chaser_validate::populate(const chain::block& block,
     const chain::context& ctx) NOEXCEPT
 {
-    const auto& query = archive();
+    // Internal maturity and time locks are verified here because they are
+    // the only necessary confirmation checks for internal spends.
+    if (const auto ec = block.populate(ctx))
+        return ec;
 
-    if (bypass)
-    {
-        // Populating for optional indexes only (no validation metadata).
-        block.populate(ctx);
-        if (!query.populate_without_metadata(block))
-            return system::error::missing_previous_output;
-    }
-    else
-    {
-        // Internal maturity and time locks are verified here because they are
-        // the only necessary confirmation checks for internal spends.
-        if (const auto ec = block.populate(ctx))
-            return ec;
+    // Metadata identifies internal spends allowing confirmation bypass.
+    if (!archive().populate_with_metadata(block))
+        return system::error::missing_previous_output;
 
-        // Metadata identifies internal spends allowing confirmation bypass.
-        if (!query.populate_with_metadata(block))
-            return system::error::missing_previous_output;
-    }
-    
     return error::success;
 }
 
@@ -168,36 +155,57 @@ void chaser_validate::scan_block(const header_link& link,
 
     size_t height{};
     const auto ec = archive().get_height(height, link) ?
-        validate_silent(link, false) : error::validate3;
+        complete_view(link, false, true, false) : error::validate3;
 
     --validate_backlog_;
     complete_block(ec, link, height, bypass);
 }
 
-// Bypassed without client filters, a block is read only for its silent
-// payment records, so it is not materialized.
-code chaser_validate::validate_silent(const header_link& link,
-    bool bank) NOEXCEPT
+// A bypassed block is read only for its optional indexes, so it is not
+// materialized. A filter requires all prevouts, otherwise only those of the
+// silent payment eligible txs are populated.
+code chaser_validate::validate_view(const header_link& link, bool filter,
+    bool silent, bool bank) NOEXCEPT
 {
     auto& query = archive();
-    auto wire = query.get_wire_block(link, node_witness_);
-    chain::view::block block{ std::move(wire), node_witness_ };
+    const auto witness = node_witness_ && silent;
+    auto wire = query.get_wire_block(link, witness);
+    chain::view::block block{ std::move(wire), witness };
 
     if (!block.is_valid())
         return error::validate2;
 
-    // Only the prevouts of silent payment eligible txs are populated.
     data_chunk prevouts{};
     std::vector<bool> selected{};
-    if (!query.get_silent_prevouts(prevouts, selected, link, block) ||
+    if (!(filter ?
+        query.get_block_prevouts(prevouts, selected, link, block) :
+        query.get_silent_prevouts(prevouts, selected, link, block)) ||
         !block.populate(std::move(prevouts), selected))
-        return query.set_block_unconfirmable(link) ?
-            code{ system::error::missing_previous_output } : error::validate4;
+        return system::error::missing_previous_output;
 
-    if (bank ? !commit_silent_batch(link, block) :
-        !query.set_silent(link, block))
+    if (filter && !query.set_filter_body(link, block))
+        return error::validate8;
+
+    // Banked records are set when the bank drains.
+    if (silent && (bank ? !commit_silent_batch(link, block) :
+        !query.set_silent(link, block)))
         return error::validate9;
 
+    return error::success;
+}
+
+code chaser_validate::complete_view(const header_link& link, bool filter,
+    bool silent, bool bank) NOEXCEPT
+{
+    auto& query = archive();
+    const auto ec = validate_view(link, filter, silent, bank);
+    if (ec == system::error::missing_previous_output)
+        return query.set_block_unconfirmable(link) ? ec : error::validate4;
+
+    if (ec)
+        return ec;
+
+    // Valid must be set after set_filter_body.
     return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
@@ -219,23 +227,16 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
 }
 
 // A pooled block is valid and SP indexed, so produce only for client filters.
-code chaser_validate::complete_pooled(const header_link& link,
-    const chain::context& ctx) NOEXCEPT
+code chaser_validate::complete_pooled(const header_link& link) NOEXCEPT
 {
     auto& query = archive();
     if (filter_)
     {
-        bool batched{}, capturing{};
-        constexpr auto bypass = true;
-        const auto block = query.get_block(link, node_witness_);
-        if (!block)
-            return error::validate2;
-
-        if (populate(bypass, *block, ctx))
+        const auto ec = validate_view(link, true, false, false);
+        if (ec == system::error::missing_previous_output)
             return error::validate11;
 
-        if (const auto ec = validate(batched, capturing, bypass, *block, link,
-            ctx))
+        if (ec)
             return ec;
     }
 
@@ -246,48 +247,45 @@ code chaser_validate::complete_pooled(const header_link& link,
     return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
-code chaser_validate::validate(bool& batched, bool& capturing, bool bypass,
+code chaser_validate::validate(bool& batched, bool& capturing,
     const chain::block& block, const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
 
-    if (!bypass)
+    code ec{};
+    if (((ec = block.check(false))) || ((ec = block.check(ctx, false))))
+        return ec;
+
+    if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
+        return ec;
+
+    // Initialize signature capture (appends to this thread's accumulators).
+    const auto capture = get_capture(link);
+    capturing = capture.enabled;
+
+    ec = block.connect(ctx, capture);
+
+    // At least one signature batch was attempted (batch completion).
+    batched = capture.batched;
+
+    // Commit (or discard) the captured signatures, marking the block prevalid
+    // contingent on batch verification. The commit epoch is mutually
+    // exclusive with batch verification (turnstile).
+    if (capturing)
     {
-        code ec{};
-        if (((ec = block.check(false))) || ((ec = block.check(ctx, false))))
-            return ec;
-
-        if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
-            return ec;
-
-        // Initialize signature capture (appends to this thread's accumulators).
-        const auto capture = get_capture(link);
-        capturing = capture.enabled;
-
-        ec = block.connect(ctx, capture);
-
-        // At least one signature batch was attempted (batch completion).
-        batched = capture.batched;
-
-        // Commit (or discard) the captured signatures, marking the block prevalid
-        // contingent on batch verification. The commit epoch is mutually
-        // exclusive with batch verification (turnstile).
-        if (capturing)
-        {
-            if (!ec && batched)
-                ec = commit_capture(batched, link);
-            else
-                clear_capture();
-        }
-
-        if (ec)
-            return ec;
-
-        // Prevouts optimize confirmation.
-        if (!query.set_prevouts(link, block))
-            return error::validate7;
+        if (!ec && batched)
+            ec = commit_capture(batched, link);
+        else
+            clear_capture();
     }
+
+    if (ec)
+        return ec;
+
+    // Prevouts optimize confirmation.
+    if (!query.set_prevouts(link, block))
+        return error::validate7;
 
     if (!query.set_filter_body(link, block))
         return error::validate8;
