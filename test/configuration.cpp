@@ -39,12 +39,12 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__mainnet__success_peer_identifier
     BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, 0xd9b4bef9_u32);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__invalid_configuration)
+BOOST_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__silent_unwitnessed)
 {
     node::configuration instance(chain::selection::mainnet);
     instance.node.silent_start_height = 0;
     instance.node.require_witness = false;
-    BOOST_REQUIRE_EQUAL(instance.initialize(), network::error::invalid_configuration);
+    BOOST_REQUIRE_EQUAL(instance.initialize(), node::error::silent_unwitnessed);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__silent_with_witness__success)
@@ -55,13 +55,13 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__silent_with_witness__success)
     BOOST_REQUIRE(!instance.initialize());
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_at_bypassed__invalid_configuration)
+BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_at_bypassed__silent_pruned)
 {
     node::configuration instance(chain::selection::mainnet);
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = true;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(bypassed);
-    BOOST_REQUIRE_EQUAL(instance.initialize(), network::error::invalid_configuration);
+    BOOST_REQUIRE_EQUAL(instance.initialize(), node::error::silent_pruned);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_above_bypassed__success)
@@ -70,6 +70,8 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_above_bypassed__s
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = true;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(add1(bypassed));
+    instance.database.filter_bk.buckets = 0;
+    instance.database.filter_tx.buckets = 0;
     BOOST_REQUIRE(!instance.initialize());
 }
 
@@ -79,6 +81,33 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_silent_at_bypassed__su
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = false;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(bypassed);
+    BOOST_REQUIRE(!instance.initialize());
+}
+
+BOOST_AUTO_TEST_CASE(configuration__initialize__limited_filter__filter_pruned)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.limited_blocks = true;
+    instance.database.filter_bk.buckets = 1;
+    instance.database.filter_tx.buckets = 1;
+    BOOST_REQUIRE_EQUAL(instance.initialize(), node::error::filter_pruned);
+}
+
+BOOST_AUTO_TEST_CASE(configuration__initialize__limited_partial_filter__success)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.limited_blocks = true;
+    instance.database.filter_bk.buckets = 1;
+    instance.database.filter_tx.buckets = 0;
+    BOOST_REQUIRE(!instance.initialize());
+}
+
+BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_filter__success)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.limited_blocks = false;
+    instance.database.filter_bk.buckets = 1;
+    instance.database.filter_tx.buckets = 1;
     BOOST_REQUIRE(!instance.initialize());
 }
 
