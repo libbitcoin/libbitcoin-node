@@ -337,4 +337,33 @@ BOOST_AUTO_TEST_CASE(error_t__code__batch1__true_expected_message)
 
 // TODO: batch2-...
 
+// configuration
+
+BOOST_AUTO_TEST_CASE(error_t__code__silent_unwitnessed__true_expected_message)
+{
+    constexpr auto value = error::silent_unwitnessed;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "silent payments require witness");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__silent_pruned__true_expected_message)
+{
+    constexpr auto value = error::silent_pruned;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "silent payments start in pruned blocks");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__filter_pruned__true_expected_message)
+{
+    constexpr auto value = error::filter_pruned;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "client filters require unpruned blocks");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

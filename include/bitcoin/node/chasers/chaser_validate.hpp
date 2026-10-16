@@ -67,16 +67,18 @@ protected:
     virtual void post_scan(const header_link& link, bool bypass) NOEXCEPT;
     virtual void validate_block(const header_link& link, bool bypass) NOEXCEPT;
     virtual void scan_block(const header_link& link, bool bypass) NOEXCEPT;
-    virtual code validate(bool& batched, bool& capturing, bool bypass,
+    virtual code validate(bool& batched, bool& capturing,
         const system::chain::block& block, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
-    virtual code populate(bool bypass, const system::chain::block& block,
+    virtual code populate(const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
-    virtual code validate_silent(const header_link& link, bool bank) NOEXCEPT;
+    virtual code validate_view(const header_link& link, bool filter,
+        bool silent, bool bank) NOEXCEPT;
+    virtual code complete_view(const header_link& link, bool filter,
+        bool silent, bool bank) NOEXCEPT;
     virtual code validate_pooled(bool& pooled, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
-    virtual code complete_pooled(const header_link& link,
-        const system::chain::context& ctx) NOEXCEPT;
+    virtual code complete_pooled(const header_link& link) NOEXCEPT;
     virtual void complete_block(const code& ec, const header_link& link,
         size_t height, bool bypass, bool batched=false,
         bool capturing=false) NOEXCEPT;

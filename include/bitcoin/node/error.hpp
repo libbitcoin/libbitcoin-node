@@ -137,7 +137,12 @@ enum error_t : uint8_t
     batch5,
     batch6,
     batch7,
-    batch8
+    batch8,
+
+    /// configuration
+    silent_unwitnessed,
+    silent_pruned,
+    filter_pruned
 };
 
 // No current need for error_code equivalence mapping.

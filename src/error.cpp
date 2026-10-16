@@ -127,7 +127,12 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { batch5, "batch5" },
     { batch6, "batch6" },
     { batch7, "batch7" },
-    { batch8, "batch8" }
+    { batch8, "batch8" },
+
+    // configuration
+    { silent_unwitnessed, "silent payments require witness" },
+    { silent_pruned, "silent payments start in pruned blocks" },
+    { filter_pruned, "client filters require unpruned blocks" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

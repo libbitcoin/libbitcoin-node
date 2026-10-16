@@ -39,13 +39,18 @@ code configuration::initialize() NOEXCEPT
 {
     const auto silent = node.silent_start_height != max_uint32;
     if (silent && !node.require_witness)
-        return network::error::invalid_configuration;
+        return error::silent_unwitnessed;
 
     const auto checkpoint = bitcoin.top_checkpoint().height();
     const auto milestone = bitcoin.milestone.height();
     const auto bypassed = std::max(checkpoint, milestone);
     if (silent && node.limited_blocks && node.silent_start_height <= bypassed)
-        return network::error::invalid_configuration;
+        return error::silent_pruned;
+
+    const auto filter = to_bool(database.filter_bk.buckets) &&
+        to_bool(database.filter_tx.buckets);
+    if (filter && node.limited_blocks)
+        return error::filter_pruned;
 
     // Batch tables are unused when their batching does not run.
     if (!node.batch_verify_())
