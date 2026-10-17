@@ -44,6 +44,18 @@ struct chaser_estimate_setup_fixture
             query.push_confirmed(query.to_header(block1.hash()), true);
     }
 
+    // Mainnet block 1 is a candidate, so the store is not coalesced.
+    static bool candidate1(node::query& query) NOEXCEPT
+    {
+        const system::settings bitcoin{ chain::selection::mainnet };
+        const auto& genesis = bitcoin.genesis_block.header();
+        const auto& block1 = p2p_compact_setup_fixture::block1();
+        const database::context context1{ 0, 1, genesis.timestamp() };
+        const auto work1 = genesis.proof() + block1.header().proof();
+        return query.set(block1, context1, work1, false, true) &&
+            query.push_candidate(query.to_header(block1.hash()));
+    }
+
     inline chaser_estimate_setup_fixture(uint16_t horizon,
         const initializer& setup=confirm1)
       : p2p_setup_fixture(setup, [=](configuration& config)
@@ -166,6 +178,15 @@ struct chaser_estimate_enabled_setup_fixture
     }
 };
 
+struct chaser_estimate_uncoalesced_setup_fixture
+  : chaser_estimate_setup_fixture
+{
+    inline chaser_estimate_uncoalesced_setup_fixture()
+      : chaser_estimate_setup_fixture(2, candidate1)
+    {
+    }
+};
+
 BC_POP_WARNING()
 
 BOOST_AUTO_TEST_SUITE(chaser_estimate_tests)
@@ -176,7 +197,7 @@ BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__disabled__estimate_disabled, 
     BOOST_REQUIRE_EQUAL(result.first, node::error::estimate_disabled);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__not_initialized__estimate_premature, chaser_estimate_enabled_setup_fixture)
+BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__not_initialized__estimate_premature, chaser_estimate_uncoalesced_setup_fixture)
 {
     const auto result = estimate(1, estimator::mode::basic);
     BOOST_REQUIRE_EQUAL(result.first, node::error::estimate_premature);
