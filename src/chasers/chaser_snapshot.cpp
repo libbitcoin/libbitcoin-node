@@ -65,6 +65,32 @@ code chaser_snapshot::start() NOEXCEPT
     ////if (enabled_confirm_)
     ////    confirm_ = std::max(archive().get_top_confirmed(), checkpoint());
 
+    // Prune on startup when coalesced above genesis, before the network starts.
+    const auto& query = archive();
+    if (!is_zero(query.get_top_confirmed()) && query.is_coalesced())
+    {
+        LOG_ONLY(const auto begin = logger::now();)
+        if (const auto ec = query.prune([this](auto LOG_ONLY(event_),
+            auto LOG_ONLY(table)) NOEXCEPT
+        {
+            LOGN("snapshot::" << full_node::store::events.at(event_)
+                << "(" << full_node::store::tables.at(table) << ")");
+        }))
+        {
+            LOGF("Prune deferred, " << ec.message());
+        }
+        else
+        {
+            pruned_.store(true, std::memory_order_relaxed);
+            const header_t top = query.to_confirmed(query.get_top_confirmed());
+            notify(error::success, chases::pruned{ top });
+            LOG_ONLY(const auto time = logger::now() - begin;)
+            LOG_ONLY(const auto span = duration_cast<milliseconds>(time);)
+            LOGN("Pruned prevout cache at height [" << query.get_top_confirmed()
+                << "] complete in " << span.count() << " msecs.");
+        }
+    }
+
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
