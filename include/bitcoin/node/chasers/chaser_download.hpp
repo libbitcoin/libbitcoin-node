@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_DOWNLOAD_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_DOWNLOAD_HPP
 
 #include <deque>
 #include <unordered_map>
@@ -30,11 +30,11 @@ namespace node {
 class full_node;
 
 /// Maintain set of pending downloads identifiers for candidate header chain.
-class BCN_API chaser_check
+class BCN_API chaser_download
   : public chaser
 {
 public:
-    DELETE_COPY_MOVE_DESTRUCT(chaser_check);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_download);
 
     /// Create empty shared map.
     static map_ptr empty_map() NOEXCEPT;
@@ -42,7 +42,7 @@ public:
     /// Move half of map into returned map.
     static map_ptr split(const map_ptr& map) NOEXCEPT;
 
-    chaser_check(full_node& node) NOEXCEPT;
+    chaser_download(full_node& node) NOEXCEPT;
 
     /// Initialize chaser state.
     code start() NOEXCEPT override;

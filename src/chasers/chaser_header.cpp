@@ -379,7 +379,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
             bumped_ = true;
         }
 
-        // This prevents download stall, the check chaser races ahead.
+        // This prevents download stall, the download chaser races ahead.
         // Start block downloads, which upon completion bumps validation.
         notify(error::success, chases::headers{ branch_point });
     }
