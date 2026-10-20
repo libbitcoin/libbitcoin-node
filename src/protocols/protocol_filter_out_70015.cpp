@@ -141,8 +141,8 @@ bool protocol_filter_out_70015::handle_receive_get_filter_headers(
     }
 
     // bip157: difference [stop_height - start_height] MUST be less than 2000.
-    const auto count = subtract(stop_height, start_height);
-    if (count >= max_client_filter_headers)
+    const auto count = add1(subtract(stop_height, start_height));
+    if (count > max_client_filter_headers)
     {
         stop(network::error::protocol_violation);
         return false;
@@ -205,8 +205,8 @@ bool protocol_filter_out_70015::handle_receive_get_filters(const code& ec,
     }
 
     // bip157: difference [stop_height - start_height] MUST be less than 1000.
-    const auto count = subtract(stop_height, start_height);
-    if (count >= max_client_filters)
+    const auto count = add1(subtract(stop_height, start_height));
+    if (count > max_client_filters)
     {
         stop(network::error::protocol_violation);
         return false;
