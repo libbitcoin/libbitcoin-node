@@ -243,8 +243,8 @@ struct session_broadcast_setup_fixture
 {
     using target = network::diagnostics::target;
 
-    /// Broadcast diagnostics to the target group, capture into the sink.
-    code diagnose(const network::diagnostics::sink::ptr& sink, target group)
+    /// Broadcast diagnostics to the target group, capture into the rows.
+    code diagnose(const network::diagnostics::rows_ptr& rows, target group)
     {
         std::promise<code> promise{};
         const auto broadcaster = std::make_shared<session_broadcaster>(node_);
@@ -254,9 +254,13 @@ struct session_broadcast_setup_fixture
             promise.set_value(ec);
         };
 
+        const auto collect = [rows](diagnostics::row&& value) NOEXCEPT
+        {
+            rows->push_back(std::move(value));
+        };
+
         // The race completes upon release of the last message reference.
-        broadcaster->broadcast<diagnostics>(std::make_shared<diagnostics>(
-            std::make_shared<diagnostics::race>(handler), sink, group), 0);
+        broadcaster->broadcast<diagnostics>(std::make_shared<diagnostics>(std::make_shared<diagnostics::race>(handler), collect, group), 0);
         return promise.get_future().get();
     }
 
@@ -535,13 +539,13 @@ BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__inbound__p
     send(ping{ 42 }, level::bip130);
     BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
-    const auto sink = std::make_shared<network::diagnostics::sink>();
-    BOOST_REQUIRE(!diagnose(sink, target::inbound));
-    BOOST_REQUIRE_EQUAL(sink->captured().size(), 1u);
-    BOOST_REQUIRE(sink->captured().front().group == target::inbound);
-    BOOST_REQUIRE_EQUAL(sink->captured().front().peer_version, level::bip130);
-    BOOST_REQUIRE_EQUAL(sink->captured().front().peer_services, service::node_network);
-    BOOST_REQUIRE_EQUAL(sink->captured().front().peer_user_agent, "/test/");
+    const auto rows = std::make_shared<network::diagnostics::rows>();
+    BOOST_REQUIRE(!diagnose(rows, target::inbound));
+    BOOST_REQUIRE_EQUAL(rows->size(), 1u);
+    BOOST_REQUIRE(rows->front().group == target::inbound);
+    BOOST_REQUIRE_EQUAL(rows->front().peer_version, level::bip130);
+    BOOST_REQUIRE_EQUAL(rows->front().peer_services, service::node_network);
+    BOOST_REQUIRE_EQUAL(rows->front().peer_user_agent, "/test/");
 }
 
 BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__manual__none_captured)
@@ -550,9 +554,9 @@ BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__manual__no
     send(ping{ 42 }, level::bip130);
     BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
-    const auto sink = std::make_shared<network::diagnostics::sink>();
-    BOOST_REQUIRE(!diagnose(sink, target::manual));
-    BOOST_REQUIRE(sink->captured().empty());
+    const auto rows = std::make_shared<network::diagnostics::rows>();
+    BOOST_REQUIRE(!diagnose(rows, target::manual));
+    BOOST_REQUIRE(rows->empty());
 }
 
 BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__identified__stopped)
@@ -561,10 +565,10 @@ BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__identified_
     send(ping{ 42 }, level::bip130);
     BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
-    const auto sink = std::make_shared<network::diagnostics::sink>();
-    BOOST_REQUIRE(!diagnose(sink, target::all));
-    BOOST_REQUIRE_EQUAL(sink->captured().size(), 1u);
-    BOOST_REQUIRE(!terminate(sink->captured().front().identifier));
+    const auto rows = std::make_shared<network::diagnostics::rows>();
+    BOOST_REQUIRE(!diagnose(rows, target::all));
+    BOOST_REQUIRE_EQUAL(rows->size(), 1u);
+    BOOST_REQUIRE(!terminate(rows->front().identifier));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__unidentified__operation_failed)
@@ -573,10 +577,10 @@ BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__unidentifie
     send(ping{ 42 }, level::bip130);
     BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
-    const auto sink = std::make_shared<network::diagnostics::sink>();
-    BOOST_REQUIRE(!diagnose(sink, target::all));
-    BOOST_REQUIRE_EQUAL(sink->captured().size(), 1u);
-    BOOST_REQUIRE_EQUAL(terminate(add1(sink->captured().front().identifier)), network::error::operation_failed);
+    const auto rows = std::make_shared<network::diagnostics::rows>();
+    BOOST_REQUIRE(!diagnose(rows, target::all));
+    BOOST_REQUIRE_EQUAL(rows->size(), 1u);
+    BOOST_REQUIRE_EQUAL(terminate(add1(rows->front().identifier)), network::error::operation_failed);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
