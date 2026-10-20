@@ -33,6 +33,12 @@ inline uint64_t CLASS::services_provided() const NOEXCEPT
 }
 
 TEMPLATE
+inline bool CLASS::relay() const NOEXCEPT
+{
+    return NetworkSession::relay() && this->is_current_chain(true);
+}
+
+TEMPLATE
 inline CLASS::channel_ptr CLASS::create_channel(
     const socket_ptr& socket) NOEXCEPT
 {
