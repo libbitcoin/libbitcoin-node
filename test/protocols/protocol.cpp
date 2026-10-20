@@ -640,6 +640,9 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__unfiltered_s
 
     send(get_client_filters{ client_filter::type_id::neutrino, 0, descendant(1).hash() }, node_version->value);
 
+    const auto message = client_filter::deserialize(node_version->value, receive(client_filter::command));
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE(message->block_hash == config_.bitcoin.genesis_block.hash());
     BOOST_REQUIRE_THROW(receive(client_filter::command), boost::system::system_error);
 }
 
