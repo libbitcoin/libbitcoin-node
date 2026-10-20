@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
-#include <shared_mutex>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
