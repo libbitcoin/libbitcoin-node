@@ -42,7 +42,7 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// Chasers directed to start operating.
-    /// Issued by 'full_node' and handled by 'check', 'validate', 'confirm'.
+    /// Issued by 'full_node' and handled by 'download', 'validate', 'confirm'.
     start,
 
     /// Disk space is limited.
@@ -54,7 +54,7 @@ enum class chase
     snap,
 
     /// Chaser directed to attempt start from its current position.
-    /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
+    /// Issued by 'organize' and handled by 'download', 'validate', 'confirm'.
     bump,
 
     /// Channels (all) directed to stop with the given code.
@@ -62,7 +62,7 @@ enum class chase
     suspend,
 
     /// Chasers (all) directed to resume following suspend.
-    /// Issued by 'full_node' and handled by 'check', 'validate', 'confirm'.
+    /// Issued by 'full_node' and handled by 'download', 'validate', 'confirm'.
     resume,
 
     /// Node is recovering from disk full condition.
@@ -70,19 +70,19 @@ enum class chase
     unfull,
 
     /// Channel starved for work.
-    /// Issued by 'block_in_31800' and handled by 'check'.
+    /// Issued by 'block_in_31800' and handled by 'download'.
     starved,
 
     /// Channel (slow) directed to split work and stop.
-    /// Issued by 'check' and handled by 'block_in_31800'.
+    /// Issued by 'download' and handled by 'block_in_31800'.
     split,
 
     /// Channels (all with work) directed to split work and stop.
-    /// Issued by 'check' and handled by 'block_in_31800'.
+    /// Issued by 'download' and handled by 'block_in_31800'.
     stall,
 
     /// Channels (all with work) directed to drop work and stop.
-    /// Issued by 'check' and handled by 'block_in_31800'.
+    /// Issued by 'download' and handled by 'block_in_31800'.
     purge,
 
     /// Channels (all) directed to write work count to the log.
@@ -93,26 +93,26 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A new candidate branch exists from given branch point.
-    /// Issued by 'header' and handled by 'check'.
+    /// Issued by 'header' and handled by 'download'.
     headers,
 
     /// New candidate headers without txs exist.
-    /// Issued by 'check' and handled by 'block_in_31800'.
+    /// Issued by 'download' and handled by 'block_in_31800'.
     download,
 
     /// The candidate chain has been reorganized (branched below its top).
-    /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
+    /// Issued by 'organize' and handled by 'download', 'validate', 'confirm'.
     regressed,
 
     /// unchecked, unvalid or unconfirmable was handled.
-    /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
+    /// Issued by 'organize' and handled by 'download', 'validate', 'confirm'.
     disorganized,
 
     /// Check/Identify.
     /// -----------------------------------------------------------------------
 
     /// A block has been downloaded, checked and stored.
-    /// Issued by 'block_in_31800', handled by 'check', 'validate'.
+    /// Issued by 'block_in_31800', handled by 'download', 'validate'.
     /// Populate is bypassed for checkpoint/milestone blocks.
     checked,
 
@@ -121,14 +121,14 @@ enum class chase
     unchecked,
 
     /// A downloaded window is completed by check.
-    /// Issued by 'check' and handled by 'validate'.
+    /// Issued by 'download' and handled by 'validate'.
     windowed,
 
     /// Accept/Connect.
     /// -----------------------------------------------------------------------
 
     /// A branch has become valid.
-    /// Issued by 'validate' and handled by 'check', 'confirm'.
+    /// Issued by 'validate' and handled by 'download', 'confirm'.
     valid,
 
     /// A checked block has failed validation.

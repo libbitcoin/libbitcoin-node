@@ -98,8 +98,8 @@
     <ClCompile Include="..\..\..\..\test\block_memory.cpp" />
     <ClCompile Include="..\..\..\..\test\channel_peer.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser.cpp" />
-    <ClCompile Include="..\..\..\..\test\chasers\chaser_check.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp" />
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_download.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_estimate.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_template.cpp" />

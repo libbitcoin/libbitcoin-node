@@ -60,8 +60,8 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/settings.cpp \
     ${srcdir}/../../src/channels/channel_peer.cpp \
     ${srcdir}/../../src/chasers/chaser.cpp \
-    ${srcdir}/../../src/chasers/chaser_check.cpp \
     ${srcdir}/../../src/chasers/chaser_confirm.cpp \
+    ${srcdir}/../../src/chasers/chaser_download.cpp \
     ${srcdir}/../../src/chasers/chaser_estimate.cpp \
     ${srcdir}/../../src/chasers/chaser_header.cpp \
     ${srcdir}/../../src/chasers/chaser_snapshot.cpp \
@@ -137,8 +137,8 @@ include_bitcoin_node_chasersdir = \
 
 include_bitcoin_node_chasers_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser.hpp \
-    ${srcdir}/../../include/bitcoin/node/chasers/chaser_check.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_confirm.hpp \
+    ${srcdir}/../../include/bitcoin/node/chasers/chaser_download.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_estimate.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_header.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_snapshot.hpp \
@@ -229,8 +229,8 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/settings.cpp \
     ${srcdir}/../../test/test.cpp \
     ${srcdir}/../../test/chasers/chaser.cpp \
-    ${srcdir}/../../test/chasers/chaser_check.cpp \
     ${srcdir}/../../test/chasers/chaser_confirm.cpp \
+    ${srcdir}/../../test/chasers/chaser_download.cpp \
     ${srcdir}/../../test/chasers/chaser_estimate.cpp \
     ${srcdir}/../../test/chasers/chaser_header.cpp \
     ${srcdir}/../../test/chasers/chaser_template.cpp \

@@ -35,7 +35,6 @@ public:
     protocol_block_out_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
-        node_pruned_(session->node_settings().limited_blocks),
         node_witness_(session->node_settings().provide_witness),
        network::tracker<protocol_block_out_106>(session->log)
     {
@@ -86,7 +85,6 @@ private:
     inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
 
     // These are thread safe.
-    const bool node_pruned_;
     const bool node_witness_;
 };
 

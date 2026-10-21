@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/chasers/chaser_check.hpp>
+#include <bitcoin/node/chasers/chaser_download.hpp>
 
 #include <cmath>
 #include <ratio>
@@ -27,7 +27,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS chaser_check
+#define CLASS chaser_download
 
 using namespace system;
 using namespace system::chain;
@@ -58,7 +58,7 @@ size_t get_step(size_t connections, size_t maximum_concurrency) NOEXCEPT
     return std::min(maximum_concurrency, span);
 }
 
-chaser_check::chaser_check(full_node& node) NOEXCEPT
+chaser_download::chaser_download(full_node& node) NOEXCEPT
   : chaser(node),
     allowed_deviation_(node.node_settings().allowed_deviation),
     maximum_concurrency_(node.node_settings().maximum_concurrency_()),
@@ -71,13 +71,13 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 }
 
 // static
-map_ptr chaser_check::empty_map() NOEXCEPT
+map_ptr chaser_download::empty_map() NOEXCEPT
 {
     return std::make_shared<associations>();
 }
 
 // static
-map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
+map_ptr chaser_download::split(const map_ptr& map) NOEXCEPT
 {
     const auto half = empty_map();
     auto& index = map->get<association::pos>();
@@ -92,7 +92,7 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
 // `position` tracks the contiguous chain of associated candidate blocks.
 // `requested` tracks the last height of the current download window.
 // `advanced` tracks `requested` less window blocks not yet validated.
-code chaser_check::start() NOEXCEPT
+code chaser_download::start() NOEXCEPT
 {
     start_tracking();
     compact_timer_ = std::make_shared<deadline>(log, strand());
@@ -105,7 +105,7 @@ code chaser_check::start() NOEXCEPT
     return error::success;
 }
 
-void chaser_check::stopping(const code& ec) NOEXCEPT
+void chaser_download::stopping(const code& ec) NOEXCEPT
 {
     if (compact_timer_)
         compact_timer_->stop();
@@ -115,7 +115,7 @@ void chaser_check::stopping(const code& ec) NOEXCEPT
     chaser::stopping(ec);
 }
 
-bool chaser_check::handle_chase(const code&, event_value value) NOEXCEPT
+bool chaser_download::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -182,7 +182,7 @@ bool chaser_check::handle_chase(const code&, event_value value) NOEXCEPT
     return true;
 }
 
-void chaser_check::start_tracking() NOEXCEPT
+void chaser_download::start_tracking() NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
@@ -190,7 +190,7 @@ void chaser_check::start_tracking() NOEXCEPT
     job_ = std::make_shared<job>(BIND(handle_purged, _1));
 }
 
-void chaser_check::stop_tracking() NOEXCEPT
+void chaser_download::stop_tracking() NOEXCEPT
 {
     // Called by stop (node thread).
     ////BC_ASSERT(stranded());
@@ -200,17 +200,17 @@ void chaser_check::stop_tracking() NOEXCEPT
     job_.reset();
 }
 
-void chaser_check::handle_purged(const code& ec) NOEXCEPT
+void chaser_download::handle_purged(const code& ec) NOEXCEPT
 {
     if (closed())
         return;
 
     boost::asio::post(strand(),
-        std::bind(&chaser_check::do_handle_purged,
+        std::bind(&chaser_download::do_handle_purged,
             this, ec));
 }
 
-void chaser_check::do_handle_purged(const code&) NOEXCEPT
+void chaser_download::do_handle_purged(const code&) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -221,7 +221,7 @@ void chaser_check::do_handle_purged(const code&) NOEXCEPT
 // starved
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_starved(object_t self) NOEXCEPT
+void chaser_download::do_starved(object_t self) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -255,7 +255,7 @@ void chaser_check::do_starved(object_t self) NOEXCEPT
 // update
 // ----------------------------------------------------------------------------
 
-void chaser_check::update(object_key channel, uint64_t speed,
+void chaser_download::update(object_key channel, uint64_t speed,
     network::result_handler&& handler) NOEXCEPT
 {
     if (closed())
@@ -275,7 +275,7 @@ std::string to_kilobits_per_second(double value) NOEXCEPT
     return encode_base10(to_integer<uint64_t>(kilobits));
 }
 
-void chaser_check::do_update(object_key channel, uint64_t speed,
+void chaser_download::do_update(object_key channel, uint64_t speed,
     const network::result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -345,7 +345,7 @@ void chaser_check::do_update(object_key channel, uint64_t speed,
 // regression
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
+void chaser_download::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -366,7 +366,7 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 // track downloaded in order (to move download window)
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_advanced(height_t) NOEXCEPT
+void chaser_download::do_advanced(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -378,7 +378,7 @@ void chaser_check::do_advanced(height_t) NOEXCEPT
         do_headers({});
 }
 
-void chaser_check::do_checked(height_t height) NOEXCEPT
+void chaser_download::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -387,7 +387,7 @@ void chaser_check::do_checked(height_t height) NOEXCEPT
         do_bump({});
 }
 
-void chaser_check::do_bump(height_t) NOEXCEPT
+void chaser_download::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (purging())
@@ -413,7 +413,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
 // add headers
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_headers(height_t) NOEXCEPT
+void chaser_download::do_headers(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -424,12 +424,12 @@ void chaser_check::do_headers(height_t) NOEXCEPT
 // get/put hashes
 // ----------------------------------------------------------------------------
 
-bool chaser_check::purging() const NOEXCEPT
+bool chaser_download::purging() const NOEXCEPT
 {
     return !job_;
 }
 
-void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
+void chaser_download::get_hashes(map_handler&& handler) NOEXCEPT
 {
     if (closed())
         return;
@@ -437,7 +437,7 @@ void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
     POST(do_get_hashes, std::move(handler));
 }
 
-void chaser_check::put_hashes(const map_ptr& map,
+void chaser_download::put_hashes(const map_ptr& map,
     result_handler&& handler) NOEXCEPT
 {
     if (closed())
@@ -446,7 +446,7 @@ void chaser_check::put_hashes(const map_ptr& map,
     POST(do_put_hashes, map, std::move(handler));
 }
 
-void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
+void chaser_download::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (closed() || purging())
@@ -455,7 +455,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
     handler(error::success, get_map(), job_);
 }
 
-void chaser_check::do_put_hashes(const map_ptr& map,
+void chaser_download::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -472,13 +472,13 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 // utilities
 // ----------------------------------------------------------------------------
 
-map_ptr chaser_check::get_map() NOEXCEPT
+map_ptr chaser_download::get_map() NOEXCEPT
 {
     BC_ASSERT(stranded());
     return maps_.empty() ? empty_map() : pop_front(maps_);
 }
 
-bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
+bool chaser_download::set_map(const map_ptr& map) NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
@@ -493,7 +493,7 @@ bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
 // Get all unassociated block records from start to stop heights.
 // Groups records into table sets by inventory set size, limited by advance.
 // Return the total number of records obtained and set requested_ to last.
-size_t chaser_check::set_unassociated() NOEXCEPT
+size_t chaser_download::set_unassociated() NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
@@ -570,7 +570,7 @@ size_t chaser_check::set_unassociated() NOEXCEPT
     return count;
 }
 
-void chaser_check::handle_compact_timer(const code& ec) NOEXCEPT
+void chaser_download::handle_compact_timer(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (ec == network::error::operation_canceled || closed())
@@ -581,7 +581,7 @@ void chaser_check::handle_compact_timer(const code& ec) NOEXCEPT
     do_headers({});
 }
 
-size_t chaser_check::get_inventory_size() const NOEXCEPT
+size_t chaser_download::get_inventory_size() const NOEXCEPT
 {
     if (is_zero(connections_) || !is_current_chain(false))
         return {};

@@ -217,7 +217,6 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         { query.get_wire_block(link, witness), witness }
     };
 
-    // Association is verified above, so this is not ordinary peer input.
     if (!out.block.is_valid())
     {
         LOGV("Requested block " << encode_hash(item.hash) << " from ["
@@ -233,7 +232,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     SEND(std::move(out), send_block, _1, add1(index), message, gate);
 }
 
-// The checkpoint, milestone and association queries assume an archived header.
+// The association query assumes an archived header.
 bool protocol_block_out_106::is_servable(const hash_digest& LOG_ONLY(hash),
     const database::header_link& link) NOEXCEPT
 {
@@ -248,13 +247,6 @@ bool protocol_block_out_106::is_servable(const hash_digest& LOG_ONLY(hash),
     }
 
     const auto& query = archive();
-    if (node_pruned_ && query.is_bypass(link))
-    {
-        LOGV("Requested pruned block " << encode_hash(hash)
-            << " from [" << opposite() << "].");
-        return false;
-    }
-
     // This block could not have been advertised to the peer.
     if (!query.is_associated(link))
     {

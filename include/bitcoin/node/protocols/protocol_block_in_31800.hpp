@@ -42,7 +42,7 @@ public:
         block_type_(session->node_settings().require_witness ?
             type_id::witness_block : type_id::block),
         node_pruned_(session->node_settings().limited_blocks),
-        map_(chaser_check::empty_map()),
+        map_(chaser_download::empty_map()),
         network::tracker<protocol_block_in_31800>(session->log)
     {
     }

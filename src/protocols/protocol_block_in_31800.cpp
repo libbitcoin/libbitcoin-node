@@ -80,7 +80,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
     restore(map_);
-    map_ = chaser_check::empty_map();
+    map_ = chaser_download::empty_map();
     stop_performance();
     unsubscribe_chase();
     protocol_performer::stopping(ec);
@@ -193,9 +193,9 @@ void protocol_block_in_31800::do_stall(peer_t) NOEXCEPT
         return;
 
     LOGV("Divide work (" << map_->size() << ") from [" << opposite() << "].");
-    restore(chaser_check::split(map_));
+    restore(chaser_download::split(map_));
     restore(map_);
-    map_ = chaser_check::empty_map();
+    map_ = chaser_download::empty_map();
     stop(error::sacrificed_channel);
 }
 
@@ -207,9 +207,9 @@ void protocol_block_in_31800::do_split(peer_t) NOEXCEPT
         return;
 
     LOGV("Split work (" << map_->size() << ") from [" << opposite() << "].");
-    restore(chaser_check::split(map_));
+    restore(chaser_download::split(map_));
     restore(map_);
-    map_ = chaser_check::empty_map();
+    map_ = chaser_download::empty_map();
     stop(error::sacrificed_channel);
 }
 

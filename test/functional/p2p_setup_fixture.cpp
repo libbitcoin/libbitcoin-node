@@ -239,6 +239,13 @@ system::chain::header p2p_unassociated_setup_fixture::unassociated() NOEXCEPT
     };
 }
 
+bool p2p_limited_setup_fixture::pruned(node::query& query) NOEXCEPT
+{
+    const auto& block = p2p_compact_setup_fixture::block1();
+    return query.set(block.header(), database::context{ 0, 1, 0 }, {}, false)
+        && query.set(block, false, false, true);
+}
+
 const system::chain::block& p2p_compact_setup_fixture::block1() NOEXCEPT
 {
     const auto data = base16_chunk
