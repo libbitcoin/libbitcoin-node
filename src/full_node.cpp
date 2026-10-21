@@ -42,7 +42,7 @@ full_node::full_node(query& query, const configuration& configuration,
     start_time_(zulu_time()),
     query_(query),
     chaser_header_(*this),
-    chaser_check_(*this),
+    chaser_download_(*this),
     chaser_validate_(*this),
     chaser_confirm_(*this),
     chaser_transaction_(*this),
@@ -78,7 +78,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     code ec{};
 
     if (((ec = chaser_header_.start())) ||
-        ((ec = chaser_check_.start())) ||
+        ((ec = chaser_download_.start())) ||
         ((ec = chaser_validate_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
@@ -125,7 +125,7 @@ void full_node::close() NOEXCEPT
 
     // Block on chaser stop (including dedicated threadpool joins).
     chaser_header_.stop();
-    chaser_check_.stop();
+    chaser_download_.stop();
     chaser_validate_.stop();
     chaser_confirm_.stop();
     chaser_transaction_.stop();
@@ -142,7 +142,7 @@ void full_node::do_close() NOEXCEPT
 
     // Initiate chaser stopping (including dedicated threadpools).
     chaser_header_.stopping(network::error::service_stopped);
-    chaser_check_.stopping(network::error::service_stopped);
+    chaser_download_.stopping(network::error::service_stopped);
     chaser_validate_.stopping(network::error::service_stopped);
     chaser_confirm_.stopping(network::error::service_stopped);
     chaser_transaction_.stopping(network::error::service_stopped);
@@ -202,13 +202,13 @@ void full_node::submit_compact(const system::chain::transactions_cptr& txs,
 
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT
 {
-    chaser_check_.get_hashes(std::move(handler));
+    chaser_download_.get_hashes(std::move(handler));
 }
 
 void full_node::put_hashes(const map_ptr& map,
     result_handler&& handler) NOEXCEPT
 {
-    chaser_check_.put_hashes(map, std::move(handler));
+    chaser_download_.put_hashes(map, std::move(handler));
 }
 
 // Events.
@@ -486,7 +486,7 @@ void full_node::estimate(size_t target, estimator::mode mode,
 void full_node::performance(object_key key, uint64_t speed,
     result_handler&& handler) NOEXCEPT
 {
-    chaser_check_.update(key, speed, std::move(handler));
+    chaser_download_.update(key, speed, std::move(handler));
 }
 
 // Session attachments.

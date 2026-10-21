@@ -208,7 +208,7 @@ private:
 
     // These are protected by strand.
     chaser_header chaser_header_;
-    chaser_check chaser_check_;
+    chaser_download chaser_download_;
     chaser_validate chaser_validate_;
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
