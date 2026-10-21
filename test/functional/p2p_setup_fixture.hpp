@@ -166,8 +166,11 @@ struct p2p_witness_setup_fixture
 struct p2p_limited_setup_fixture
   : p2p_setup_fixture
 {
+    /// Archives mainnet block 1 pruned.
+    static bool pruned(node::query& query) NOEXCEPT;
+
     inline p2p_limited_setup_fixture()
-      : p2p_setup_fixture({}, [](configuration& config)
+      : p2p_setup_fixture(pruned, [](configuration& config)
         {
             config.node.limited_blocks = true;
             config.network.enable_not_found = true;

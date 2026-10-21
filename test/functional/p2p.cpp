@@ -261,14 +261,15 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__pruned_block__not_found,
 {
     BOOST_REQUIRE(handshake());
 
-    const system::chain::block& genesis = config_.bitcoin.genesis_block;
-    const get_data get{ { { inventory_item::type_id::block, genesis.hash() } } };
+    const auto hash = p2p_compact_setup_fixture::block1().hash();
+    const get_data get{ { { inventory_item::type_id::block, hash } } };
     send(get, node_version->value);
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(node_version->value, payload);
     BOOST_REQUIRE(message);
     BOOST_REQUIRE_EQUAL(message->items.size(), one);
+    BOOST_REQUIRE(message->items.front().hash == hash);
 }
 
 BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unassociated_block__not_found,
