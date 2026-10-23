@@ -40,6 +40,7 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
+    using chaser::broadcast;
     using header_link = database::header_link;
     using header_links = database::header_links;
     using header_states = database::header_states;
@@ -70,9 +71,14 @@ private:
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
     void announce(const header_link& link, height_t height) NOEXCEPT;
+    void broadcast(const header_link& link, bool organized) NOEXCEPT;
+    void do_broadcast(const header_link& link, bool organized) NOEXCEPT;
     void do_stopping(const code& ec) NOEXCEPT;
     void start_stale_timer() NOEXCEPT;
     void handle_stale_timer(const code& ec) NOEXCEPT;
+
+    // This is thread safe.
+    network::asio::strand broadcast_strand_;
 
     // This is protected by strand.
     network::deadline::ptr stale_timer_{};

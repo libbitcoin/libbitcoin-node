@@ -36,7 +36,8 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
-  : chaser(node)
+  : chaser(node),
+    broadcast_strand_(node.service().get_executor())
 {
 }
 
@@ -378,6 +379,7 @@ bool chaser_confirm::set_reorganized(const header_link& link,
         return false;
 
     notify(error::success, chases::reorganized{ link });
+    broadcast(link, false);
     fire(events::block_reorganized, confirmed_height);
     LOGV("Block reorganized: " << confirmed_height);
     return true;
@@ -411,6 +413,7 @@ bool chaser_confirm::set_organized(const header_link& link,
         return false;
 
     notify(error::success, chases::organized{ link });
+    broadcast(link, true);
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
 
@@ -445,6 +448,30 @@ void chaser_confirm::announce(const header_link& link, height_t) NOEXCEPT
         notify(error::success, chases::block{ link });
         start_stale_timer();
     }
+}
+
+void chaser_confirm::broadcast(const header_link& link,
+    bool organized) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (wire_block_demanded() && is_current_chain(true))
+        boost::asio::post(broadcast_strand_,
+            BIND(do_broadcast, link, organized));
+}
+
+void chaser_confirm::do_broadcast(const header_link& link,
+    bool organized) NOEXCEPT
+{
+    BC_ASSERT(broadcast_strand_.running_in_this_thread());
+    if (closed())
+        return;
+
+    const auto block = emplace_shared<const chain::view::block>(
+        archive().get_wire_block(link, true), true);
+
+    if (block->is_valid())
+        broadcast(emplace_shared<const wire_block>(block, organized));
 }
 
 // The chain becomes stale at the top block timestamp plus the window, which

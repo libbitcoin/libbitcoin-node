@@ -122,6 +122,14 @@ static bool stored_header(node::query& query) NOEXCEPT
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// A session to observe wire broadcasts.
+class wire_session
+  : public network::session_manual
+{
+public:
+    using session_manual::session_manual;
+};
+
 struct chaser_transaction_setup_fixture
   : p2p_setup_fixture
 {
@@ -460,6 +468,24 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__valid__success_archived, cha
     const auto result = submit(package({ tx }));
     BOOST_REQUIRE_EQUAL(result.first, node::error::success);
     BOOST_REQUIRE(query_.is_tx(tx->hash(false)));
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__wire_tx_demanded__broadcast, chaser_transaction_pooling_setup_fixture)
+{
+    std::promise<network::wire_tx::cptr> promise{};
+    auto broadcast = promise.get_future();
+    const auto session = std::make_shared<wire_session>(node_, 42);
+    session->subscribe<network::wire_tx>([&](const code&, const network::wire_tx::cptr& message, uint64_t) NOEXCEPT
+    {
+        promise.set_value(message);
+        return false;
+    }, 42);
+
+    const auto tx = spend(parent_value);
+    node_.demand_wire_tx(true);
+    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BOOST_REQUIRE(broadcast.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+    BOOST_REQUIRE(broadcast.get()->tx()->to_data(true) == tx->to_data(true));
 }
 
 BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__valid_twice__duplicate_transaction, chaser_transaction_pooling_setup_fixture)
