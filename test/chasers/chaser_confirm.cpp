@@ -223,10 +223,29 @@ static bool confirm_c1_confirmed(node::query& query)
     return confirm_confirmed(query, confirm_c1(), 1);
 }
 
+static bool confirm_genesis_only(node::query&)
+{
+    return true;
+}
+
 static void confirm_uncheckpointed(configuration& config)
 {
     config.bitcoin.checkpoints.clear();
 }
+
+static void confirm_current(configuration& config)
+{
+    config.bitcoin.checkpoints.clear();
+    config.node.currency_window_minutes = 30u * 365u * 24u * 60u;
+}
+
+// A session to observe wire broadcasts.
+class wire_session
+  : public network::session_manual
+{
+public:
+    using session_manual::session_manual;
+};
 
 struct confirm_setup_fixture
 {
@@ -457,6 +476,15 @@ struct confirm_unprevouted_fixture
     }
 };
 
+struct confirm_genesis_fixture
+  : confirm_setup_fixture
+{
+    confirm_genesis_fixture()
+      : confirm_setup_fixture(confirm_genesis_only, confirm_current)
+    {
+    }
+};
+
 BOOST_AUTO_TEST_SUITE(chaser_confirm_tests)
 
 ////BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__stronger_candidate_fork__reorganized, confirm_stronger_fixture)
@@ -536,6 +564,31 @@ BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__bypassed_candidate_unheaded_paren
     BOOST_REQUIRE(await([&]() { return node_.suspended(); }));
     BOOST_REQUIRE(confirmed(confirm_c1(), 1));
     BOOST_REQUIRE_EQUAL(query_.get_top_confirmed(), 1u);
+}
+
+BOOST_FIXTURE_TEST_CASE(chaser_confirm__bump__wire_block_demanded_current__broadcast_block, confirm_genesis_fixture)
+{
+    std::promise<network::wire_block::cptr> promise{};
+    auto broadcast = promise.get_future();
+    const auto session = std::make_shared<wire_session>(node_, 42);
+    session->subscribe<network::wire_block>([&](const code&, const network::wire_block::cptr& message, uint64_t) NOEXCEPT
+    {
+        promise.set_value(message);
+        return false;
+    }, 42);
+
+    node_.demand_wire_block(true);
+    BOOST_REQUIRE(confirm_confirmable(query_));
+
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BOOST_REQUIRE(confirmed(confirm_d1(), 1));
+    BOOST_REQUIRE(broadcast.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+    const auto message = broadcast.get();
+    BOOST_REQUIRE(message->organized());
+    BOOST_REQUIRE(message->block()->to_data(true) == confirm_d1().to_data(true));
+    BOOST_REQUIRE_EQUAL(message->transactions().size(), 1u);
+    BOOST_REQUIRE(message->transactions().front()->tx()->to_data(true) == confirm_d1().transactions_ptr()->front()->to_data(true));
 }
 
 ////BOOST_FIXTURE_TEST_CASE(chaser_confirm__start__valid_candidate_without_prevouts__suspended_unconfirmable, confirm_unprevouted_fixture)

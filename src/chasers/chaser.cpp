@@ -104,6 +104,29 @@ void chaser::notify_one(object_key key, const code& ec,
     node_.notify_one(key, ec, value);
 }
 
+// Broadcasts.
+// ----------------------------------------------------------------------------
+
+void chaser::broadcast(const network::wire_tx::cptr& message) const NOEXCEPT
+{
+    node_.broadcast<network::wire_tx>(message, {});
+}
+
+void chaser::broadcast(const network::wire_block::cptr& message) const NOEXCEPT
+{
+    node_.broadcast<network::wire_block>(message, {});
+}
+
+bool chaser::wire_tx_demanded() const NOEXCEPT
+{
+    return node_.wire_tx_demanded();
+}
+
+bool chaser::wire_block_demanded() const NOEXCEPT
+{
+    return node_.wire_block_demanded();
+}
+
 // Strand.
 // ----------------------------------------------------------------------------
 

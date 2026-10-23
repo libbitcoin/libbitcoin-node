@@ -52,6 +52,8 @@ public:
         submit_handler&& handler) NOEXCEPT;
 
 protected:
+    using chaser::broadcast;
+
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_submit(const system::chain::transactions_cptr& txs,
@@ -90,6 +92,7 @@ private:
         const system::chain::context& ctx) NOEXCEPT;
     code unconfirmable(const database::header_link& link, size_t height,
         const code& ec) NOEXCEPT;
+    void broadcast(const system::chain::transaction& tx) const NOEXCEPT;
     void start_scan(bool remap) NOEXCEPT;
 
     // These are thread safe.

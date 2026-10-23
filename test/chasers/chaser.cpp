@@ -45,6 +45,8 @@ public:
     using chaser::is_current_header;
     using chaser::is_recent;
     using chaser::suspended;
+    using chaser::wire_tx_demanded;
+    using chaser::wire_block_demanded;
 };
 
 // A running full node without peer connections, and a chaser over it.
@@ -163,6 +165,30 @@ BOOST_AUTO_TEST_CASE(chaser__is_current_header__genesis__false)
 BOOST_AUTO_TEST_CASE(chaser__is_recent__genesis__false)
 {
     BOOST_REQUIRE(!chaser_.is_recent());
+}
+
+BOOST_AUTO_TEST_CASE(chaser__wire_tx_demanded__demanded__true)
+{
+    BOOST_REQUIRE(!chaser_.wire_tx_demanded());
+
+    node_.demand_wire_tx(true);
+    BOOST_REQUIRE(chaser_.wire_tx_demanded());
+    BOOST_REQUIRE(!chaser_.wire_block_demanded());
+
+    node_.demand_wire_tx(false);
+    BOOST_REQUIRE(!chaser_.wire_tx_demanded());
+}
+
+BOOST_AUTO_TEST_CASE(chaser__wire_block_demanded__demanded__true)
+{
+    BOOST_REQUIRE(!chaser_.wire_block_demanded());
+
+    node_.demand_wire_block(true);
+    BOOST_REQUIRE(chaser_.wire_block_demanded());
+    BOOST_REQUIRE(!chaser_.wire_tx_demanded());
+
+    node_.demand_wire_block(false);
+    BOOST_REQUIRE(!chaser_.wire_block_demanded());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

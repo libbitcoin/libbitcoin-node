@@ -107,6 +107,19 @@ protected:
     virtual void notify_one(object_key key, const code& ec,
         event_value value) const NOEXCEPT;
 
+    /// Broadcasts.
+    /// -----------------------------------------------------------------------
+
+    /// Broadcast a wire tx|block to subscribed channels.
+    virtual void broadcast(
+        const network::wire_tx::cptr& message) const NOEXCEPT;
+    virtual void broadcast(
+        const network::wire_block::cptr& message) const NOEXCEPT;
+
+    /// Some channel demands wire tx|block broadcasts.
+    virtual bool wire_tx_demanded() const NOEXCEPT;
+    virtual bool wire_block_demanded() const NOEXCEPT;
+
     /// Strand.
     /// -----------------------------------------------------------------------
 

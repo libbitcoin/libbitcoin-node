@@ -228,6 +228,7 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         }
 
         notify(error::success, chases::transaction{ fk });
+        broadcast(*tx);
     }
 }
 
@@ -327,6 +328,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
         fire(events::tx_archived, to_rate(tx));
         notify(error::success, chases::transaction{ link });
+        broadcast(tx);
     }
 
     handler(error::success, {});
@@ -454,6 +456,7 @@ code chaser_transaction::fill(database::tx_link& out,
             return fault(error::transaction6);
 
         notify(error::success, chases::transaction{ out });
+        broadcast(tx);
         return error::success;
     }
 
@@ -481,9 +484,20 @@ code chaser_transaction::fill(database::tx_link& out,
     {
         fire(events::tx_archived, to_rate(tx));
         notify(error::success, chases::transaction{ out });
+        broadcast(tx);
     }
 
     return error::success;
+}
+
+void chaser_transaction::broadcast(const chain::transaction& tx) const NOEXCEPT
+{
+    if (!wire_tx_demanded())
+        return;
+
+    const auto view = emplace_shared<const chain::view::transaction>(
+        tx.to_data(true), false, true);
+    broadcast(emplace_shared<const network::wire_tx>(view));
 }
 
 // An identified block with an invalid tx is invalid.
