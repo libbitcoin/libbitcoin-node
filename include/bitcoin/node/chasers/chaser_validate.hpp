@@ -184,6 +184,7 @@ private:
     // These are thread safe.
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
+    const system::chain::script signet_challenge_;
     const size_t maximum_backlog_;
     const size_t maximum_height_;
     const uint64_t verify_target_;

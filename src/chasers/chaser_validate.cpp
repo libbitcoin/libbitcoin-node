@@ -41,6 +41,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     validation_strand_(validation_threadpool_.service().get_executor()),
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
+    signet_challenge_(node.system_settings().signet_challenge),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
     maximum_height_(node.node_settings().maximum_height_()),
     verify_target_(node.node_settings().batch_verify),

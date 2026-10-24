@@ -65,6 +65,14 @@ code configuration::initialize() NOEXCEPT
     if (!node.use_gpu_())
         database.gpu_scan_minimum = max_uint32;
 
+    // The signet message identifier is derived from its challenge [bip325].
+    if (bitcoin.forks.signet)
+    {
+        const auto challenge = bitcoin.signet_challenge.to_data(true);
+        const auto hash = system::bitcoin_hash(challenge);
+        network.identifier = system::from_little_endian<uint32_t>(hash);
+    }
+
     database.initialize(bitcoin, node.limited_blocks, node.silent_start_height);
     return network.initialize();
 }
