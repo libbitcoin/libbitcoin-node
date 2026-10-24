@@ -85,18 +85,25 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else
     {
-        const auto block = query.get_block(link, node_witness_);
+        tx_links conflicts{};
+        prevout_spends spends{};
+        chain::view::block block
+        {
+            query.get_wire_block(link, node_witness_),
+            node_witness_
+        };
 
-        if (!block)
+        if (!block.is_valid())
         {
             ec = error::validate2;
         }
-        else if ((ec = populate(*block, ctx)))
+        else if ((ec = populate(block, spends, conflicts, link, ctx)))
         {
             if (!query.set_block_unconfirmable(link))
                 ec = error::validate4;
         }
-        else if ((ec = validate(batched, capturing, *block, link, ctx)))
+        else if ((ec = validate(batched, capturing, block, spends, conflicts,
+            link, ctx)))
         {
             if (!query.set_block_unconfirmable(link))
                 ec = error::validate5;
@@ -130,19 +137,18 @@ void chaser_validate::validate_block(const header_link& link,
 // helpers
 // ----------------------------------------------------------------------------
 
-code chaser_validate::populate(const chain::block& block,
+code chaser_validate::populate(chain::view::block& block,
+    prevout_spends& spends, tx_links& conflicts, const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
-    // Internal maturity and time locks are verified here because they are
-    // the only necessary confirmation checks for internal spends.
-    if (const auto ec = block.populate(ctx))
-        return ec;
-
-    // Metadata identifies internal spends allowing confirmation bypass.
-    if (!archive().populate_with_metadata(block))
+    // Spends identify internal spends allowing confirmation bypass.
+    system::data_chunk prevouts{};
+    if (!archive().get_block_prevouts(prevouts, spends, conflicts, link))
         return system::error::missing_previous_output;
 
-    return error::success;
+    // Internal maturity and time locks are verified here because they are
+    // the only necessary confirmation checks for internal spends.
+    return block.populate(ctx, std::move(prevouts));
 }
 
 // Scan a validated block whose silent bank was dropped by restore.
@@ -247,13 +253,14 @@ code chaser_validate::complete_pooled(const header_link& link) NOEXCEPT
 }
 
 code chaser_validate::validate(bool& batched, bool& capturing,
-    const chain::block& block, const header_link& link,
+    const chain::view::block& block, const prevout_spends& spends,
+    const tx_links& conflicts, const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
 
     code ec{};
-    if (((ec = block.check(false))) || ((ec = block.check(ctx, false))))
+    if (((ec = block.check())) || ((ec = block.check(ctx))))
         return ec;
 
     if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
@@ -283,7 +290,7 @@ code chaser_validate::validate(bool& batched, bool& capturing,
         return ec;
 
     // Prevouts optimize confirmation.
-    if (!query.set_prevouts(link, block))
+    if (!query.set_prevouts(link, spends, conflicts))
         return error::validate7;
 
     if (!query.set_filter_body(link, block))
