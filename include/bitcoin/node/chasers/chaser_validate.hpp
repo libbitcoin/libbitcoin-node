@@ -44,6 +44,7 @@ public:
 protected:
     using header_link = database::header_link;
     using header_links = database::header_links;
+    using prevout_spends = query::prevout_spends;
     using signatures = system::chain::signatures;
     using race = network::race_unity<const code&, const database::tx_link&>;
 
@@ -68,10 +69,12 @@ protected:
     virtual void validate_block(const header_link& link, bool bypass) NOEXCEPT;
     virtual void scan_block(const header_link& link, bool bypass) NOEXCEPT;
     virtual code validate(bool& batched, bool& capturing,
-        const system::chain::block& block, const header_link& link,
+        const system::chain::view::block& block, const prevout_spends& spends,
+        const database::tx_links& conflicts, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
-    virtual code populate(const system::chain::block& block,
-        const system::chain::context& ctx) NOEXCEPT;
+    virtual code populate(system::chain::view::block& block,
+        prevout_spends& spends, database::tx_links& conflicts,
+        const header_link& link, const system::chain::context& ctx) NOEXCEPT;
     virtual code validate_view(const header_link& link, bool filter,
         bool silent, bool bank) NOEXCEPT;
     virtual code complete_view(const header_link& link, bool filter,
