@@ -260,7 +260,7 @@ code chaser_validate::validate(bool& batched, bool& capturing,
     auto& query = archive();
 
     code ec{};
-    if (((ec = block.check())) || ((ec = block.check(ctx))))
+    if (((ec = block.check())) || ((ec = block.check(ctx, signet_challenge_))))
         return ec;
 
     if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))

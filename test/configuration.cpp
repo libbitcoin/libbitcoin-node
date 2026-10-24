@@ -39,6 +39,21 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__mainnet__success_peer_identifier
     BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, 0xd9b4bef9_u32);
 }
 
+BOOST_AUTO_TEST_CASE(configuration__initialize__signet__success_peer_identifier_signet_magic)
+{
+    node::configuration instance(chain::selection::signet);
+    BOOST_REQUIRE(!instance.initialize());
+    BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, 0x40cf030a_u32);
+}
+
+BOOST_AUTO_TEST_CASE(configuration__initialize__custom_signet__success_peer_identifier_challenge_magic)
+{
+    node::configuration instance(chain::selection::signet);
+    instance.bitcoin.signet_challenge = system::config::script{ "1" };
+    BOOST_REQUIRE(!instance.initialize());
+    BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, from_little_endian<uint32_t>(bitcoin_hash(base16_chunk("0151"))));
+}
+
 BOOST_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__silent_unwitnessed)
 {
     node::configuration instance(chain::selection::mainnet);
