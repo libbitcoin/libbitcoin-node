@@ -370,14 +370,14 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 code protocol_block_in_31800::identify(const chain::view::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
-    if (const auto ec = block.identify())
+    if (const auto ec = block.check_guard())
         return ec;
 
     // Bypass witness commitment check for stripped blocks.
     if (bypass && node_pruned_)
         return error::success;
 
-    if (const auto ec = block.identify(ctx))
+    if (const auto ec = block.check_guard(ctx))
         return ec;
 
     return error::success;
