@@ -408,8 +408,8 @@ void protocol_header_in_70014::identify(const gate_t::ptr& gate) NOEXCEPT
         wtxids.cbegin());
 
     const auto witness_root = sha256::merkle_root(std::move(wtxids));
-    if ((ec = chain::block::identify(root, txids, is_malleated64(block))) ||
-        (ec = chain::block::identify(ctx, first, witness_root, segregated)))
+    if ((ec = chain::block::check_guard(root, txids, is_malleated64(block))) ||
+        (ec = chain::block::check_guard(ctx, first, witness_root, segregated)))
     {
         LOGR("Compact block [" << encode_hash(block.hash) << "] from ["
             << opposite() << "] " << ec.message());
