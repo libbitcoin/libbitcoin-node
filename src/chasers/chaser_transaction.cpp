@@ -575,15 +575,16 @@ code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
     code ec{};
 
     // Ensure tx does not violate tx consensus rules.
+    // Guards ensure tx does not violate presumed block consensus rules.
+    // These are DoS guards when validating a tx outside of a block.
     if (!ec) ec = tx.check();
     if (!ec) ec = tx.check(pool_);
-    if (!ec) archive().populate_with_metadata(tx, true, true);
-    if (!ec) ec = tx.accept(pool_);
-
-    // Ensure tx does not violate presumed block consensus rules.
-    // This is a DoS guard when validating a tx outside of a block.
     if (!ec) ec = tx.check_guard();
     if (!ec) ec = tx.check_guard(pool_);
+
+    // Store population follows all checks that do not require it.
+    if (!ec) archive().populate_with_metadata(tx, true, true);
+    if (!ec) ec = tx.accept(pool_);
     if (!ec) ec = tx.accept_guard(pool_);
     if (!ec) ec = tx.confirm_guard(pool_);
 
