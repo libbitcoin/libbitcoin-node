@@ -76,28 +76,3 @@ using type_id = network::messages::peer::inventory_item::type_id;
 } // namespace libbitcoin
 
 #endif
-
-// define.hpp is the common include for /node.
-// All non-node headers include define.hpp.
-// Node inclusions are chained as follows.
-
-// version        : <generated>
-// error          : version
-// events         : error
-// chase          : events
-// define         : chase
-
-// Other directory common includes are not internally chained.
-// Each header includes only its required common headers.
-
-// estimator      : define
-// settings       : define
-// configuration  : define settings
-// parser         : define configuration
-// /chasers       : define configuration estimator  [forward: full_node]
-// /channels      : define configuration
-// full_node      : define estimator /chasers
-// session        : define estimator                [forward: full_node]
-// /messages      : define
-// /protocols     : define estimator /channels      [session.hpp]
-// /sessions      : define /protocols               [forward: full_node]
