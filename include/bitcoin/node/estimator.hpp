@@ -36,7 +36,8 @@ class BCN_API estimator
 public:
     typedef std::unique_ptr<estimator> ptr;
     static constexpr size_t maximum_horizon = 1008;
-    static constexpr size_t estimate_failed = max_uint64;
+    static constexpr size_t estimate_failed =
+        system::possible_narrow_cast<size_t>(max_uint64);
 
     DELETE_COPY_MOVE_DESTRUCT(estimator);
 

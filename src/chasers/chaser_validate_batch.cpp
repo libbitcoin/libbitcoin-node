@@ -132,13 +132,14 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
             LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return network::error::operation_canceled;
         }
-        const auto elapsed = network::logger::now() - start;
-        fire(events::ecdsa_secs, duration_cast<seconds>(elapsed).count());
 
+        const auto elapsed = network::logger::now() - start;
+        const auto count = duration_cast<seconds>(elapsed).count();
+        const auto duration = limit<size_t>(count);
+        fire(events::ecdsa_secs, duration);
         if (!startup)
         {
-            LOGN(log_rate("Verify ecdsa.....", ecdsa,
-                duration_cast<milliseconds>(elapsed).count(), use_gpu));
+            LOGN(log_rate("Verify ecdsa.....", ecdsa, duration, use_gpu));
         }
 
         if (!mark_invalids(prevalids, fails, startup))
@@ -156,13 +157,14 @@ code chaser_validate::do_process_batch(bool bank, bool startup) NOEXCEPT
             LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return network::error::operation_canceled;
         }
-        const auto elapsed = network::logger::now() - start;
-        fire(events::schnorr_secs, duration_cast<seconds>(elapsed).count());
 
+        const auto elapsed = network::logger::now() - start;
+        const auto count = duration_cast<seconds>(elapsed).count();
+        const auto duration = limit<size_t>(count);
+        fire(events::schnorr_secs, duration);
         if (!startup)
         {
-            LOGN(log_rate("Verify schnorr...", schnorr,
-                duration_cast<milliseconds>(elapsed).count(), use_gpu));
+            LOGN(log_rate("Verify schnorr...", schnorr, duration, use_gpu));
         }
 
         if (!mark_invalids(prevalids, fails, startup))
@@ -403,9 +405,10 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
     if (is_nonzero(rows))
     {
         const auto elapsed = network::logger::now() - start;
-        fire(events::silent_secs, duration_cast<seconds>(elapsed).count());
-        LOGN(log_rate("Compute silent...", rows,
-            duration_cast<milliseconds>(elapsed).count(), use_gpu));
+        const auto count = duration_cast<seconds>(elapsed).count();
+        const auto duration = limit<size_t>(count);
+        fire(events::silent_secs, duration);
+        LOGN(log_rate("Compute silent...", rows, duration, use_gpu));
     }
 
     // Purge presilents before silents.
