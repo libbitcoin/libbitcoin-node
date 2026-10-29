@@ -79,11 +79,7 @@ map_ptr chaser_download::empty_map() NOEXCEPT
 // static
 map_ptr chaser_download::split(const map_ptr& map) NOEXCEPT
 {
-    const auto half = empty_map();
-    auto& index = map->get<association::pos>();
-    const auto end = std::next(index.begin(), to_half(map->size()));
-    half->merge(index, index.begin(), end);
-    return half;
+    return std::make_shared<associations>(map->extract(to_half(map->size())));
 }
 
 // start/stop
