@@ -118,8 +118,9 @@ void p2p_setup_fixture::send(const std::string& command,
     const auto head = heading::factory(config_.network.identifier, command,
         payload);
     data_chunk frame(heading::size() + payload.size());
-    BC_REQUIRE(head.serialize({ frame.data(),
-        std::next(frame.data(), heading::size()) }));
+    const auto begin = frame.data();
+    const auto end = std::next(begin, heading::size());
+    BC_REQUIRE(head.serialize({ begin, end }));
 
     std::copy(payload.begin(), payload.end(),
         std::next(frame.begin(), heading::size()));
