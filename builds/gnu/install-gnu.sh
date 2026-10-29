@@ -525,7 +525,6 @@ main()
 
     libbitcoin_system_OPTIONS=(
         "--without-tests"
-        "--without-examples"
         "${with_boost}"
         "${with_pkgconfigdir}")
 
@@ -533,7 +532,6 @@ main()
 
     libbitcoin_database_OPTIONS=(
         "--without-tests"
-        "--without-tools"
         "${with_boost}"
         "${with_pkgconfigdir}")
 

@@ -76,10 +76,6 @@ if ( MSVC )
   set( CMAKE_SHARED_LIBRARY_PREFIX "lib" )
 endif()
 
-include(CheckCCompilerFlag)
-include(CheckCXXCompilerFlag)
-include(CheckCXXSourceCompiles)
-
 #------------------------------------------------------------------------------
 # Project options.
 #------------------------------------------------------------------------------
@@ -107,12 +103,11 @@ set( libbitcoin_network_VERSION ${libbitcoin-network_VERSION} )
 find_package( Boost 1.86.0 REQUIRED )
 
 #------------------------------------------------------------------------------
-# Architecture options.
-#------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------
 # Compiler options.
 #------------------------------------------------------------------------------
+include(CheckCCompilerFlag)
+include(CheckCXXCompilerFlag)
+include(CheckCXXSourceCompiles)
 
 check_cxx_compiler_flag( "-Wall" HAS_FLAG_WALL )
 if ( !HAS_FLAG_WALL )
