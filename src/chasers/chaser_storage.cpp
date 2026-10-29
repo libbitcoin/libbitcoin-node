@@ -175,7 +175,7 @@ void chaser_storage::do_reload() NOEXCEPT
 
 bool chaser_storage::have_capacity() const NOEXCEPT
 {
-    size_t have{};
+    uint64_t have{};
     const auto require = archive().get_space();
     const auto success = (file::space(have, store_) && have >= require);
     LOGF("Require [" << require << "] bytes and [" << have << "] are free.");
