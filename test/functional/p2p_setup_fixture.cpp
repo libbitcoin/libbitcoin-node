@@ -99,7 +99,7 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
     // Block until the node is running.
     ec = running.get_future().get();
     BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-    socket_.connect(config_.network.inbound.binds.back().to_endpoint());
+    socket_.connect(network::config::to_asio(config_.network.inbound.binds.back().to_endpoint()));
 }
 
 p2p_setup_fixture::~p2p_setup_fixture()
