@@ -54,6 +54,7 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/block_arena.cpp \
     ${srcdir}/../../src/block_memory.cpp \
     ${srcdir}/../../src/configuration.cpp \
+    ${srcdir}/../../src/define.cpp \
     ${srcdir}/../../src/error.cpp \
     ${srcdir}/../../src/estimator.cpp \
     ${srcdir}/../../src/full_node.cpp \

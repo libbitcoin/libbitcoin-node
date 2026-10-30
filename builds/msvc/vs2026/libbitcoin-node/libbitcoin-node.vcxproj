@@ -124,6 +124,7 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_validate_capture.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_validate_parallel.cpp" />
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
+    <ClCompile Include="..\..\..\..\src\define.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
     <ClCompile Include="..\..\..\..\src\estimator.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
