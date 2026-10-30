@@ -29,7 +29,8 @@ namespace libbitcoin {
 namespace node {
 
 settings::settings() NOEXCEPT
-  : threads{ 0 },
+  : network{ chain::selection::none },
+    threads{ 0 },
     delay_inbound{ true },
     memory_priority{ true },
     thread_priority{ true },
@@ -43,9 +44,9 @@ settings::settings() NOEXCEPT
     use_gpu{ true },
     cpu_batch_verify{ false },
     cpu_batch_silent{ false },
-    batch_verify{ 0 },
-    batch_silent{ 0 },
-    minimum_fee_rate{ 0.0 },
+    batch_verify{ 1'000'000 },
+    batch_silent{ 1'000'000 },
+    minimum_fee_rate{ 0.000001 },
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
     current_connections{ 10 },
@@ -64,10 +65,30 @@ settings::settings() NOEXCEPT
 {
 }
 
-settings::settings(chain::selection) NOEXCEPT
+settings::settings(chain::selection context) NOEXCEPT
   : settings()
 {
-    // TODO: testnet, etc. maximum_concurrency.
+    network = context;
+
+    // Test network blocks are small, so the download window is raised.
+    switch (context)
+    {
+        case chain::selection::testnet3:
+        {
+            maximum_concurrency = 1'000'000;
+            break;
+        }
+
+        case chain::selection::testnet4:
+        {
+            maximum_concurrency = 100'000;
+            break;
+        }
+
+        default:
+        {
+        }
+    }
 }
 
 size_t settings::threads_() const NOEXCEPT

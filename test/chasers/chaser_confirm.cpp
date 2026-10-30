@@ -257,7 +257,7 @@ struct confirm_setup_fixture
 
     static configuration configure(const configurator& configurer)
     {
-        configuration config{ chain::selection::mainnet };
+        configuration config{ test::node_configuration() };
         config.database.path = TEST_DIRECTORY;
         config.network.path = TEST_DIRECTORY;
         config.network.inbound.connections = 0;

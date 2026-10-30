@@ -30,6 +30,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     using namespace network;
 
     const node::settings node{};
+    BOOST_REQUIRE(node.network == system::chain::selection::none);
     BOOST_REQUIRE_EQUAL(node.threads, 0_u32);
     BOOST_REQUIRE_EQUAL(node.delay_inbound, true);
     BOOST_REQUIRE_EQUAL(node.memory_priority, true);
@@ -44,12 +45,12 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.use_gpu, true);
     BOOST_REQUIRE_EQUAL(node.cpu_batch_verify, false);
     BOOST_REQUIRE_EQUAL(node.cpu_batch_silent, false);
-    BOOST_REQUIRE_EQUAL(node.minimum_fee_rate, 0.0);
-    BOOST_REQUIRE_EQUAL(node.minimum_fee_rate_(), 0_u64);
+    BOOST_REQUIRE_EQUAL(node.minimum_fee_rate, 0.000001);
+    BOOST_REQUIRE_EQUAL(node.minimum_fee_rate_(), 100_u64);
     BOOST_REQUIRE_EQUAL(node.minimum_bump_rate, 0.0);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
-    BOOST_REQUIRE_EQUAL(node.batch_verify, 0_u64);
-    BOOST_REQUIRE_EQUAL(node.batch_silent, 0_u64);
+    BOOST_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
+    BOOST_REQUIRE_EQUAL(node.batch_silent, 1'000'000_u64);
     BOOST_REQUIRE_EQUAL(node.current_connections, 10_u16);
     BOOST_REQUIRE_EQUAL(node.announcement_cache, 42_u16);
     BOOST_REQUIRE_EQUAL(node.fee_estimate_horizon, 0u);
@@ -72,14 +73,54 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.fee_estimate_horizon_(), 0_size);
     BOOST_REQUIRE(!node.fee_estimate_enabled());
     BOOST_REQUIRE_EQUAL(node.use_gpu_(), system::batched::accelerated());
-    BOOST_REQUIRE(!node.batch_verify_enabled());
-    BOOST_REQUIRE(!node.batch_silent_enabled());
-    BOOST_REQUIRE(!node.batch_verify_());
-    BOOST_REQUIRE(!node.batch_silent_());
+    BOOST_REQUIRE(node.batch_verify_enabled());
+    BOOST_REQUIRE(node.batch_silent_enabled());
+    BOOST_REQUIRE_EQUAL(node.batch_verify_(), node.use_gpu_());
+    BOOST_REQUIRE_EQUAL(node.batch_silent_(), node.use_gpu_());
     BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(1440)));
     BOOST_REQUIRE(node.thread_priority_() == network::processing_priority::high);
     BOOST_REQUIRE(node.memory_priority_() == network::memory_priority::highest);
+}
+
+BOOST_AUTO_TEST_CASE(settings__node__mainnet_context__expected)
+{
+    const node::settings node{ system::chain::selection::mainnet };
+    BOOST_REQUIRE(node.network == system::chain::selection::mainnet);
+    BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50'000_u32);
+    BOOST_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
+}
+
+BOOST_AUTO_TEST_CASE(settings__node__testnet3_context__expected)
+{
+    const node::settings node{ system::chain::selection::testnet3 };
+    BOOST_REQUIRE(node.network == system::chain::selection::testnet3);
+    BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 1'000'000_u32);
+    BOOST_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
+}
+
+BOOST_AUTO_TEST_CASE(settings__node__testnet4_context__expected)
+{
+    const node::settings node{ system::chain::selection::testnet4 };
+    BOOST_REQUIRE(node.network == system::chain::selection::testnet4);
+    BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 100'000_u32);
+    BOOST_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
+}
+
+BOOST_AUTO_TEST_CASE(settings__node__regtest_context__expected)
+{
+    const node::settings node{ system::chain::selection::regtest };
+    BOOST_REQUIRE(node.network == system::chain::selection::regtest);
+    BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50'000_u32);
+    BOOST_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
+}
+
+BOOST_AUTO_TEST_CASE(settings__node__signet_context__expected)
+{
+    const node::settings node{ system::chain::selection::signet };
+    BOOST_REQUIRE(node.network == system::chain::selection::signet);
+    BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50'000_u32);
+    BOOST_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
 }
 
 BOOST_AUTO_TEST_CASE(settings__services_provided__default__network_witness)

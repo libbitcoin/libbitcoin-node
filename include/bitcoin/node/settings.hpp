@@ -33,6 +33,9 @@ public:
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 
+    /// The network of the defaults.
+    system::chain::selection network;
+
     /// Properties.
     uint32_t threads;
     bool delay_inbound;
