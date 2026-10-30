@@ -113,12 +113,13 @@ void chaser_validate::validate_block(const header_link& link,
     if (!ec && current)
     {
         const auto elapsed = network::logger::now() - start;
-        const auto usecs = duration_cast<microseconds>(elapsed).count();
-        fire(events::validate_usecs, usecs);
+        const auto count = duration_cast<microseconds>(elapsed).count();
+        const auto duration = limit<size_t>(count);
+        fire(events::validate_usecs, duration);
         if (pooled)
         {
             LOGN("Validated pooled block [" << ctx.height << "] of ("
-                << query.get_tx_count(link) << ") txs in (" << usecs
+                << query.get_tx_count(link) << ") txs in (" << duration
                 << ") usecs.");
         }
         else
@@ -126,7 +127,7 @@ void chaser_validate::validate_block(const header_link& link,
             LOGN("Validated full block [" << ctx.height << "] of ("
                 << query.get_tx_count(link) << ") txs with ("
                 << unpooled_count(query, link, ctx) << ") unpooled in ("
-                << usecs << ") usecs.");
+                << duration << ") usecs.");
         }
     }
 
