@@ -38,8 +38,6 @@
 #                                 Default: --without-valgrind
 # --<enable/disable>-cuda       Use cuda (gpu) batch signature verification (inert on macOS).
 #                                 Default: --enable-cuda
-# --<with/without>-ssl          Use embedded ssl library.
-#                                 Default: --with-ssl
 # --build-boost                 Build Boost libraries
 # --build-secp256k1             Build libsecp256k1 libraries
 # --build-src-dir=<path>        Location for sources.
@@ -1175,8 +1173,6 @@ help()
     msg "                                Default: --without-valgrind"
     msg "--<enable/disable>-cuda       Use cuda (gpu) batch signature verification (inert on macOS)."
     msg "                                Default: --enable-cuda"
-    msg "--<with/without>-ssl          Use embedded ssl library."
-    msg "                                Default: --with-ssl"
     msg "--build-boost                 Build Boost libraries"
     msg "--build-secp256k1             Build libsecp256k1 libraries"
     msg "--build-src-dir=<path>        Location for sources."

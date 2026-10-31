@@ -38,8 +38,6 @@
 #                                Default: OFF
 # -Denable-cuda=<ON/OFF>       Use cuda (gpu) batch signature verification (inert on macOS).
 #                                Default: ON
-# -Dwith-ssl=<ON/OFF>          Use embedded ssl library.
-#                                Default: ON
 # --build-boost                Build Boost libraries
 # --build-secp256k1            Build libsecp256k1 libraries
 # --build-preset=<preset>      Specifies preset configuration to build.
@@ -531,8 +529,7 @@ main()
     libbitcoin_network_FLAGS=()
 
     libbitcoin_network_OPTIONS=(
-        "-Dwith-tests:BOOL=OFF"
-        "-Dwith-ssl:BOOL=ON")
+        "-Dwith-tests:BOOL=OFF")
 
     libbitcoin_node_FLAGS=()
 
@@ -1188,8 +1185,6 @@ help()
     msg "-Dwith-valgrind=<ON/OFF>     Use valgrind memcheck client requests."
     msg "                               Default: OFF"
     msg "-Denable-cuda=<ON/OFF>       Use cuda (gpu) batch signature verification (inert on macOS)."
-    msg "                               Default: ON"
-    msg "-Dwith-ssl=<ON/OFF>          Use embedded ssl library."
     msg "                               Default: ON"
     msg "--build-boost                Build Boost libraries"
     msg "--build-secp256k1            Build libsecp256k1 libraries"
