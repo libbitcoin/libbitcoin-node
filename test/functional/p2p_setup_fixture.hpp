@@ -46,7 +46,7 @@ struct p2p_setup_fixture
     void send(const Message& message, uint32_t version)
     {
         system::data_chunk payload(message.size(version));
-        BOOST_REQUIRE(message.serialize(version, payload));
+        BC_REQUIRE(message.serialize(version, payload));
         send(Message::command, payload);
     }
 

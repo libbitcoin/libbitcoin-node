@@ -370,107 +370,107 @@ struct chaser_transaction_witness_memory_pool_setup_fixture
 
 BC_POP_WARNING()
 
-BOOST_AUTO_TEST_SUITE(chaser_transaction_tests)
+BC_AUTO_TEST_SUITE(chaser_transaction_tests)
 
 // submit
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__relay_disabled__pooling_disabled, chaser_transaction_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__relay_disabled__pooling_disabled, chaser_transaction_setup_fixture)
 {
     const auto result = submit(package({ spend(parent_value) }));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::pooling_disabled);
+    BC_REQUIRE_EQUAL(result.first, node::error::pooling_disabled);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__not_current__pooling_disabled, chaser_transaction_relay_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__not_current__pooling_disabled, chaser_transaction_relay_setup_fixture)
 {
     const auto result = submit(package({ spend(parent_value) }));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::pooling_disabled);
+    BC_REQUIRE_EQUAL(result.first, node::error::pooling_disabled);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__empty__empty_package, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__empty__empty_package, chaser_transaction_pooling_setup_fixture)
 {
     const auto result = submit(package({}));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::empty_package);
+    BC_REQUIRE_EQUAL(result.first, node::error::empty_package);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__stored__duplicate_transaction, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__stored__duplicate_transaction, chaser_transaction_pooling_setup_fixture)
 {
     const auto result = submit(package({ std::make_shared<const chain::transaction>(parent()) }));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::duplicate_transaction);
+    BC_REQUIRE_EQUAL(result.first, node::error::duplicate_transaction);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__forward_reference__forward_reference, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__forward_reference__forward_reference, chaser_transaction_pooling_setup_fixture)
 {
     const auto first = spend(parent_value);
     const auto second = spend(first->hash(false), parent_value);
     const auto result = submit(package({ second, first }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::forward_reference);
-    BOOST_REQUIRE(!query_.is_tx(first->hash(false)));
+    BC_REQUIRE_EQUAL(result.first, system::error::forward_reference);
+    BC_REQUIRE(!query_.is_tx(first->hash(false)));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_double_spend__block_internal_double_spend, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_double_spend__block_internal_double_spend, chaser_transaction_pooling_setup_fixture)
 {
     const auto result = submit(package({ spend(parent_value), spend(sub1(parent_value)) }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::block_internal_double_spend);
+    BC_REQUIRE_EQUAL(result.first, system::error::block_internal_double_spend);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__coinbase__coinbase_transaction, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__coinbase__coinbase_transaction, chaser_transaction_pooling_setup_fixture)
 {
     const chain::block& genesis = config_.bitcoin.genesis_block;
     const auto result = submit(package({ genesis.transactions_ptr()->front() }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::coinbase_transaction);
-    BOOST_REQUIRE_EQUAL(result.second, zero);
+    BC_REQUIRE_EQUAL(result.first, system::error::coinbase_transaction);
+    BC_REQUIRE_EQUAL(result.second, zero);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__empty_transaction__empty_transaction, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__empty_transaction__empty_transaction, chaser_transaction_pooling_setup_fixture)
 {
     const auto result = submit(package({ std::make_shared<const chain::transaction>() }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::empty_transaction);
+    BC_REQUIRE_EQUAL(result.first, system::error::empty_transaction);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__missing_prevout__missing_previous_output, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__missing_prevout__missing_previous_output, chaser_transaction_pooling_setup_fixture)
 {
     const auto result = submit(package({ spend(missing_hash, parent_value) }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::missing_previous_output);
+    BC_REQUIRE_EQUAL(result.first, system::error::missing_previous_output);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__overspent__spend_exceeds_value, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__overspent__spend_exceeds_value, chaser_transaction_pooling_setup_fixture)
 {
     const auto result = submit(package({ spend(add1(parent_value)) }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::spend_exceeds_value);
+    BC_REQUIRE_EQUAL(result.first, system::error::spend_exceeds_value);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__second_overspent__index_one, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__second_overspent__index_one, chaser_transaction_pooling_setup_fixture)
 {
     const auto first = spend(parent_value);
     const auto second = spend(first->hash(false), add1(parent_value));
     const auto result = submit(package({ first, second }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::spend_exceeds_value);
-    BOOST_REQUIRE_EQUAL(result.second, one);
+    BC_REQUIRE_EQUAL(result.first, system::error::spend_exceeds_value);
+    BC_REQUIRE_EQUAL(result.second, one);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__absolute_locked__absolute_time_locked, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__absolute_locked__absolute_time_locked, chaser_transaction_pooling_setup_fixture)
 {
     const auto result = submit(package({ spend(parent().hash(false), parent_value, 1000, 0) }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::absolute_time_locked);
+    BC_REQUIRE_EQUAL(result.first, system::error::absolute_time_locked);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__valid_test__success_not_archived, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__valid_test__success_not_archived, chaser_transaction_pooling_setup_fixture)
 {
     const auto tx = spend(parent_value);
     const auto result = submit(package({ tx }), true);
-    BOOST_REQUIRE_EQUAL(result.first, node::error::success);
-    BOOST_REQUIRE(!query_.is_tx(tx->hash(false)));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(!query_.is_tx(tx->hash(false)));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__valid__success_archived, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__valid__success_archived, chaser_transaction_pooling_setup_fixture)
 {
     const auto tx = spend(parent_value);
     const auto result = submit(package({ tx }));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::success);
-    BOOST_REQUIRE(query_.is_tx(tx->hash(false)));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(tx->hash(false)));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__wire_tx_demanded__broadcast, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__wire_tx_demanded__broadcast, chaser_transaction_pooling_setup_fixture)
 {
     std::promise<network::wire_tx::cptr> promise{};
     auto broadcast = promise.get_future();
@@ -483,77 +483,77 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__wire_tx_demanded__broadcast,
 
     const auto tx = spend(parent_value);
     node_.demand_wire_tx(true);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
-    BOOST_REQUIRE(broadcast.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
-    BOOST_REQUIRE(broadcast.get()->tx()->to_data(true) == tx->to_data(true));
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE(broadcast.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+    BC_REQUIRE(broadcast.get()->tx()->to_data(true) == tx->to_data(true));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__valid_twice__duplicate_transaction, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__valid_twice__duplicate_transaction, chaser_transaction_pooling_setup_fixture)
 {
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::duplicate_transaction);
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::duplicate_transaction);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__double_spend, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__double_spend, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::success);
-    BOOST_REQUIRE_EQUAL(submit(package({ spend(sub1(parent_value)) })).first, system::error::double_spend);
+    BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ spend(sub1(parent_value)) })).first, system::error::double_spend);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__parent_and_child__success_archived, chaser_transaction_pooling_setup_fixture)
-{
-    const auto first = spend(parent_value);
-    const auto second = spend(first->hash(false), parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ first, second })).first, node::error::success);
-    BOOST_REQUIRE(query_.is_tx(first->hash(false)));
-    BOOST_REQUIRE(query_.is_tx(second->hash(false)));
-}
-
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__stored_parent_and_child__success_archived, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__parent_and_child__success_archived, chaser_transaction_pooling_setup_fixture)
 {
     const auto first = spend(parent_value);
     const auto second = spend(first->hash(false), parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ first })).first, node::error::success);
-    BOOST_REQUIRE_EQUAL(submit(package({ first, second })).first, node::error::success);
-    BOOST_REQUIRE(query_.is_tx(second->hash(false)));
+    BC_REQUIRE_EQUAL(submit(package({ first, second })).first, node::error::success);
+    BC_REQUIRE(query_.is_tx(first->hash(false)));
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__zero_fee_minimum_rate__insufficient_fee, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__stored_parent_and_child__success_archived, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    BC_REQUIRE_EQUAL(submit(package({ first })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ first, second })).first, node::error::success);
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__zero_fee_minimum_rate__insufficient_fee, chaser_transaction_fee_setup_fixture)
 {
     const auto result = submit(package({ spend(parent_value) }));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
-    BOOST_REQUIRE_EQUAL(result.second, zero);
+    BC_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
+    BC_REQUIRE_EQUAL(result.second, zero);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__sufficient_fee__success, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__sufficient_fee__success, chaser_transaction_fee_setup_fixture)
 {
     const auto result = submit(package({ spend(parent_value - 1'000) }));
-    BOOST_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_relative_lock__relative_time_locked, chaser_transaction_relative_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_relative_lock__relative_time_locked, chaser_transaction_relative_setup_fixture)
 {
     const auto first = spend(parent_value);
     const auto second = spend_relative(first->hash(false), parent_value, 1);
     const auto result = submit(package({ first, second }));
-    BOOST_REQUIRE_EQUAL(result.first, system::error::relative_time_locked);
-    BOOST_REQUIRE(!query_.is_tx(first->hash(false)));
+    BC_REQUIRE_EQUAL(result.first, system::error::relative_time_locked);
+    BC_REQUIRE(!query_.is_tx(first->hash(false)));
 }
 
 // do_bump
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__suspended_pooling_disabled, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__suspended_pooling_disabled, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
+    BC_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
     node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
-    BOOST_REQUIRE(suspended());
-    BOOST_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::pooling_disabled);
+    BC_REQUIRE(suspended());
+    BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::pooling_disabled);
 }
 
 // do_reorganized
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pooled, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pooled, chaser_transaction_pooling_setup_fixture)
 {
     const system::settings bitcoin{ chain::selection::mainnet };
     const auto& genesis = bitcoin.genesis_block;
@@ -562,55 +562,55 @@ BOOST_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pool
     const auto tx = spend(parent_value);
     const chain::header header{ 1u, genesis.hash(), null_hash, genesis.header().timestamp() + 1u, genesis.header().bits(), 0u };
     const chain::block block{ header, { coinbase, *tx } };
-    BOOST_REQUIRE(query_.set(block, database::context{ 0, 1, 0 }, {}, false, true));
+    BC_REQUIRE(query_.set(block, database::context{ 0, 1, 0 }, {}, false, true));
 
     const auto link = query_.to_header(block.hash());
-    BOOST_REQUIRE(query_.push_candidate(link));
-    BOOST_REQUIRE(query_.push_confirmed(link, true));
-    BOOST_REQUIRE(query_.pop_confirmed());
+    BC_REQUIRE(query_.push_candidate(link));
+    BC_REQUIRE(query_.push_confirmed(link, true));
+    BC_REQUIRE(query_.pop_confirmed());
 
     const auto stored = query_.to_tx(tx->hash(false));
-    BOOST_REQUIRE(!query_.is_pooled(stored));
+    BC_REQUIRE(!query_.is_pooled(stored));
 
     node_.notify(node::error::success, chases::reorganized{ link });
-    BOOST_REQUIRE(pooled(stored));
-    BOOST_REQUIRE(!query_.is_pooled(query_.to_tx(coinbase.hash(false))));
+    BC_REQUIRE(pooled(stored));
+    BC_REQUIRE(!query_.is_pooled(query_.to_tx(coinbase.hash(false))));
 
     database::table::pool::record record{};
-    BOOST_REQUIRE(store_.pool.get(store_.pool.first(stored), record));
-    BOOST_REQUIRE_EQUAL(record.time, header.timestamp());
+    BC_REQUIRE(store_.pool.get(store_.pool.first(stored), record));
+    BC_REQUIRE_EQUAL(record.time, header.timestamp());
 }
 
 // submit_compact
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__invalid_tx_link__integrity_suspended, chaser_transaction_header_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__invalid_tx_link__integrity_suspended, chaser_transaction_header_setup_fixture)
 {
     const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
     const auto result = submit_compact(package({}), { database::tx_link{ 42 } }, link);
-    BOOST_REQUIRE_EQUAL(result.first, database::error::integrity);
-    BOOST_REQUIRE(node_.suspended());
-    BOOST_REQUIRE(!query_.is_associated(link));
+    BC_REQUIRE_EQUAL(result.first, database::error::integrity);
+    BC_REQUIRE(node_.suspended());
+    BC_REQUIRE(!query_.is_associated(link));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__pooled, chaser_transaction_header_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__pooled, chaser_transaction_header_setup_fixture)
 {
     const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE(query_.set(*tx));
+    BC_REQUIRE(query_.set(*tx));
 
     const auto stored = query_.to_tx(tx->hash(false));
-    BOOST_REQUIRE(!query_.is_pooled(stored));
+    BC_REQUIRE(!query_.is_pooled(stored));
 
     const auto result = submit_compact(package({ tx }), { database::tx_link{ 0 }, database::tx_link::terminal }, link);
-    BOOST_REQUIRE_EQUAL(result.first, node::error::success);
-    BOOST_REQUIRE(query_.is_associated(link));
-    BOOST_REQUIRE(query_.is_pooled(stored));
-    BOOST_REQUIRE_EQUAL(query_.to_tx(tx->hash(false)), stored);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_associated(link));
+    BC_REQUIRE(query_.is_pooled(stored));
+    BC_REQUIRE_EQUAL(query_.to_tx(tx->hash(false)), stored);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_AUTO_TEST_SUITE(chaser_transaction_scan_tests)
+BC_AUTO_TEST_SUITE(chaser_transaction_scan_tests)
 
 // BIP352 send_and_receive_test_vectors.json: "Simple send: two inputs".
 static chain::input to_input(const hash_digest& hash, const data_chunk& script,
@@ -755,446 +755,446 @@ struct scan_unextended_fixture
     }
 };
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__current_not_pooling__mapped, scan_current_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__scan__current_not_pooling__mapped, scan_current_fixture)
 {
-    BOOST_REQUIRE(mapped(0));
-    BOOST_REQUIRE(!query_.is_pooling());
-    BOOST_REQUIRE_EQUAL(query_.get_scan_frontier(), 0u);
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+    BC_REQUIRE(mapped(0));
+    BC_REQUIRE(!query_.is_pooling());
+    BC_REQUIRE_EQUAL(query_.get_scan_frontier(), 0u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__current_pooling__mapped_and_latched, scan_pooling_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__scan__current_pooling__mapped_and_latched, scan_pooling_fixture)
 {
-    BOOST_REQUIRE(mapped(0));
-    BOOST_REQUIRE(query_.is_pooling());
-    BOOST_REQUIRE_EQUAL(query_.get_scan_frontier(), 2u);
-    BOOST_REQUIRE_EQUAL(query_.get_latch_tx(), 2u);
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+    BC_REQUIRE(mapped(0));
+    BC_REQUIRE(query_.is_pooling());
+    BC_REQUIRE_EQUAL(query_.get_scan_frontier(), 2u);
+    BC_REQUIRE_EQUAL(query_.get_latch_tx(), 2u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__not_current__unmapped, scan_stale_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__scan__not_current__unmapped, scan_stale_fixture)
 {
-    BOOST_REQUIRE(query_.get_scan_start(0).is_terminal());
-    BOOST_REQUIRE(query_.get_scan_start(1).is_terminal());
+    BC_REQUIRE(query_.get_scan_start(0).is_terminal());
+    BC_REQUIRE(query_.get_scan_start(1).is_terminal());
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__complete_map__unchanged, scan_complete_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__scan__complete_map__unchanged, scan_complete_fixture)
 {
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 42u);
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 43u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(0), 42u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(1), 43u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__partial_map__remapped, scan_partial_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__scan__partial_map__remapped, scan_partial_fixture)
 {
-    BOOST_REQUIRE(mapped(0));
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+    BC_REQUIRE(mapped(0));
+    BC_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_transaction__scan__unmapped_top__extended, scan_unextended_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__scan__unmapped_top__extended, scan_unextended_fixture)
 {
-    BOOST_REQUIRE(mapped(1));
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
-    BOOST_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
+    BC_REQUIRE(mapped(1));
+    BC_REQUIRE_EQUAL(query_.get_scan_start(0), 0u);
+    BC_REQUIRE_EQUAL(query_.get_scan_start(1), 1u);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_AUTO_TEST_SUITE(protocol_transaction_tests)
+BC_AUTO_TEST_SUITE(protocol_transaction_tests)
 
 // protocol_transaction_in
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__unknown_tx__get_data, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__unknown_tx__get_data, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::inventory{ { { type_id::transaction, one_hash } } }, node_version->value);
 
     const auto payload = receive(peer::get_data::command);
     const auto message = peer::get_data::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().is_transaction_type());
-    BOOST_REQUIRE(message->items.front().hash == one_hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().is_transaction_type());
+    BC_REQUIRE(message->items.front().hash == one_hash);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__stored_tx__no_get_data, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__stored_tx__no_get_data, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::inventory{ { { type_id::transaction, parent().hash(false) } } }, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__not_current__no_get_data, chaser_transaction_relay_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__not_current__no_get_data, chaser_transaction_relay_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::inventory{ { { type_id::transaction, one_hash } } }, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__unrequested__stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__unrequested__stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::transaction{ spend(parent_value) }, node_version->value);
-    BOOST_REQUIRE(dropped(peer::not_found::command));
+    BC_REQUIRE(dropped(peer::not_found::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__unrequested__stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__unrequested__stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::not_found{ { { type_id::transaction, one_hash } } }, node_version->value);
-    BOOST_REQUIRE(dropped(peer::not_found::command));
+    BC_REQUIRE(dropped(peer::not_found::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__requested__not_stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__requested__not_stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::inventory{ { { type_id::transaction, one_hash } } }, node_version->value);
-    BOOST_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::not_found{ { { type_id::transaction, one_hash } } }, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_valid__archived, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_valid__archived, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto tx = spend(parent_value);
     send(peer::inventory{ { { type_id::transaction, tx->hash(false) } } }, node_version->value);
-    BOOST_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ tx }, node_version->value);
-    BOOST_REQUIRE(archived(tx->hash(false)));
+    BC_REQUIRE(archived(tx->hash(false)));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_missing_prevout__not_stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_missing_prevout__not_stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto missing = spend(missing_hash, parent_value);
     const auto valid = spend(parent_value);
     send(peer::inventory{ { { type_id::transaction, missing->hash(false) }, { type_id::transaction, valid->hash(false) } } }, node_version->value);
-    BOOST_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ missing }, node_version->value);
     send(peer::transaction{ valid }, node_version->value);
-    BOOST_REQUIRE(archived(valid->hash(false)));
-    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(archived(valid->hash(false)));
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_overspent__stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_overspent__stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto tx = spend(add1(parent_value));
     send(peer::inventory{ { { type_id::transaction, tx->hash(false) } } }, node_version->value);
-    BOOST_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ tx }, node_version->value);
-    BOOST_REQUIRE(dropped(peer::not_found::command));
+    BC_REQUIRE(dropped(peer::not_found::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__block_only__no_get_data, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__block_only__no_get_data, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::inventory{ { { type_id::block, one_hash } } }, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__excessive_backlog__stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__excessive_backlog__stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(announcement(peer::max_inventory, 1), node_version->value);
     send(announcement(1, 2), node_version->value);
     send(announcement(1, 3), node_version->value);
     send(peer::ping{ 42 }, node_version->value);
-    BOOST_REQUIRE(dropped(peer::pong::command));
+    BC_REQUIRE(dropped(peer::pong::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::not_found{ { { type_id::block, one_hash } } }, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70013__stopped, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70013__stopped, chaser_transaction_fee_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto tx = spend(parent_value);
     send(peer::inventory{ { { type_id::transaction, tx->hash(false) } } }, node_version->value);
-    BOOST_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ tx }, node_version->value);
-    BOOST_REQUIRE(dropped(peer::not_found::command));
+    BC_REQUIRE(dropped(peer::not_found::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70001__not_stopped, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70001__not_stopped, chaser_transaction_fee_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::bip37, true));
+    BC_REQUIRE(handshake(0, peer::level::bip37, true));
 
     const auto low = spend(parent_value);
     const auto high = spend(parent_value - 1'000);
     send(peer::inventory{ { { type_id::transaction, low->hash(false) }, { type_id::transaction, high->hash(false) } } }, peer::level::bip37);
-    BOOST_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ low }, peer::level::bip37);
     send(peer::transaction{ high }, peer::level::bip37);
-    BOOST_REQUIRE(archived(high->hash(false)));
-    BOOST_REQUIRE(!query_.is_tx(low->hash(false)));
+    BC_REQUIRE(archived(high->hash(false)));
+    BC_REQUIRE(!query_.is_tx(low->hash(false)));
 }
 
 // protocol_transaction_out
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__fee_filter, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__fee_filter, chaser_transaction_fee_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto payload = receive(peer::fee_filter::command);
     const auto message = peer::fee_filter::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->minimum_fee, 1'526u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->minimum_fee, 1'526u);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__no_fee_filter, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__no_fee_filter, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
-    BOOST_REQUIRE(!received_before_pong(peer::fee_filter::command));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::fee_filter::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__archived__inventory, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__archived__inventory, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
 
     const auto payload = receive(peer::inventory::command);
     const auto message = peer::inventory::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().type == type_id::transaction);
-    BOOST_REQUIRE(message->items.front().hash == tx->hash(false));
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().type == type_id::transaction);
+    BC_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
-////BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__below_fee_filter__not_announced, chaser_transaction_pooling_setup_fixture)
+////BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__below_fee_filter__not_announced, chaser_transaction_pooling_setup_fixture)
 ////{
-////    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+////    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
 ////    send(peer::fee_filter{ 1'000'000 }, node_version->value);
-////    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+////    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
 ////    const auto low = spend(parent_value);
-////    BOOST_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+////    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
 
 ////    send(peer::fee_filter{ 0 }, node_version->value);
-////    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+////    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
 ////    const auto next = spend(low->hash(false), parent_value);
-////    BOOST_REQUIRE_EQUAL(submit(package({ next })).first, node::error::success);
+////    BC_REQUIRE_EQUAL(submit(package({ next })).first, node::error::success);
 
 ////    const auto payload = receive(peer::inventory::command);
 ////    const auto message = peer::inventory::deserialize(node_version->value, payload);
-////    BOOST_REQUIRE(message);
-////    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-////    BOOST_REQUIRE(message->items.front().hash == next->hash(false));
+////    BC_REQUIRE(message);
+////    BC_REQUIRE_EQUAL(message->items.size(), one);
+////    BC_REQUIRE(message->items.front().hash == next->hash(false));
 ////}
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__submit__announced_by_peer__not_announced, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__announced_by_peer__not_announced, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto first = spend(parent_value);
     send(peer::inventory{ { { type_id::transaction, first->hash(false) } } }, node_version->value);
-    BOOST_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ first }, node_version->value);
-    BOOST_REQUIRE(archived(first->hash(false)));
+    BC_REQUIRE(archived(first->hash(false)));
 
     const auto next = spend(first->hash(false), parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ next })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ next })).first, node::error::success);
 
     const auto payload = receive(peer::inventory::command);
     const auto message = peer::inventory::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == next->hash(false));
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == next->hash(false));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__stored_tx__transaction, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__stored_tx__transaction, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::get_data{ { { type_id::transaction, parent().hash(false) } } }, node_version->value);
 
     const auto payload = receive(peer::transaction::command);
     const auto message = peer::transaction::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE(message->transaction_ptr->hash(false) == parent().hash(false));
+    BC_REQUIRE(message);
+    BC_REQUIRE(message->transaction_ptr->hash(false) == parent().hash(false));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__witness_not_provided__stopped, chaser_transaction_no_witness_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__witness_not_provided__stopped, chaser_transaction_no_witness_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::get_data{ { { type_id::witness_tx, parent().hash(false) } } }, node_version->value);
-    BOOST_REQUIRE(dropped(peer::transaction::command));
+    BC_REQUIRE(dropped(peer::transaction::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__unknown_tx_not_found_disabled__stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__unknown_tx_not_found_disabled__stopped, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::get_data{ { { type_id::transaction, one_hash } } }, node_version->value);
-    BOOST_REQUIRE(dropped(peer::not_found::command));
+    BC_REQUIRE(dropped(peer::not_found::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__block_then_stored_tx__transaction, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__block_then_stored_tx__transaction, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const chain::block& genesis = config_.bitcoin.genesis_block;
     send(peer::get_data{ { { type_id::block, genesis.hash() }, { type_id::transaction, parent().hash(false) } } }, node_version->value);
 
     const auto message = peer::transaction::deserialize(node_version->value, receive_before_pong(peer::transaction::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE(message->transaction_ptr->hash(false) == parent().hash(false));
+    BC_REQUIRE(message);
+    BC_REQUIRE(message->transaction_ptr->hash(false) == parent().hash(false));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70001__not_announced, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70001__not_announced, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::bip37, true));
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+    BC_REQUIRE(handshake(0, peer::level::bip37, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
     node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
 
     // The announcement of a subsequent tx orders the missing tx event.
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
 
     const auto payload = receive(peer::inventory::command);
     const auto message = peer::inventory::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == tx->hash(false));
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70013__stopped_suspended, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70013__stopped_suspended, chaser_transaction_pooling_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
     node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
-    BOOST_REQUIRE(suspended());
-    BOOST_REQUIRE(dropped(peer::pong::command));
+    BC_REQUIRE(suspended());
+    BC_REQUIRE(dropped(peer::pong::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__stale_event__became_current__fee_filter, chaser_transaction_relay_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__stale_event__became_current__fee_filter, chaser_transaction_relay_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto initial = peer::fee_filter::deserialize(node_version->value, await_before_pong(peer::fee_filter::command));
-    BOOST_REQUIRE(initial);
-    BOOST_REQUIRE_EQUAL(initial->minimum_fee, config_.bitcoin.max_money());
+    BC_REQUIRE(initial);
+    BC_REQUIRE_EQUAL(initial->minimum_fee, config_.bitcoin.max_money());
 
     config_.node.currency_window_minutes = 0;
     node_.notify(node::error::success, chases::stale{});
 
     const auto current = peer::fee_filter::deserialize(node_version->value, await_before_pong(peer::fee_filter::command));
-    BOOST_REQUIRE(current);
-    BOOST_REQUIRE_EQUAL(current->minimum_fee, 0u);
+    BC_REQUIRE(current);
+    BC_REQUIRE_EQUAL(current->minimum_fee, 0u);
 }
 
 // memory_pool
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__disabled__no_inventory, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__disabled__no_inventory, chaser_transaction_pooling_setup_fixture)
 {
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::memory_pool{}, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__empty__no_inventory, chaser_transaction_memory_pool_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__empty__no_inventory, chaser_transaction_memory_pool_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::memory_pool{}, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__pooled__inventory, chaser_transaction_memory_pool_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__pooled__inventory, chaser_transaction_memory_pool_setup_fixture)
 {
     const auto parent_tx = spend(parent_value);
     const auto child_tx = spend(parent_tx->hash(false), parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ parent_tx, child_tx })).first, node::error::success);
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE_EQUAL(submit(package({ parent_tx, child_tx })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::memory_pool{}, node_version->value);
 
     const auto message = peer::inventory::deserialize(node_version->value, receive_before_pong(peer::inventory::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), two);
-    BOOST_REQUIRE(message->items.front().type == type_id::transaction);
-    BOOST_REQUIRE(message->items.front().hash == parent_tx->hash(false));
-    BOOST_REQUIRE(message->items.back().type == type_id::transaction);
-    BOOST_REQUIRE(message->items.back().hash == child_tx->hash(false));
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), two);
+    BC_REQUIRE(message->items.front().type == type_id::transaction);
+    BC_REQUIRE(message->items.front().hash == parent_tx->hash(false));
+    BC_REQUIRE(message->items.back().type == type_id::transaction);
+    BC_REQUIRE(message->items.back().hash == child_tx->hash(false));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__bip35__inventory, chaser_transaction_memory_pool_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__bip35__inventory, chaser_transaction_memory_pool_setup_fixture)
 {
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
-    BOOST_REQUIRE(handshake(0, peer::level::bip35, true));
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::bip35, true));
 
     send(peer::memory_pool{}, peer::level::bip35);
 
     const auto message = peer::inventory::deserialize(peer::level::bip35, receive_before_pong(peer::inventory::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().type == type_id::transaction);
-    BOOST_REQUIRE(message->items.front().hash == tx->hash(false));
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().type == type_id::transaction);
+    BC_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__below_fee_filter__no_inventory, chaser_transaction_memory_pool_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__below_fee_filter__no_inventory, chaser_transaction_memory_pool_setup_fixture)
 {
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
-    BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::fee_filter{ 1'000 }, node_version->value);
     send(peer::memory_pool{}, node_version->value);
-    BOOST_REQUIRE(!received_before_pong(peer::inventory::command));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__witness_relay__wtxid_inventory, chaser_transaction_witness_memory_pool_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__witness_relay__wtxid_inventory, chaser_transaction_witness_memory_pool_setup_fixture)
 {
     const auto tx = spend(parent_value);
-    BOOST_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
-    BOOST_REQUIRE(handshake(0, peer::level::bip339, true, true));
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::bip339, true, true));
 
     send(peer::memory_pool{}, node_version->value);
 
     const auto message = peer::inventory::deserialize(node_version->value, receive_before_pong(peer::inventory::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().type == type_id::wtxid);
-    BOOST_REQUIRE(message->items.front().hash == tx->hash(true));
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().type == type_id::wtxid);
+    BC_REQUIRE(message->items.front().hash == tx->hash(true));
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()

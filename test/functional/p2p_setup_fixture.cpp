@@ -72,13 +72,13 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
 
     // Create and populate the store.
     auto ec = store_.create([](auto, auto) {});
-    BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+    BC_REQUIRE_MESSAGE(!ec, ec.message());
 
     const chain::block& genesis = config_.bitcoin.genesis_block;
-    BOOST_REQUIRE(query_.initialize(genesis));
+    BC_REQUIRE(query_.initialize(genesis));
 
     if (setup)
-        BOOST_REQUIRE(setup(query_));
+        BC_REQUIRE(setup(query_));
 
     std::promise<code> started{};
     node_.start([&](const code& ec) NOEXCEPT
@@ -88,7 +88,7 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
 
     // Block until the node is started.
     ec = started.get_future().get();
-    BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+    BC_REQUIRE_MESSAGE(!ec, ec.message());
 
     std::promise<code> running{};
     node_.run([&](const code& ec) NOEXCEPT
@@ -98,7 +98,7 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
 
     // Block until the node is running.
     ec = running.get_future().get();
-    BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+    BC_REQUIRE_MESSAGE(!ec, ec.message());
     REQUIRE_SUCCESS(socket_, connect, config_.network.inbound.binds.back().to_endpoint());
 }
 
@@ -107,7 +107,7 @@ p2p_setup_fixture::~p2p_setup_fixture()
     socket_.close();
     node_.close();
     const auto ec = store_.close([](auto, auto) {});
-    BOOST_WARN_MESSAGE(!ec, ec.message());
+    BC_WARN_MESSAGE(!ec, ec.message());
     test::clear(test::directory);
 }
 
@@ -117,7 +117,7 @@ void p2p_setup_fixture::send(const std::string& command,
     const auto head = heading::factory(config_.network.identifier, command,
         payload);
     data_chunk frame(heading::size() + payload.size());
-    BOOST_REQUIRE(head.serialize({ frame.data(),
+    BC_REQUIRE(head.serialize({ frame.data(),
         std::next(frame.data(), heading::size()) }));
 
     std::copy(payload.begin(), payload.end(),
@@ -130,7 +130,7 @@ std::pair<std::string, data_chunk> p2p_setup_fixture::receive()
     data_array<heading::size()> head_data{};
     test::read(socket_, network::io::buffer(head_data));
     const auto head = heading::deserialize(head_data);
-    BOOST_REQUIRE(head);
+    BC_REQUIRE(head);
 
     data_chunk payload(head->payload_size);
     if (!payload.empty())
@@ -195,7 +195,7 @@ bool p2p_setup_fixture::dropped(const std::string& command)
             return true;
 
         const auto head = heading::deserialize(head_data);
-        BOOST_REQUIRE(head);
+        BC_REQUIRE(head);
         data_chunk payload(head->payload_size);
         network::io::read(socket_, network::io::buffer(payload), ec);
         if (ec)

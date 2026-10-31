@@ -52,7 +52,7 @@ struct channel_peer_setup_fixture
     {
         channel_->stop(network::error::service_stopped);
         pool_.stop();
-        BOOST_REQUIRE(pool_.join());
+        BC_REQUIRE(pool_.join());
     }
 
     /// Announce first then second, report whether each was announced.
@@ -111,29 +111,29 @@ struct channel_peer_two_setup_fixture
 static const system::hash_digest first{ 0x01 };
 static const system::hash_digest second{ 0x02 };
 
-BOOST_AUTO_TEST_SUITE(channel_peer_tests)
+BC_AUTO_TEST_SUITE(channel_peer_tests)
 
-BOOST_FIXTURE_TEST_CASE(channel_peer__set_announced__zero_cache__not_announced, channel_peer_disabled_setup_fixture)
+BC_FIXTURE_TEST_CASE(channel_peer__set_announced__zero_cache__not_announced, channel_peer_disabled_setup_fixture)
 {
     const auto announced = announce(first, second);
-    BOOST_REQUIRE(!announced.first);
-    BOOST_REQUIRE(!announced.second);
+    BC_REQUIRE(!announced.first);
+    BC_REQUIRE(!announced.second);
 }
 
-BOOST_FIXTURE_TEST_CASE(channel_peer__set_announced__full_cache__oldest_evicted, channel_peer_one_setup_fixture)
+BC_FIXTURE_TEST_CASE(channel_peer__set_announced__full_cache__oldest_evicted, channel_peer_one_setup_fixture)
 {
     const auto announced = announce(first, second);
-    BOOST_REQUIRE(!announced.first);
-    BOOST_REQUIRE(announced.second);
+    BC_REQUIRE(!announced.first);
+    BC_REQUIRE(announced.second);
 }
 
-BOOST_FIXTURE_TEST_CASE(channel_peer__set_announced__cache_not_full__both_announced, channel_peer_two_setup_fixture)
+BC_FIXTURE_TEST_CASE(channel_peer__set_announced__cache_not_full__both_announced, channel_peer_two_setup_fixture)
 {
     const auto announced = announce(first, second);
-    BOOST_REQUIRE(announced.first);
-    BOOST_REQUIRE(announced.second);
+    BC_REQUIRE(announced.first);
+    BC_REQUIRE(announced.second);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
 BC_POP_WARNING()

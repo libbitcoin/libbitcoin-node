@@ -20,7 +20,7 @@
 #include <chrono>
 #include <thread>
 
-BOOST_FIXTURE_TEST_SUITE(functional_p2p_tests, p2p_setup_fixture)
+BC_FIXTURE_TEST_SUITE(functional_p2p_tests, p2p_setup_fixture)
 
 using namespace network::messages::peer;
 
@@ -205,30 +205,30 @@ struct p2p_compact_not_current_setup_fixture
     }
 };
 
-BOOST_AUTO_TEST_CASE(functional_p2p__handshake__default__provides_network_and_witness)
+BC_AUTO_TEST_CASE(functional_p2p__handshake__default__provides_network_and_witness)
 {
-    BOOST_REQUIRE(handshake());
-    BOOST_REQUIRE_EQUAL(node_version->value, config_.network.protocol_maximum);
-    BOOST_REQUIRE_EQUAL(node_version->services, service::node_network | service::node_witness);
+    BC_REQUIRE(handshake());
+    BC_REQUIRE_EQUAL(node_version->value, config_.network.protocol_maximum);
+    BC_REQUIRE_EQUAL(node_version->services, service::node_network | service::node_witness);
 }
 
-BOOST_AUTO_TEST_CASE(functional_p2p__ping__nonce__pong_echo)
+BC_AUTO_TEST_CASE(functional_p2p__ping__nonce__pong_echo)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     constexpr uint64_t expected = 42;
     send(ping{ expected }, node_version->value);
 
     const auto payload = receive(pong::command);
     const auto message = pong::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, expected);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, expected);
 }
 
 // The block send regression (github.com/libbitcoin/libbitcoin-network/862).
-BOOST_AUTO_TEST_CASE(functional_p2p__get_data__genesis_block__expected_bytes)
+BC_AUTO_TEST_CASE(functional_p2p__get_data__genesis_block__expected_bytes)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     const auto expected = genesis.to_data(true);
@@ -237,29 +237,29 @@ BOOST_AUTO_TEST_CASE(functional_p2p__get_data__genesis_block__expected_bytes)
     send(get, node_version->value);
 
     const auto payload = receive(block::command);
-    BOOST_REQUIRE_EQUAL(payload.size(), expected.size());
-    BOOST_REQUIRE(payload == expected);
+    BC_REQUIRE_EQUAL(payload.size(), expected.size());
+    BC_REQUIRE(payload == expected);
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_block__not_found,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_block__not_found,
     p2p_not_found_setup_fixture)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     const get_data get{ { { inventory_item::type_id::block, system::one_hash } } };
     send(get, node_version->value);
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == system::one_hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == system::one_hash);
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__pruned_block__not_found,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__pruned_block__not_found,
     p2p_limited_setup_fixture)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     const auto hash = p2p_compact_setup_fixture::block1().hash();
     const get_data get{ { { inventory_item::type_id::block, hash } } };
@@ -267,15 +267,15 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__pruned_block__not_found,
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == hash);
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unassociated_block__not_found,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__unassociated_block__not_found,
     p2p_unassociated_setup_fixture)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     const auto hash = unassociated().hash();
     const get_data get{ { { inventory_item::type_id::block, hash } } };
@@ -283,47 +283,47 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unassociated_block__not_found,
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == hash);
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_transaction__not_found,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_transaction__not_found,
     p2p_relay_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, level::maximum_protocol, true));
+    BC_REQUIRE(handshake(0, level::maximum_protocol, true));
 
     const get_data get{ { { inventory_item::type_id::transaction, system::one_hash } } };
     send(get, node_version->value);
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == system::one_hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == system::one_hash);
 }
 
 // Below bip130 the 70001 protocol is attached directly (not as 70012 base).
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_block_70001__not_found,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_block_70001__not_found,
     p2p_not_found_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, level::bip61));
+    BC_REQUIRE(handshake(0, level::bip61));
 
     const get_data get{ { { inventory_item::type_id::block, system::one_hash } } };
     send(get, level::bip61);
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(level::bip61, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == system::one_hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == system::one_hash);
 }
 
 // A run of unservable items is answered by one message.
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_blocks__one_not_found,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_blocks__one_not_found,
     p2p_not_found_setup_fixture)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     const get_data get
     {
@@ -336,17 +336,17 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_blocks__one_not_found,
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), two);
-    BOOST_REQUIRE(message->items.front().hash == system::one_hash);
-    BOOST_REQUIRE(message->items.back().hash == system::null_hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), two);
+    BC_REQUIRE(message->items.front().hash == system::one_hash);
+    BC_REQUIRE(message->items.back().hash == system::null_hash);
 }
 
 // The unservable run is flushed before the send loop resumes.
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_then_genesis__not_found_then_block,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_then_genesis__not_found_then_block,
     p2p_not_found_setup_fixture)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     const get_data get
@@ -360,119 +360,119 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_then_genesis__not_foun
 
     const auto payload = receive(not_found::command);
     const auto message = not_found::deserialize(node_version->value, payload);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->items.size(), one);
-    BOOST_REQUIRE(message->items.front().hash == system::one_hash);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == system::one_hash);
 
     // The send loop resumes and serves the item that follows the run.
-    BOOST_REQUIRE_EQUAL(receive(block::command).size(), genesis.to_data(true).size());
+    BC_REQUIRE_EQUAL(receive(block::command).size(), genesis.to_data(true).size());
 }
 
 // not_found is undefined below bip37, so the channel is stopped instead.
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_block_106__stopped,
+BC_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_block_106__stopped,
     p2p_not_found_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, level::bip35));
+    BC_REQUIRE(handshake(0, level::bip35));
 
     const get_data get{ { { inventory_item::type_id::block, system::one_hash } } };
     send(get, level::bip35);
 
     // The channel is stopped, so the socket closes without a not_found.
-    BOOST_REQUIRE(dropped(not_found::command));
+    BC_REQUIRE(dropped(not_found::command));
 }
 
 // The option is off by default, so the channel is stopped instead.
-BOOST_AUTO_TEST_CASE(functional_p2p__get_data__unknown_block_disabled__stopped)
+BC_AUTO_TEST_CASE(functional_p2p__get_data__unknown_block_disabled__stopped)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     const get_data get{ { { inventory_item::type_id::block, system::one_hash } } };
     send(get, node_version->value);
 
-    BOOST_REQUIRE(dropped(not_found::command));
+    BC_REQUIRE(dropped(not_found::command));
 }
 
 // getheaders (in)
 // ----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(functional_p2p__get_headers__not_current__empty)
+BC_AUTO_TEST_CASE(functional_p2p__get_headers__not_current__empty)
 {
-    BOOST_REQUIRE(handshake(0, level::headers_protocol));
+    BC_REQUIRE(handshake(0, level::headers_protocol));
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     send(get_headers{ { genesis.hash() }, system::null_hash }, level::headers_protocol);
 
     const auto message = headers::deserialize(level::headers_protocol, receive(headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE(message->header_ptrs.empty());
+    BC_REQUIRE(message);
+    BC_REQUIRE(message->header_ptrs.empty());
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_headers__genesis_locator__confirmed_headers, p2p_confirmed_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__get_headers__genesis_locator__confirmed_headers, p2p_confirmed_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, level::headers_protocol));
+    BC_REQUIRE(handshake(0, level::headers_protocol));
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     send(get_headers{ { genesis.hash() }, system::null_hash }, level::headers_protocol);
 
     const auto message = headers::deserialize(level::headers_protocol, receive(headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->header_ptrs.size(), two);
-    BOOST_REQUIRE(message->header_ptrs.front()->hash() == header1()->hash());
-    BOOST_REQUIRE(message->header_ptrs.back()->hash() == header2()->hash());
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->header_ptrs.size(), two);
+    BC_REQUIRE(message->header_ptrs.front()->hash() == header1()->hash());
+    BC_REQUIRE(message->header_ptrs.back()->hash() == header2()->hash());
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__get_headers__top_locator__empty, p2p_confirmed_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__get_headers__top_locator__empty, p2p_confirmed_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, level::headers_protocol));
+    BC_REQUIRE(handshake(0, level::headers_protocol));
 
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
     const auto message = headers::deserialize(level::headers_protocol, receive(headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE(message->header_ptrs.empty());
+    BC_REQUIRE(message);
+    BC_REQUIRE(message->header_ptrs.empty());
 }
 
 // headers (in, 31800)
 // ----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__handshake__get_headers_genesis)
+BC_AUTO_TEST_CASE(functional_p2p__headers_31800__handshake__get_headers_genesis)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     const auto message = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->start_hashes.size(), one);
-    BOOST_REQUIRE(message->start_hashes.front() == genesis.hash());
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->start_hashes.size(), one);
+    BC_REQUIRE(message->start_hashes.front() == genesis.hash());
 }
 
-BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__unknown_parent__get_headers_again)
+BC_AUTO_TEST_CASE(functional_p2p__headers_31800__unknown_parent__get_headers_again)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(headers{ { header2() } }, level::headers_protocol);
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     const auto message = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE(message->start_hashes.front() == genesis.hash());
+    BC_REQUIRE(message);
+    BC_REQUIRE(message->start_hashes.front() == genesis.hash());
 }
 
-BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__disconnected__stopped)
+BC_AUTO_TEST_CASE(functional_p2p__headers_31800__disconnected__stopped)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(headers{ { header1(), header1() } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE(dropped(headers::command));
+    BC_REQUIRE(dropped(headers::command));
 }
 
-BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__invalid_proof_of_work__stopped)
+BC_AUTO_TEST_CASE(functional_p2p__headers_31800__invalid_proof_of_work__stopped)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     const auto& header = *header1();
@@ -480,24 +480,24 @@ BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__invalid_proof_of_work__stopp
     send(headers{ { invalid } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE(dropped(headers::command));
+    BC_REQUIRE(dropped(headers::command));
 }
 
-BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__not_current__not_proven)
+BC_AUTO_TEST_CASE(functional_p2p__headers_31800__not_current__not_proven)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(headers{ { header1(), header2() } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
     receive(headers::command);
 
-    BOOST_REQUIRE(query_.to_header(header1()->hash()).is_terminal());
+    BC_REQUIRE(query_.to_header(header1()->hash()).is_terminal());
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__current__proven_and_archived, p2p_compact_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__current__proven_and_archived, p2p_compact_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     const headers message{ { header1(), header2() } };
@@ -505,20 +505,20 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__current__proven_and_archi
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     const auto proven = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(proven);
-    BOOST_REQUIRE(proven->start_hashes.front() == genesis.hash());
+    BC_REQUIRE(proven);
+    BC_REQUIRE(proven->start_hashes.front() == genesis.hash());
 
     send(message, level::headers_protocol);
 
     const auto archived = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(archived);
-    BOOST_REQUIRE(archived->start_hashes.front() == header2()->hash());
-    BOOST_REQUIRE(await([&]() { return query_.get_top_candidate() == two; }));
+    BC_REQUIRE(archived);
+    BC_REQUIRE(archived->start_hashes.front() == header2()->hash());
+    BC_REQUIRE(await([&]() { return query_.get_top_candidate() == two; }));
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_orphan__stopped, p2p_compact_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_orphan__stopped, p2p_compact_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(headers{ { header1(), header2() } }, level::headers_protocol);
@@ -527,12 +527,12 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_orphan__stopped,
     send(headers{ { header2() } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE(dropped(headers::command));
+    BC_REQUIRE(dropped(headers::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unsampled__stopped, p2p_compact_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unsampled__stopped, p2p_compact_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(headers{ { header1(), header2() } }, level::headers_protocol);
@@ -543,12 +543,12 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unsampled__stopp
     send(headers{ { header1(), unsampled } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE(dropped(headers::command));
+    BC_REQUIRE(dropped(headers::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_incomplete__discarded, p2p_compact_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_incomplete__discarded, p2p_compact_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(headers{ { header1(), header2() } }, level::headers_protocol);
@@ -558,12 +558,12 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_incomplete__disc
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
     receive(headers::command);
 
-    BOOST_REQUIRE(query_.to_header(header1()->hash()).is_terminal());
+    BC_REQUIRE(query_.to_header(header1()->hash()).is_terminal());
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__checkpoint__proven_and_archived, p2p_checkpoint_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__checkpoint__proven_and_archived, p2p_checkpoint_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     const headers message{ { header1(), header2() } };
@@ -571,19 +571,19 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__checkpoint__proven_and_ar
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     const auto proven = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(proven);
-    BOOST_REQUIRE(proven->start_hashes.front() == genesis.hash());
+    BC_REQUIRE(proven);
+    BC_REQUIRE(proven->start_hashes.front() == genesis.hash());
 
     send(message, level::headers_protocol);
 
     const auto archived = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(archived);
-    BOOST_REQUIRE(archived->start_hashes.front() == header2()->hash());
+    BC_REQUIRE(archived);
+    BC_REQUIRE(archived->start_hashes.front() == header2()->hash());
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable__stopped, p2p_unconfirmable_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable__stopped, p2p_unconfirmable_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     const headers message{ { header1(), header2() } };
@@ -592,12 +592,12 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable__s
 
     send(message, level::headers_protocol);
 
-    BOOST_REQUIRE(dropped(headers::command));
+    BC_REQUIRE(dropped(headers::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable_parent__stopped, p2p_compact_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable_parent__stopped, p2p_compact_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     const headers message{ { header1() } };
@@ -605,42 +605,42 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable_pa
     receive(get_headers::command);
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
-    BOOST_REQUIRE(query_.set_block_unconfirmable(query_.to_header(genesis.hash())));
+    BC_REQUIRE(query_.set_block_unconfirmable(query_.to_header(genesis.hash())));
     send(message, level::headers_protocol);
 
-    BOOST_REQUIRE(dropped(headers::command));
+    BC_REQUIRE(dropped(headers::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__full_messages__proven_and_archived, p2p_regtest_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__full_messages__proven_and_archived, p2p_regtest_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(segment(1, 2000), level::headers_protocol);
     const auto next = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(next);
-    BOOST_REQUIRE(next->start_hashes.front() == chain().at(1999)->hash());
+    BC_REQUIRE(next);
+    BC_REQUIRE(next->start_hashes.front() == chain().at(1999)->hash());
 
     send(segment(2001, 1), level::headers_protocol);
     const auto proven = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(proven);
-    BOOST_REQUIRE(proven->start_hashes.front() == config_.bitcoin.genesis_block.hash());
+    BC_REQUIRE(proven);
+    BC_REQUIRE(proven->start_hashes.front() == config_.bitcoin.genesis_block.hash());
 
     send(segment(1, 2000), level::headers_protocol);
     const auto collected = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(collected);
-    BOOST_REQUIRE(collected->start_hashes.front() == chain().at(1999)->hash());
+    BC_REQUIRE(collected);
+    BC_REQUIRE(collected->start_hashes.front() == chain().at(1999)->hash());
 
     send(segment(2001, 1), level::headers_protocol);
     const auto archived = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(archived);
-    BOOST_REQUIRE(archived->start_hashes.front() == chain().at(2000)->hash());
-    BOOST_REQUIRE(candidate(2001));
+    BC_REQUIRE(archived);
+    BC_REQUIRE(archived->start_hashes.front() == chain().at(2000)->hash());
+    BC_REQUIRE(candidate(2001));
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__sample_budget__proven_and_archived, p2p_regtest_sampled_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__headers_31800__sample_budget__proven_and_archived, p2p_regtest_sampled_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
 
     send(segment(1, 2000), level::headers_protocol);
@@ -649,8 +649,8 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__sample_budget__proven_and
     receive(get_headers::command);
     send(segment(4001, 1), level::headers_protocol);
     const auto proven = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(proven);
-    BOOST_REQUIRE(proven->start_hashes.front() == config_.bitcoin.genesis_block.hash());
+    BC_REQUIRE(proven);
+    BC_REQUIRE(proven->start_hashes.front() == config_.bitcoin.genesis_block.hash());
 
     send(segment(1, 2000), level::headers_protocol);
     receive(get_headers::command);
@@ -658,17 +658,17 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__sample_budget__proven_and
     receive(get_headers::command);
     send(segment(4001, 1), level::headers_protocol);
     const auto archived = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(archived);
-    BOOST_REQUIRE(archived->start_hashes.front() == chain().at(4000)->hash());
-    BOOST_REQUIRE(candidate(4001));
+    BC_REQUIRE(archived);
+    BC_REQUIRE(archived->start_hashes.front() == chain().at(4000)->hash());
+    BC_REQUIRE(candidate(4001));
 }
 
 // inv (in, 31800)
 // ----------------------------------------------------------------------------
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__inventory_31800__unknown_block__get_headers, p2p_compact_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__inventory_31800__unknown_block__get_headers, p2p_compact_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::headers_protocol));
+    BC_REQUIRE(handshake(network_node, level::headers_protocol));
     receive(get_headers::command);
     send(headers{}, level::headers_protocol);
 
@@ -677,22 +677,22 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__inventory_31800__unknown_block__get_head
     send(inventory{ { { inventory_item::type_id::block, genesis.hash() }, { inventory_item::type_id::block, header1()->hash() } } }, level::headers_protocol);
 
     const auto request = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(request);
-    BOOST_REQUIRE(request->start_hashes.front() == genesis.hash());
+    BC_REQUIRE(request);
+    BC_REQUIRE(request->start_hashes.front() == genesis.hash());
 
     send(headers{ { header1() } }, level::headers_protocol);
 
     const auto proven = get_headers::deserialize(level::headers_protocol, receive(get_headers::command));
-    BOOST_REQUIRE(proven);
-    BOOST_REQUIRE(proven->start_hashes.front() == genesis.hash());
+    BC_REQUIRE(proven);
+    BC_REQUIRE(proven->start_hashes.front() == genesis.hash());
 }
 
 // sendheaders (in, 70012)
 // ----------------------------------------------------------------------------
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__send_headers__block_event__headers_announced, p2p_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__send_headers__block_event__headers_announced, p2p_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(0, level::bip130));
+    BC_REQUIRE(handshake(0, level::bip130));
 
     send(send_headers{}, level::bip130);
     send(ping{ 42 }, level::bip130);
@@ -702,14 +702,14 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__send_headers__block_event__headers_annou
     node_.notify({}, node::chases::block{ node::header_t{ query_.to_header(header1()->hash()).value } });
 
     const auto message = headers::deserialize(level::bip130, receive(headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->header_ptrs.size(), one);
-    BOOST_REQUIRE(message->header_ptrs.front()->hash() == header1()->hash());
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->header_ptrs.size(), one);
+    BC_REQUIRE(message->header_ptrs.front()->hash() == header1()->hash());
 }
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__send_headers__announced_by_peer__suppressed, p2p_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__send_headers__announced_by_peer__suppressed, p2p_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node, level::bip130));
+    BC_REQUIRE(handshake(network_node, level::bip130));
     receive(get_headers::command);
     send(headers{}, level::bip130);
     send(headers{ { header1() } }, level::bip130);
@@ -723,17 +723,17 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__send_headers__announced_by_peer__suppres
     node_.notify({}, node::chases::block{ node::header_t{ query_.to_header(genesis.hash()).value } });
 
     const auto message = headers::deserialize(level::bip130, receive(headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->header_ptrs.size(), one);
-    BOOST_REQUIRE(message->header_ptrs.front()->hash() == genesis.hash());
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->header_ptrs.size(), one);
+    BC_REQUIRE(message->header_ptrs.front()->hash() == genesis.hash());
 }
 
 // sendcmpct (in, 70014)
 // ----------------------------------------------------------------------------
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__send_compact__unknown_block_event__not_stopped, p2p_compact_not_current_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__send_compact__unknown_block_event__not_stopped, p2p_compact_not_current_setup_fixture)
 {
-    BOOST_REQUIRE(handshake());
+    BC_REQUIRE(handshake());
 
     send(send_compact{ true, send_compact::compact_version_2 }, node_version->value);
     send(send_headers{}, node_version->value);
@@ -745,17 +745,17 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__send_compact__unknown_block_event__not_s
     node_.notify({}, node::chases::block{ node::header_t{ query_.to_header(header1()->hash()).value } });
 
     const auto message = headers::deserialize(node_version->value, receive(headers::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->header_ptrs.size(), one);
-    BOOST_REQUIRE(message->header_ptrs.front()->hash() == header1()->hash());
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->header_ptrs.size(), one);
+    BC_REQUIRE(message->header_ptrs.front()->hash() == header1()->hash());
 }
 
 // cmpctblock/blocktxn (in, 70014)
 // ----------------------------------------------------------------------------
 
-BOOST_FIXTURE_TEST_CASE(functional_p2p__compact_transactions__unrequested__ignored, p2p_compact_not_current_setup_fixture)
+BC_FIXTURE_TEST_CASE(functional_p2p__compact_transactions__unrequested__ignored, p2p_compact_not_current_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(network_node));
+    BC_REQUIRE(handshake(network_node));
 
     const auto& block = p2p_compact_setup_fixture::block1();
     send(compact_transactions{ block.hash(), { block.transactions_ptr()->front() } }, node_version->value);
@@ -764,8 +764,8 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__compact_transactions__unrequested__ignor
     send(ping{ expected }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, expected);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, expected);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()

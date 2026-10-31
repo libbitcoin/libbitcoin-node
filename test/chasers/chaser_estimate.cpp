@@ -189,84 +189,84 @@ struct chaser_estimate_uncoalesced_setup_fixture
 
 BC_POP_WARNING()
 
-BOOST_AUTO_TEST_SUITE(chaser_estimate_tests)
+BC_AUTO_TEST_SUITE(chaser_estimate_tests)
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__disabled__estimate_disabled, chaser_estimate_disabled_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_estimate__estimate__disabled__estimate_disabled, chaser_estimate_disabled_setup_fixture)
 {
     const auto result = estimate(1, estimator::mode::basic);
-    BOOST_REQUIRE_EQUAL(result.first, node::error::estimate_disabled);
+    BC_REQUIRE_EQUAL(result.first, node::error::estimate_disabled);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__not_initialized__estimate_premature, chaser_estimate_uncoalesced_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_estimate__estimate__not_initialized__estimate_premature, chaser_estimate_uncoalesced_setup_fixture)
 {
     const auto result = estimate(1, estimator::mode::basic);
-    BOOST_REQUIRE_EQUAL(result.first, node::error::estimate_premature);
+    BC_REQUIRE_EQUAL(result.first, node::error::estimate_premature);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__horizon_exceeds_chain__estimate_premature, chaser_estimate_excess_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_estimate__estimate__horizon_exceeds_chain__estimate_premature, chaser_estimate_excess_setup_fixture)
 {
     notify_pruned(p2p_compact_setup_fixture::block1().hash());
     const auto result = estimate(1, estimator::mode::basic);
-    BOOST_REQUIRE_EQUAL(result.first, node::error::estimate_premature);
+    BC_REQUIRE_EQUAL(result.first, node::error::estimate_premature);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__initialized_no_fees__estimate_false, chaser_estimate_enabled_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_estimate__estimate__initialized_no_fees__estimate_false, chaser_estimate_enabled_setup_fixture)
 {
     notify_pruned(p2p_compact_setup_fixture::block1().hash());
     const auto result = initialized(1, estimator::mode::basic);
-    BOOST_REQUIRE_EQUAL(result.first, node::error::estimate_false);
-    BOOST_REQUIRE_EQUAL(result.second, estimator::estimate_failed);
+    BC_REQUIRE_EQUAL(result.first, node::error::estimate_false);
+    BC_REQUIRE_EQUAL(result.second, estimator::estimate_failed);
 }
 
-////BOOST_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__estimate_false, chaser_estimate_enabled_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__estimate_false, chaser_estimate_enabled_setup_fixture)
 ////{
 ////    const auto& block1 = p2p_compact_setup_fixture::block1();
 ////    const auto& block2 = p2p_compact_setup_fixture::block2();
 ////    notify_pruned(block1.hash());
-////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
 ////    notify_pruned(block1.hash());
 ////    notify_organized(block1.hash());
-////    BOOST_REQUIRE(confirm2());
+////    BC_REQUIRE(confirm2());
 ////    notify_organized(block2.hash());
 ////    notify_reorganized(block2.hash());
 ////    notify_reorganized(block2.hash());
-////    BOOST_REQUIRE_EQUAL(estimate(1, estimator::mode::basic).first, node::error::estimate_false);
+////    BC_REQUIRE_EQUAL(estimate(1, estimator::mode::basic).first, node::error::estimate_false);
 ////}
 
-BOOST_FIXTURE_TEST_CASE(chaser_estimate__top_height__not_initialized__zero, chaser_estimate_enabled_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_estimate__top_height__not_initialized__zero, chaser_estimate_enabled_setup_fixture)
 {
     const node::chaser_estimate instance{ node_ };
-    BOOST_REQUIRE(!instance.initialized());
-    BOOST_REQUIRE_EQUAL(instance.top_height(), zero);
+    BC_REQUIRE(!instance.initialized());
+    BC_REQUIRE_EQUAL(instance.top_height(), zero);
 }
 
-////BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_estimate__organized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
 ////{
 ////    notify_pruned(p2p_compact_setup_fixture::block1().hash());
-////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
 ////    node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
-////    BOOST_REQUIRE(suspended());
+////    BC_REQUIRE(suspended());
 ////}
 
-////BOOST_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspended, chaser_estimate_enabled_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspended, chaser_estimate_enabled_setup_fixture)
 ////{
 ////    notify_pruned(p2p_compact_setup_fixture::block1().hash());
-////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
-////    BOOST_REQUIRE(store_header2());
+////    BC_REQUIRE(store_header2());
 ////    notify_organized(p2p_compact_setup_fixture::block2().hash());
-////    BOOST_REQUIRE(suspended());
+////    BC_REQUIRE(suspended());
 ////}
 
-////BOOST_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
 ////{
 ////    notify_pruned(p2p_compact_setup_fixture::block1().hash());
-////    BOOST_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
 
 ////    node_.notify(node::error::success, chases::reorganized{ node::header_t{ 42 } });
-////    BOOST_REQUIRE(suspended());
+////    BC_REQUIRE(suspended());
 ////}
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()

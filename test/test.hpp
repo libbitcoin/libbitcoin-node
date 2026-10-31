@@ -98,11 +98,11 @@ struct directory_setup_fixture
 
     directory_setup_fixture() NOEXCEPT
     {
-        BOOST_REQUIRE(clear(directory));
+        BC_REQUIRE(clear(directory));
     }
     ~directory_setup_fixture() NOEXCEPT
     {
-        BOOST_REQUIRE(clear(directory));
+        BC_REQUIRE(clear(directory));
     }
 };
 
@@ -111,7 +111,7 @@ struct directory_setup_fixture
 { \
     code require_ec{}; \
     (object).method(__VA_ARGS__ __VA_OPT__(,) require_ec); \
-    BOOST_REQUIRE_EQUAL(require_ec, ::libbitcoin::network::error::success); \
+    BC_REQUIRE_EQUAL(require_ec, ::libbitcoin::network::error::success); \
 }
 
 // Blocking transfers of test peers (required to succeed).
@@ -120,7 +120,7 @@ inline size_t write(Stream& stream, const Buffers& buffers) NOEXCEPT
 {
     code ec{};
     const auto size = network::io::write(stream, buffers, ec);
-    BOOST_REQUIRE_EQUAL(ec, network::error::success);
+    BC_REQUIRE_EQUAL(ec, network::error::success);
     return size;
 }
 
@@ -129,7 +129,7 @@ inline size_t read(Stream& stream, const Buffers& buffers) NOEXCEPT
 {
     code ec{};
     const auto size = network::io::read(stream, buffers, ec);
-    BOOST_REQUIRE_EQUAL(ec, network::error::success);
+    BC_REQUIRE_EQUAL(ec, network::error::success);
     return size;
 }
 

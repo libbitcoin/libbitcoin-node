@@ -21,65 +21,65 @@
 using namespace bc::system;
 using namespace bc::network;
 
-BOOST_AUTO_TEST_SUITE(configuration_tests)
+BC_AUTO_TEST_SUITE(configuration_tests)
 
-BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
+BC_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 {
     const node::configuration instance(chain::selection::none);
 
     // Just a sample of settings.
-    BOOST_REQUIRE_EQUAL(instance.network.threads, 0u);
-    BOOST_REQUIRE_EQUAL(instance.bitcoin.first_version, 1u);
+    BC_REQUIRE_EQUAL(instance.network.threads, 0u);
+    BC_REQUIRE_EQUAL(instance.bitcoin.first_version, 1u);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__mainnet__success_peer_identifier_mainnet_magic)
+BC_AUTO_TEST_CASE(configuration__initialize__mainnet__success_peer_identifier_mainnet_magic)
 {
     node::configuration instance(chain::selection::mainnet);
-    BOOST_REQUIRE(!instance.initialize());
-    BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, 0xd9b4bef9_u32);
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.network.peer.identifier, 0xd9b4bef9_u32);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__signet__success_peer_identifier_signet_magic)
+BC_AUTO_TEST_CASE(configuration__initialize__signet__success_peer_identifier_signet_magic)
 {
     node::configuration instance(chain::selection::signet);
-    BOOST_REQUIRE(!instance.initialize());
-    BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, 0x40cf030a_u32);
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.network.peer.identifier, 0x40cf030a_u32);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__custom_signet__success_peer_identifier_challenge_magic)
+BC_AUTO_TEST_CASE(configuration__initialize__custom_signet__success_peer_identifier_challenge_magic)
 {
     node::configuration instance(chain::selection::signet);
     instance.bitcoin.signet_challenge = system::config::script{ "1" };
-    BOOST_REQUIRE(!instance.initialize());
-    BOOST_REQUIRE_EQUAL(instance.network.peer.identifier, from_little_endian<uint32_t>(bitcoin_hash(base16_chunk("0151"))));
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.network.peer.identifier, from_little_endian<uint32_t>(bitcoin_hash(base16_chunk("0151"))));
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__silent_unwitnessed)
+BC_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__silent_unwitnessed)
 {
     node::configuration instance(test::node_configuration());
     instance.node.silent_start_height = 0;
     instance.node.require_witness = false;
-    BOOST_REQUIRE_EQUAL(instance.initialize(), node::error::silent_unwitnessed);
+    BC_REQUIRE_EQUAL(instance.initialize(), node::error::silent_unwitnessed);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__silent_with_witness__success)
+BC_AUTO_TEST_CASE(configuration__initialize__silent_with_witness__success)
 {
     node::configuration instance(test::node_configuration());
     instance.node.silent_start_height = 0;
     instance.node.require_witness = true;
-    BOOST_REQUIRE(!instance.initialize());
+    BC_REQUIRE(!instance.initialize());
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_at_bypassed__silent_pruned)
+BC_AUTO_TEST_CASE(configuration__initialize__limited_silent_at_bypassed__silent_pruned)
 {
     node::configuration instance(test::node_configuration());
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = true;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(bypassed);
-    BOOST_REQUIRE_EQUAL(instance.initialize(), node::error::silent_pruned);
+    BC_REQUIRE_EQUAL(instance.initialize(), node::error::silent_pruned);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_above_bypassed__success)
+BC_AUTO_TEST_CASE(configuration__initialize__limited_silent_above_bypassed__success)
 {
     node::configuration instance(test::node_configuration());
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
@@ -87,46 +87,46 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_above_bypassed__s
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(add1(bypassed));
     instance.database.filter_bk.buckets = 0;
     instance.database.filter_tx.buckets = 0;
-    BOOST_REQUIRE(!instance.initialize());
+    BC_REQUIRE(!instance.initialize());
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_silent_at_bypassed__success)
+BC_AUTO_TEST_CASE(configuration__initialize__unlimited_silent_at_bypassed__success)
 {
     node::configuration instance(test::node_configuration());
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = false;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(bypassed);
-    BOOST_REQUIRE(!instance.initialize());
+    BC_REQUIRE(!instance.initialize());
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__limited_filter__filter_pruned)
+BC_AUTO_TEST_CASE(configuration__initialize__limited_filter__filter_pruned)
 {
     node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = true;
     instance.database.filter_bk.buckets = 1;
     instance.database.filter_tx.buckets = 1;
-    BOOST_REQUIRE_EQUAL(instance.initialize(), node::error::filter_pruned);
+    BC_REQUIRE_EQUAL(instance.initialize(), node::error::filter_pruned);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__limited_partial_filter__success)
+BC_AUTO_TEST_CASE(configuration__initialize__limited_partial_filter__success)
 {
     node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = true;
     instance.database.filter_bk.buckets = 1;
     instance.database.filter_tx.buckets = 0;
-    BOOST_REQUIRE(!instance.initialize());
+    BC_REQUIRE(!instance.initialize());
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_filter__success)
+BC_AUTO_TEST_CASE(configuration__initialize__unlimited_filter__success)
 {
     node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = false;
     instance.database.filter_bk.buckets = 1;
     instance.database.filter_tx.buckets = 1;
-    BOOST_REQUIRE(!instance.initialize());
+    BC_REQUIRE(!instance.initialize());
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables_sized)
+BC_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables_sized)
 {
     node::configuration instance(test::node_configuration());
     instance.node.use_gpu = false;
@@ -139,16 +139,16 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables
     instance.database.silent.size = 42;
     instance.database.prevalid.size = 42;
     instance.database.presilent.size = 42;
-    BOOST_REQUIRE(!instance.initialize());
-    BOOST_REQUIRE_EQUAL(instance.database.ecdsa.size, 42u);
-    BOOST_REQUIRE_EQUAL(instance.database.schnorr.size, 42u);
-    BOOST_REQUIRE_EQUAL(instance.database.silent.size, 42u);
-    BOOST_REQUIRE_EQUAL(instance.database.prevalid.size, 42u);
-    BOOST_REQUIRE_EQUAL(instance.database.presilent.size, 42u);
-    BOOST_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.database.ecdsa.size, 42u);
+    BC_REQUIRE_EQUAL(instance.database.schnorr.size, 42u);
+    BC_REQUIRE_EQUAL(instance.database.silent.size, 42u);
+    BC_REQUIRE_EQUAL(instance.database.prevalid.size, 42u);
+    BC_REQUIRE_EQUAL(instance.database.presilent.size, 42u);
+    BC_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
 }
 
-BOOST_AUTO_TEST_CASE(configuration__initialize__no_batching_without_gpu__tables_zero)
+BC_AUTO_TEST_CASE(configuration__initialize__no_batching_without_gpu__tables_zero)
 {
     node::configuration instance(test::node_configuration());
     instance.node.use_gpu = false;
@@ -161,13 +161,13 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__no_batching_without_gpu__tables_
     instance.database.silent.size = 42;
     instance.database.prevalid.size = 42;
     instance.database.presilent.size = 42;
-    BOOST_REQUIRE(!instance.initialize());
-    BOOST_REQUIRE_EQUAL(instance.database.ecdsa.size, 0u);
-    BOOST_REQUIRE_EQUAL(instance.database.schnorr.size, 0u);
-    BOOST_REQUIRE_EQUAL(instance.database.silent.size, 0u);
-    BOOST_REQUIRE_EQUAL(instance.database.prevalid.size, 0u);
-    BOOST_REQUIRE_EQUAL(instance.database.presilent.size, 0u);
-    BOOST_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.database.ecdsa.size, 0u);
+    BC_REQUIRE_EQUAL(instance.database.schnorr.size, 0u);
+    BC_REQUIRE_EQUAL(instance.database.silent.size, 0u);
+    BC_REQUIRE_EQUAL(instance.database.prevalid.size, 0u);
+    BC_REQUIRE_EQUAL(instance.database.presilent.size, 0u);
+    BC_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()

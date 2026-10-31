@@ -18,11 +18,11 @@
  */
 #include "../test.hpp"
 
-BOOST_AUTO_TEST_SUITE(chaser_template_tests)
+BC_AUTO_TEST_SUITE(chaser_template_tests)
 
-BOOST_AUTO_TEST_CASE(chaser_template_test)
+BC_AUTO_TEST_CASE(chaser_template_test)
 {
-    BOOST_REQUIRE(true);
+    BC_REQUIRE(true);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
