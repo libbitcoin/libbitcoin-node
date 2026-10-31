@@ -442,7 +442,7 @@ bool full_node::is_current_time(uint32_t timestamp) const NOEXCEPT
     if (is_zero(config_.node.currency_window_minutes))
         return true;
 
-    const auto time = wall_clock::from_time_t(timestamp);
+    const wall_clock::time_point time{ seconds{ timestamp } };
     const auto current = wall_clock::now() - config_.node.currency_window();
     return time >= current;
 }
