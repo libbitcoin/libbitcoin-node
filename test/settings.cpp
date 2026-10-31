@@ -61,7 +61,7 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
     BC_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
     BC_REQUIRE_EQUAL(node.compact_timeout_seconds, 10_u16);
-    BC_REQUIRE_EQUAL(node.compact_missing_percent, 50_u16);
+    BC_REQUIRE_EQUAL(node.compact_missing_percent, 50_u8);
     BC_REQUIRE_EQUAL(node.currency_window_minutes, 1440_u32);
     ////BC_REQUIRE_EQUAL(node.snapshot_bytes, 200'000'000'000_u64);
     ////BC_REQUIRE_EQUAL(node.snapshot_valid, 250'000_u32);

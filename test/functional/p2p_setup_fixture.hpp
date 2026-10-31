@@ -216,7 +216,7 @@ struct p2p_compact_setup_fixture
     static const system::chain::block& block2() NOEXCEPT;
 
     inline p2p_compact_setup_fixture(const initializer& setup={},
-        uint16_t compact_timeout=max_uint16, uint16_t missing_percent=100)
+        uint16_t compact_timeout=max_uint16, uint8_t missing_percent=100)
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             config.network.enable_compact = true;
