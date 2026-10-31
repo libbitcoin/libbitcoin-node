@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(functional_p2p_witness__transaction__unrequested__stopped)
     const auto& coinbase = bitcoin.genesis_block.transactions_ptr()->front();
     send(transaction::command, coinbase->to_data(true));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 // get_data (wtxid out)

@@ -196,9 +196,9 @@ struct session_outbound_setup_fixture
     std::string accept()
     {
         using namespace network::messages::peer;
-        acceptor_.accept(socket_);
+        REQUIRE_SUCCESS(acceptor_, accept, socket_);
         system::data_array<heading::size()> head{};
-        boost::asio::read(socket_, boost::asio::buffer(head));
+        test::read(socket_, network::io::buffer(head));
         const auto message = heading::deserialize(head);
         BOOST_REQUIRE(message);
         return message->command;
@@ -221,15 +221,10 @@ struct session_outbound_setup_fixture
     }
 
 protected:
-    using tcp = boost::asio::ip::tcp;
-    boost::asio::io_context io_{};
-    const tcp::endpoint endpoint_
-    {
-        boost::asio::ip::make_address("127.0.0.1"),
-        65115
-    };
-    tcp::acceptor acceptor_{ io_, endpoint_ };
-    tcp::socket socket_{ io_ };
+    network::io::context io_{};
+    const network::io::endpoint endpoint_{ test::loopback(65115) };
+    network::io::acceptor acceptor_{ io_, endpoint_ };
+    network::io::socket socket_{ io_ };
     configuration config_;
     node::store store_;
     node::query query_;
@@ -387,7 +382,7 @@ BOOST_AUTO_TEST_CASE(session__notify_one__subscribed__notified)
 {
     std::promise<object_key> keyed{};
     std::promise<code> notified{};
-    boost::asio::post(node_.strand(), [&]() NOEXCEPT
+    network::io::post(node_.strand(), [&]() NOEXCEPT
     {
         keyed.set_value(session_.subscribe_chase([&](const code& ec, event_value value) NOEXCEPT
         {
@@ -449,15 +444,14 @@ BOOST_AUTO_TEST_CASE(session__channel_counts__no_connections__zero)
 BOOST_AUTO_TEST_CASE(session__connect__listening_endpoint__version_received)
 {
     using namespace network::messages::peer;
-    using tcp = boost::asio::ip::tcp;
-    boost::asio::io_context io{};
-    tcp::acceptor acceptor{ io, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65113 } };
-    tcp::socket socket{ io };
+    network::io::context io{};
+    network::io::acceptor acceptor{ io, test::loopback(65113) };
+    network::io::socket socket{ io };
     session_.connect(network::config::endpoint{ "127.0.0.1:65113" });
-    acceptor.accept(socket);
+    REQUIRE_SUCCESS(acceptor, accept, socket);
 
     system::data_array<heading::size()> head{};
-    boost::asio::read(socket, boost::asio::buffer(head));
+    test::read(socket, network::io::buffer(head));
     const auto message = heading::deserialize(head);
     BOOST_REQUIRE(message);
     BOOST_REQUIRE_EQUAL(message->command, version::command);
@@ -478,16 +472,15 @@ BOOST_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
 BOOST_AUTO_TEST_CASE(protocol__connect__listening_endpoint__version_received)
 {
     using namespace network::messages::peer;
-    using tcp = boost::asio::ip::tcp;
-    boost::asio::io_context io{};
-    tcp::acceptor acceptor{ io, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65116 } };
-    tcp::socket socket{ io };
+    network::io::context io{};
+    network::io::acceptor acceptor{ io, test::loopback(65116) };
+    network::io::socket socket{ io };
     session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
     protocol.connect(network::config::endpoint{ "127.0.0.1:65116" });
-    acceptor.accept(socket);
+    REQUIRE_SUCCESS(acceptor, accept, socket);
 
     system::data_array<heading::size()> head{};
-    boost::asio::read(socket, boost::asio::buffer(head));
+    test::read(socket, network::io::buffer(head));
     const auto message = heading::deserialize(head);
     BOOST_REQUIRE(message);
     BOOST_REQUIRE_EQUAL(message->command, version::command);

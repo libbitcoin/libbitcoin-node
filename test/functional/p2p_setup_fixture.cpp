@@ -99,7 +99,7 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
     // Block until the node is running.
     ec = running.get_future().get();
     BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-    socket_.connect(network::config::to_asio(config_.network.inbound.binds.back().to_endpoint()));
+    REQUIRE_SUCCESS(socket_, connect, config_.network.inbound.binds.back().to_endpoint());
 }
 
 p2p_setup_fixture::~p2p_setup_fixture()
@@ -122,19 +122,19 @@ void p2p_setup_fixture::send(const std::string& command,
 
     std::copy(payload.begin(), payload.end(),
         std::next(frame.begin(), heading::size()));
-    boost::asio::write(socket_, boost::asio::buffer(frame));
+    test::write(socket_, network::io::buffer(frame));
 }
 
 std::pair<std::string, data_chunk> p2p_setup_fixture::receive()
 {
     data_array<heading::size()> head_data{};
-    boost::asio::read(socket_, boost::asio::buffer(head_data));
+    test::read(socket_, network::io::buffer(head_data));
     const auto head = heading::deserialize(head_data);
     BOOST_REQUIRE(head);
 
     data_chunk payload(head->payload_size);
     if (!payload.empty())
-        boost::asio::read(socket_, boost::asio::buffer(payload));
+        test::read(socket_, network::io::buffer(payload));
 
     return { head->command, std::move(payload) };
 }
@@ -180,6 +180,28 @@ bool p2p_setup_fixture::received(const std::string& command,
             return true;
 
         if (message.first == terminal)
+            return false;
+    }
+}
+
+bool p2p_setup_fixture::dropped(const std::string& command)
+{
+    while (true)
+    {
+        code ec{};
+        data_array<heading::size()> head_data{};
+        network::io::read(socket_, network::io::buffer(head_data), ec);
+        if (ec)
+            return true;
+
+        const auto head = heading::deserialize(head_data);
+        BOOST_REQUIRE(head);
+        data_chunk payload(head->payload_size);
+        network::io::read(socket_, network::io::buffer(payload), ec);
+        if (ec)
+            return true;
+
+        if (head->command == command)
             return false;
     }
 }

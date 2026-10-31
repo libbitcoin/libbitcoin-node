@@ -78,7 +78,7 @@ private:
     void handle_stale_timer(const code& ec) NOEXCEPT;
 
     // This is thread safe.
-    network::asio::strand broadcast_strand_;
+    network::io::strand broadcast_strand_;
 
     // This is protected by strand.
     network::deadline::ptr stale_timer_{};

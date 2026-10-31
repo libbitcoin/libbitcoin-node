@@ -219,7 +219,7 @@ BOOST_AUTO_TEST_CASE(full_node__run__closed_while_queued__service_stopped)
     BOOST_REQUIRE(!start());
 
     std::promise<bool> blocked{};
-    boost::asio::post(node_.strand(), [&]() NOEXCEPT
+    network::io::post(node_.strand(), [&]() NOEXCEPT
     {
         blocked.set_value(await([&]() { return node_.closed(); }));
     });

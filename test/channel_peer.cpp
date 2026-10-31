@@ -60,7 +60,7 @@ struct channel_peer_setup_fixture
         const system::hash_digest& second)
     {
         std::promise<std::pair<bool, bool>> promise{};
-        boost::asio::post(channel_->strand(), [&]() NOEXCEPT
+        network::io::post(channel_->strand(), [&]() NOEXCEPT
         {
             channel_->set_announced(first);
             channel_->set_announced(second);

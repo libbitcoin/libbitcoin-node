@@ -378,7 +378,7 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__unknown_block_106__stopped,
     send(get, level::bip35);
 
     // The channel is stopped, so the socket closes without a not_found.
-    BOOST_REQUIRE_THROW(receive(not_found::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(not_found::command));
 }
 
 // The option is off by default, so the channel is stopped instead.
@@ -389,7 +389,7 @@ BOOST_AUTO_TEST_CASE(functional_p2p__get_data__unknown_block_disabled__stopped)
     const get_data get{ { { inventory_item::type_id::block, system::one_hash } } };
     send(get, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(not_found::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(not_found::command));
 }
 
 // getheaders (in)
@@ -467,7 +467,7 @@ BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__disconnected__stopped)
     send(headers{ { header1(), header1() } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(headers::command));
 }
 
 BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__invalid_proof_of_work__stopped)
@@ -480,7 +480,7 @@ BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__invalid_proof_of_work__stopp
     send(headers{ { invalid } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(headers::command));
 }
 
 BOOST_AUTO_TEST_CASE(functional_p2p__headers_31800__not_current__not_proven)
@@ -527,7 +527,7 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_orphan__stopped,
     send(headers{ { header2() } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(headers::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unsampled__stopped, p2p_compact_setup_fixture)
@@ -543,7 +543,7 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unsampled__stopp
     send(headers{ { header1(), unsampled } }, level::headers_protocol);
     send(get_headers{ { header2()->hash() }, system::null_hash }, level::headers_protocol);
 
-    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(headers::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_incomplete__discarded, p2p_compact_setup_fixture)
@@ -592,7 +592,7 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable__s
 
     send(message, level::headers_protocol);
 
-    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(headers::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable_parent__stopped, p2p_compact_setup_fixture)
@@ -608,7 +608,7 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__archival_unconfirmable_pa
     BOOST_REQUIRE(query_.set_block_unconfirmable(query_.to_header(genesis.hash())));
     send(message, level::headers_protocol);
 
-    BOOST_REQUIRE_THROW(receive(headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(headers::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(functional_p2p__headers_31800__full_messages__proven_and_archived, p2p_regtest_setup_fixture)

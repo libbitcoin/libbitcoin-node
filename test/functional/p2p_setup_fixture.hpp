@@ -59,6 +59,10 @@ struct p2p_setup_fixture
     /// Read framed messages until the command (true) or the terminal.
     bool received(const std::string& command, const std::string& terminal);
 
+    /// Read framed messages, true if the node drops the connection before
+    /// sending the command.
+    bool dropped(const std::string& command);
+
     /// Perform the version handshake, retains the node's version message.
     bool handshake(uint64_t services=0,
         uint32_t version=network::messages::peer::level::maximum_protocol,
@@ -111,8 +115,8 @@ protected:
     full_node node_;
 
 private:
-    boost::asio::io_context io_{};
-    boost::asio::ip::tcp::socket socket_{ io_ };
+    network::io::context io_{};
+    network::io::socket socket_{ io_ };
     std::shared_ptr<subscription> subscription_
     {
         std::make_shared<subscription>()

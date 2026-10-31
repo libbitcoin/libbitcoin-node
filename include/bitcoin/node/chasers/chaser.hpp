@@ -66,7 +66,7 @@ protected:
     template <class Derived, typename Method, typename... Args>
     auto post(Method&& method, Args&&... args) NOEXCEPT
     {
-        return boost::asio::post(strand(), BIND_TO(method, args));
+        return network::io::post(strand(), BIND_TO(method, args));
     }
 
     /// Methods.
@@ -124,7 +124,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// The chaser's strand (on the network threadpool).
-    virtual network::asio::strand& strand() NOEXCEPT;
+    virtual network::io::strand& strand() NOEXCEPT;
 
     /// True if the current thread is on the chaser strand.
     virtual bool stranded() const NOEXCEPT;
@@ -169,7 +169,7 @@ protected:
 private:
     // These are thread safe (mostly).
     full_node& node_;
-    network::asio::strand strand_;
+    network::io::strand strand_;
     const size_t top_checkpoint_height_;
 
     // These are protected by strand.

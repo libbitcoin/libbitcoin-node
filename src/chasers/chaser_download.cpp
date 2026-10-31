@@ -201,7 +201,7 @@ void chaser_download::handle_purged(const code& ec) NOEXCEPT
     if (closed())
         return;
 
-    boost::asio::post(strand(),
+    network::io::post(strand(),
         std::bind(&chaser_download::do_handle_purged,
             this, ec));
 }
@@ -260,7 +260,7 @@ void chaser_download::update(object_key channel, uint64_t speed,
         return;
     }
 
-    boost::asio::post(strand(),
+    network::io::post(strand(),
         BIND(do_update, channel, speed, handler));
 }
 

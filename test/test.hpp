@@ -110,6 +110,39 @@ struct directory_setup_fixture
     }
 };
 
+// Require success of a synchronous io call (the code is appended).
+#define REQUIRE_SUCCESS(object, method, ...) \
+{ \
+    code require_ec{}; \
+    (object).method(__VA_ARGS__ __VA_OPT__(,) require_ec); \
+    BOOST_REQUIRE_EQUAL(require_ec, ::libbitcoin::network::error::success); \
+}
+
+// Blocking transfers of test peers (required to succeed).
+template <typename Stream, typename Buffers>
+inline size_t write(Stream& stream, const Buffers& buffers) NOEXCEPT
+{
+    code ec{};
+    const auto size = network::io::write(stream, buffers, ec);
+    BOOST_REQUIRE_EQUAL(ec, network::error::success);
+    return size;
+}
+
+template <typename Stream, typename Buffers>
+inline size_t read(Stream& stream, const Buffers& buffers) NOEXCEPT
+{
+    code ec{};
+    const auto size = network::io::read(stream, buffers, ec);
+    BOOST_REQUIRE_EQUAL(ec, network::error::success);
+    return size;
+}
+
+// A loopback endpoint (an ephemeral port by default).
+inline network::io::endpoint loopback(uint16_t port=0) NOEXCEPT
+{
+    return { system::ip::address{ system::ip::ipv4{ { 127, 0, 0, 1 } } }, port };
+}
+
 } // namespace test
 
 #endif

@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(chaser__notify_one__subscribed__notified)
 {
     std::promise<object_key> keyed{};
     std::promise<code> notified{};
-    boost::asio::post(node_.strand(), [&]() NOEXCEPT
+    network::io::post(node_.strand(), [&]() NOEXCEPT
     {
         keyed.set_value(chaser_.subscribe_chase([&](const code& ec, event_value value) NOEXCEPT
         {

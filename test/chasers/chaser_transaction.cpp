@@ -841,7 +841,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__unrequested__stopp
     BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::transaction{ spend(parent_value) }, node_version->value);
-    BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::not_found::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__unrequested__stopped, chaser_transaction_pooling_setup_fixture)
@@ -849,7 +849,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__unrequested__stopped
     BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::not_found{ { { type_id::transaction, one_hash } } }, node_version->value);
-    BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::not_found::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__requested__not_stopped, chaser_transaction_pooling_setup_fixture)
@@ -899,7 +899,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_overspen
     BOOST_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ tx }, node_version->value);
-    BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::not_found::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__block_only__no_get_data, chaser_transaction_pooling_setup_fixture)
@@ -918,7 +918,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__excessive_backlog__s
     send(announcement(1, 2), node_version->value);
     send(announcement(1, 3), node_version->value);
     send(peer::ping{ 42 }, node_version->value);
-    BOOST_REQUIRE_THROW(receive(peer::pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::pong::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped, chaser_transaction_pooling_setup_fixture)
@@ -938,7 +938,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insuffic
     BOOST_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ tx }, node_version->value);
-    BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::not_found::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70001__not_stopped, chaser_transaction_fee_setup_fixture)
@@ -1051,7 +1051,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__witness_not_provided
     BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::get_data{ { { type_id::witness_tx, parent().hash(false) } } }, node_version->value);
-    BOOST_REQUIRE_THROW(receive(peer::transaction::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::transaction::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__unknown_tx_not_found_disabled__stopped, chaser_transaction_pooling_setup_fixture)
@@ -1059,7 +1059,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__unknown_tx_not_found
     BOOST_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::get_data{ { { type_id::transaction, one_hash } } }, node_version->value);
-    BOOST_REQUIRE_THROW(receive(peer::not_found::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::not_found::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__block_then_stored_tx__transaction, chaser_transaction_pooling_setup_fixture)
@@ -1099,7 +1099,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_
 
     node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
     BOOST_REQUIRE(suspended());
-    BOOST_REQUIRE_THROW(receive(peer::pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(peer::pong::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_transaction_out__stale_event__became_current__fee_filter, chaser_transaction_relay_setup_fixture)

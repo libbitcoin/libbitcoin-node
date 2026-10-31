@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE(protocol_observer__inventory__transaction_relay_disallowed_
     send(inventory{ { { inventory_item::type_id::transaction, one_hash } } }, node_version->value);
     send(ping{ 42 }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_observer__inventory__block_relay_disallowed__pong)
@@ -378,7 +378,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_out_106__get_data__witness_unwitnessed__s
     send(get_data{ { { inventory_item::type_id::witness_block, genesis.hash() } } }, node_version->value);
     send(ping{ 42 }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_out_106__handle_chase__unknown_then_genesis__genesis_inventory, p2p_compact_candidate_setup_fixture)
@@ -501,7 +501,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_checkpoint__un
     const auto hash = config_.bitcoin.genesis_block.hash();
     send(get_client_filter_checkpoint{ unknown_filter_type, hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_checkpoint::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_checkpoint::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_checkpoint__unknown_stop_hash__stopped)
@@ -510,7 +510,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_checkpoint__un
 
     send(get_client_filter_checkpoint{ client_filter::type_id::neutrino, one_hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_checkpoint::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_checkpoint::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_checkpoint__unconfirmed_interval__stopped)
@@ -519,7 +519,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_checkpoint__un
 
     send(get_client_filter_checkpoint{ client_filter::type_id::neutrino, descendant(1000).hash() }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_checkpoint::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_checkpoint::command));
 }
 
 // getcfheaders
@@ -545,7 +545,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__unkno
     const auto hash = config_.bitcoin.genesis_block.hash();
     send(get_client_filter_headers{ unknown_filter_type, 0, hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_headers::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__unknown_stop_hash__stopped)
@@ -554,7 +554,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__unkno
 
     send(get_client_filter_headers{ client_filter::type_id::neutrino, 0, one_hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_headers::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__start_above_stop__stopped)
@@ -564,7 +564,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__start
     const auto hash = config_.bitcoin.genesis_block.hash();
     send(get_client_filter_headers{ client_filter::type_id::neutrino, 1, hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_headers::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__2000_difference__stopped)
@@ -573,7 +573,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__2000_
 
     send(get_client_filter_headers{ client_filter::type_id::neutrino, 0, descendant(2000).hash() }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_headers::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__1999_difference_unfiltered__stopped)
@@ -582,7 +582,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filter_headers__1999_
 
     send(get_client_filter_headers{ client_filter::type_id::neutrino, 0, descendant(1999).hash() }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter_headers::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter_headers::command));
 }
 
 // getcfilters
@@ -594,7 +594,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__unknown_type
     const auto hash = config_.bitcoin.genesis_block.hash();
     send(get_client_filters{ unknown_filter_type, 0, hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__unknown_stop_hash__stopped)
@@ -603,7 +603,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__unknown_stop
 
     send(get_client_filters{ client_filter::type_id::neutrino, 0, one_hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__start_above_stop__stopped)
@@ -613,7 +613,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__start_above_
     const auto hash = config_.bitcoin.genesis_block.hash();
     send(get_client_filters{ client_filter::type_id::neutrino, 1, hash }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__1000_difference__stopped)
@@ -622,7 +622,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__1000_differe
 
     send(get_client_filters{ client_filter::type_id::neutrino, 0, descendant(1000).hash() }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__999_difference_unfiltered__stopped)
@@ -631,7 +631,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__999_differen
 
     send(get_client_filters{ client_filter::type_id::neutrino, 0, descendant(999).hash() }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(client_filter::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter::command));
 }
 
 BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__unfiltered_stop__stopped)
@@ -643,7 +643,7 @@ BOOST_AUTO_TEST_CASE(protocol_filter_out_70015__get_client_filters__unfiltered_s
     const auto message = client_filter::deserialize(node_version->value, receive(client_filter::command));
     BOOST_REQUIRE(message);
     BOOST_REQUIRE(message->block_hash == config_.bitcoin.genesis_block.hash());
-    BOOST_REQUIRE_THROW(receive(client_filter::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(client_filter::command));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

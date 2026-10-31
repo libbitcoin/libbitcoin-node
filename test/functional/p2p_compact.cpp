@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__get_compact_transactions__out_of_ra
     send(get_compact_transactions{ genesis.hash(), { 1 } }, node_version->value);
     send(ping{ 42 }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 // cmpctblock (in)
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id_mismatch__s
     send(compact_transactions{ block.hash(), { genesis.transactions_ptr()->front() } }, node_version->value);
     send(ping{ 42 }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 // An unidentified fill leaves evidence, resolved against the archived block.
@@ -269,7 +269,7 @@ BOOST_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__unidentified_then
     send(prefilled(block, block.transactions_ptr()->front()), node_version->value);
     send(ping{ 2 }, node_version->value);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 // cmpctblock (announce)

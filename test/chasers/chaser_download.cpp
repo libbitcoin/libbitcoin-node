@@ -556,7 +556,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__malleated
     BOOST_REQUIRE(malleated.hash() == block1.hash());
     send(peer::block::command, malleated.to_data(true));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
     BOOST_REQUIRE(!query_.is_associated(query_.to_header(block1.hash())));
 }
 
@@ -568,7 +568,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__witness_b
     BOOST_REQUIRE(witness_block1().hash() == p2p_compact_setup_fixture::block1().hash());
     send(peer::block::command, witness_block1().to_data(true));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
     BOOST_REQUIRE(!query_.is_associated(query_.to_header(witness_block1().hash())));
 }
 
@@ -579,7 +579,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pruned_wi
 
     send(peer::block::command, witness_block1().to_data(true));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
     BOOST_REQUIRE(!query_.is_associated(query_.to_header(witness_block1().hash())));
 }
 
@@ -617,7 +617,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_with_work__
 
     node_.notify({}, chases::purge{ 0 });
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__stall_with_work__stopped_and_work_divided, chaser_download_candidate_setup_fixture)
@@ -627,7 +627,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__stall_with_work__
     receive(get_data::command);
 
     node_.notify({}, chases::stall{ 42 });
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 
     const auto map = take(two);
     BOOST_REQUIRE_EQUAL(map->size(), two);
@@ -650,7 +650,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_then_spl
     BOOST_REQUIRE_EQUAL(request->items.size(), two);
 
     node_.notify_one(starved.channel, {}, chases::split{ 42 });
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
     BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
     BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
 }
@@ -715,7 +715,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes__stopped,
     BOOST_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviation__stopped, chaser_download_sampled_local_setup_fixture)
@@ -723,7 +723,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviat
     BOOST_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BOOST_REQUIRE(dropped(pong::command));
 }
 
 ////BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__partial_then_no_bytes__stopped, chaser_download_sampled_setup_fixture)
@@ -735,7 +735,7 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviat
 ////    send(peer::block::command, block1.to_data(true));
 ////    BOOST_REQUIRE(associated(block1.hash()));
 
-////    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+////    BOOST_REQUIRE(dropped(pong::command));
 ////}
 
 BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__idle__deferred_get_data, chaser_download_compact_sampled_setup_fixture)

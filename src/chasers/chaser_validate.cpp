@@ -391,7 +391,7 @@ void chaser_validate::stop() NOEXCEPT
     }
 }
 
-network::asio::strand& chaser_validate::strand() NOEXCEPT
+network::io::strand& chaser_validate::strand() NOEXCEPT
 {
     return validation_strand_;
 }
