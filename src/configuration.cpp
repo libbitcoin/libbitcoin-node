@@ -52,17 +52,20 @@ code configuration::initialize() NOEXCEPT
     if (filter && node.limited_blocks)
         return error::filter_pruned;
 
-    // Batch tables are unused when their batching does not run.
-    if (!node.batch_verify_())
+    // Batch tables are unused when their batching cannot run.
+    const auto gpu = node.use_gpu && system::batched::compiled() &&
+        database::cuda_device();
+
+    if (!node.batch_verify_enabled() || !(node.cpu_batch_verify || gpu))
     {
         database.ecdsa.size = 0;
         database.schnorr.size = 0;
     }
 
-    if (!node.batch_silent_())
+    if (!node.batch_silent_enabled() || !(node.cpu_batch_silent || gpu))
         database.silent.size = 0;
 
-    if (!node.use_gpu_())
+    if (!gpu)
         database.gpu_scan_minimum = max_uint32;
 
     // The signet message identifier is derived from its challenge [bip325].
