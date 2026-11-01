@@ -60,10 +60,14 @@ code configuration::initialize() NOEXCEPT
     {
         database.ecdsa.size = 0;
         database.schnorr.size = 0;
+        database.prevalid.size = 0;
     }
 
     if (!node.batch_silent_enabled() || !(node.cpu_batch_silent || gpu))
+    {
         database.silent.size = 0;
+        database.presilent.size = 0;
+    }
 
     if (!gpu)
         database.gpu_scan_minimum = max_uint32;
