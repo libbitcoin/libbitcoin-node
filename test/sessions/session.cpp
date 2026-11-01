@@ -77,7 +77,7 @@ struct session_setup_fixture
     DELETE_COPY_MOVE(session_setup_fixture);
 
     session_setup_fixture()
-      : config_{ system::chain::selection::mainnet },
+      : config_{ test::node_configuration() },
         store_
         {
             [&]() NOEXCEPT -> const database::settings&
@@ -139,7 +139,7 @@ struct session_outbound_setup_fixture
     DELETE_COPY_MOVE(session_outbound_setup_fixture);
 
     session_outbound_setup_fixture()
-      : config_{ system::chain::selection::mainnet },
+      : config_{ test::node_configuration() },
         store_
         {
             [&]() NOEXCEPT -> const database::settings&

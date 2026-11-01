@@ -808,7 +808,7 @@ struct estimator_query_setup_fixture
 
     static database::settings configure() NOEXCEPT
     {
-        database::settings settings{};
+        database::settings settings{ test::database_settings() };
         settings.path = TEST_DIRECTORY;
         return settings;
     }

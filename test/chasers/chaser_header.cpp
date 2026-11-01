@@ -112,7 +112,7 @@ struct chaser_header_setup_fixture
 
     static configuration configured(const configurator& configure)
     {
-        configuration config{ system::chain::selection::mainnet };
+        configuration config{ test::node_configuration() };
         config.database.path = TEST_DIRECTORY;
         config.network.path = TEST_DIRECTORY;
         config.network.inbound.connections = 0;

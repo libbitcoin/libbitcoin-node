@@ -485,7 +485,7 @@ void chaser_confirm::start_stale_timer() NOEXCEPT
         return;
 
     const auto top = archive().get_top_timestamp(true);
-    const auto expiry = wall_clock::from_time_t(top) + window;
+    const auto expiry = wall_clock::time_point{ seconds{ top } } + window;
     const auto span = expiry - wall_clock::now();
 
     stale_timer_->start(BIND(handle_stale_timer, _1),

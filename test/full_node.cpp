@@ -30,7 +30,7 @@ struct full_node_setup_fixture
 
     using configurator = std::function<void(configuration&)>;
     explicit full_node_setup_fixture(const configurator& configure={})
-      : config_{ system::chain::selection::mainnet },
+      : config_{ test::node_configuration() },
         store_
         {
             [&]() NOEXCEPT -> const database::settings&

@@ -27,7 +27,7 @@ struct channel_peer_setup_fixture
     DELETE_COPY_MOVE(channel_peer_setup_fixture);
 
     channel_peer_setup_fixture(uint16_t announcement_cache)
-      : config_{ system::chain::selection::mainnet },
+      : config_{ test::node_configuration() },
         channel_
         {
             [&]() NOEXCEPT

@@ -55,7 +55,7 @@ struct chaser_setup_fixture
     DELETE_COPY_MOVE(chaser_setup_fixture);
 
     chaser_setup_fixture()
-      : config_{ system::chain::selection::mainnet },
+      : config_{ test::node_configuration() },
         store_
         {
             [&]() NOEXCEPT -> const database::settings&

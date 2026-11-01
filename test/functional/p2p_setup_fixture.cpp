@@ -30,7 +30,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // precedes them.
 configuration p2p_setup_fixture::configured(const configurator& configure)
 {
-    configuration config{ chain::selection::mainnet };
+    configuration config{ test::node_configuration() };
     auto& network_settings = config.network;
     auto& node_settings = config.node;
 

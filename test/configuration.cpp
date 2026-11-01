@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__custom_signet__success_peer_iden
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__silent_unwitnessed)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     instance.node.silent_start_height = 0;
     instance.node.require_witness = false;
     BOOST_REQUIRE_EQUAL(instance.initialize(), node::error::silent_unwitnessed);
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__silent_without_witness__silent_u
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__silent_with_witness__success)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     instance.node.silent_start_height = 0;
     instance.node.require_witness = true;
     BOOST_REQUIRE(!instance.initialize());
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__silent_with_witness__success)
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_at_bypassed__silent_pruned)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = true;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(bypassed);
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_at_bypassed__sile
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_above_bypassed__success)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = true;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(add1(bypassed));
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__limited_silent_above_bypassed__s
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_silent_at_bypassed__success)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     const auto bypassed = std::max(instance.bitcoin.top_checkpoint().height(), instance.bitcoin.milestone.height());
     instance.node.limited_blocks = false;
     instance.node.silent_start_height = possible_narrow_cast<uint32_t>(bypassed);
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_silent_at_bypassed__su
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__limited_filter__filter_pruned)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = true;
     instance.database.filter_bk.buckets = 1;
     instance.database.filter_tx.buckets = 1;
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__limited_filter__filter_pruned)
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__limited_partial_filter__success)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = true;
     instance.database.filter_bk.buckets = 1;
     instance.database.filter_tx.buckets = 0;
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__limited_partial_filter__success)
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_filter__success)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = false;
     instance.database.filter_bk.buckets = 1;
     instance.database.filter_tx.buckets = 1;
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__unlimited_filter__success)
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables_sized)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     instance.node.use_gpu = false;
     instance.node.batch_verify = 1;
     instance.node.batch_silent = 1;
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables
 
 BOOST_AUTO_TEST_CASE(configuration__initialize__no_batching_without_gpu__tables_zero)
 {
-    node::configuration instance(chain::selection::mainnet);
+    node::configuration instance(test::node_configuration());
     instance.node.use_gpu = false;
     instance.node.batch_verify = 1;
     instance.node.batch_silent = 1;
