@@ -137,10 +137,14 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables
     instance.database.ecdsa.size = 42;
     instance.database.schnorr.size = 42;
     instance.database.silent.size = 42;
+    instance.database.prevalid.size = 42;
+    instance.database.presilent.size = 42;
     BOOST_REQUIRE(!instance.initialize());
     BOOST_REQUIRE_EQUAL(instance.database.ecdsa.size, 42u);
     BOOST_REQUIRE_EQUAL(instance.database.schnorr.size, 42u);
     BOOST_REQUIRE_EQUAL(instance.database.silent.size, 42u);
+    BOOST_REQUIRE_EQUAL(instance.database.prevalid.size, 42u);
+    BOOST_REQUIRE_EQUAL(instance.database.presilent.size, 42u);
     BOOST_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
 }
 
@@ -155,10 +159,14 @@ BOOST_AUTO_TEST_CASE(configuration__initialize__no_batching_without_gpu__tables_
     instance.database.ecdsa.size = 42;
     instance.database.schnorr.size = 42;
     instance.database.silent.size = 42;
+    instance.database.prevalid.size = 42;
+    instance.database.presilent.size = 42;
     BOOST_REQUIRE(!instance.initialize());
     BOOST_REQUIRE_EQUAL(instance.database.ecdsa.size, 0u);
     BOOST_REQUIRE_EQUAL(instance.database.schnorr.size, 0u);
     BOOST_REQUIRE_EQUAL(instance.database.silent.size, 0u);
+    BOOST_REQUIRE_EQUAL(instance.database.prevalid.size, 0u);
+    BOOST_REQUIRE_EQUAL(instance.database.presilent.size, 0u);
     BOOST_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
 }
 
