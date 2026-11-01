@@ -382,6 +382,9 @@
     <ClInclude Include="..\..\..\..\build\include\bitcoin\node\version.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
+    <ClCompile Include="..\..\..\..\build\src\version.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp">
