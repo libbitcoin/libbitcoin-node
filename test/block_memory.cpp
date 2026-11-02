@@ -20,7 +20,7 @@
 
 #include <thread>
 
-BOOST_AUTO_TEST_SUITE(block_memory_tests)
+BC_AUTO_TEST_SUITE(block_memory_tests)
 
 class accessor
   : public block_memory
@@ -44,62 +44,62 @@ public:
     }
 };
 
-BOOST_AUTO_TEST_CASE(block_memory__get_arena__no_multiple_no_threads__default_arena)
+BC_AUTO_TEST_CASE(block_memory__get_arena__no_multiple_no_threads__default_arena)
 {
     constexpr size_t multiple = 0;
     constexpr size_t threads = 0;
     accessor instance{ multiple, threads };
-    BOOST_REQUIRE_EQUAL(instance.get_size(), zero);
-    BOOST_REQUIRE_EQUAL(instance.get_count(), zero);
-    BOOST_REQUIRE_EQUAL(instance.get_arena(), default_arena::get());
+    BC_REQUIRE_EQUAL(instance.get_size(), zero);
+    BC_REQUIRE_EQUAL(instance.get_count(), zero);
+    BC_REQUIRE_EQUAL(instance.get_arena(), default_arena::get());
 }
 
-BOOST_AUTO_TEST_CASE(block_memory__get_arena__no_threads__default_arena)
+BC_AUTO_TEST_CASE(block_memory__get_arena__no_threads__default_arena)
 {
     constexpr size_t multiple = 42;
     constexpr size_t threads = 0;
     accessor instance{ multiple, threads };
-    BOOST_REQUIRE_EQUAL(instance.get_size(), zero);
-    BOOST_REQUIRE_EQUAL(instance.get_count(), zero);
-    BOOST_REQUIRE_EQUAL(instance.get_arena(), default_arena::get());
+    BC_REQUIRE_EQUAL(instance.get_size(), zero);
+    BC_REQUIRE_EQUAL(instance.get_count(), zero);
+    BC_REQUIRE_EQUAL(instance.get_arena(), default_arena::get());
 }
 
-BOOST_AUTO_TEST_CASE(block_memory__get_arena__no_multiple__default_arena)
+BC_AUTO_TEST_CASE(block_memory__get_arena__no_multiple__default_arena)
 {
     constexpr size_t multiple = 0;
     constexpr size_t threads = 1;
     accessor instance{ multiple, threads };
-    BOOST_REQUIRE_EQUAL(instance.get_size(), zero);
-    BOOST_REQUIRE_EQUAL(instance.get_count(), zero);
-    BOOST_REQUIRE_EQUAL(instance.get_arena(), default_arena::get());
+    BC_REQUIRE_EQUAL(instance.get_size(), zero);
+    BC_REQUIRE_EQUAL(instance.get_count(), zero);
+    BC_REQUIRE_EQUAL(instance.get_arena(), default_arena::get());
 }
 
-BOOST_AUTO_TEST_CASE(block_memory__get_arena__multiple_one_thread__not_default_arena)
+BC_AUTO_TEST_CASE(block_memory__get_arena__multiple_one_thread__not_default_arena)
 {
     constexpr size_t multiple = 42;
     constexpr size_t threads = 1;
     accessor instance{ multiple, threads };
-    BOOST_REQUIRE_EQUAL(instance.get_size(), one);
-    BOOST_REQUIRE_EQUAL(instance.get_count(), zero);
-    BOOST_REQUIRE_NE(instance.get_arena(), default_arena::get());
+    BC_REQUIRE_EQUAL(instance.get_size(), one);
+    BC_REQUIRE_EQUAL(instance.get_count(), zero);
+    BC_REQUIRE_NE(instance.get_arena(), default_arena::get());
 }
 
-BOOST_AUTO_TEST_CASE(block_memory__get_arena__multiple_threads__count_unincremented)
+BC_AUTO_TEST_CASE(block_memory__get_arena__multiple_threads__count_unincremented)
 {
     constexpr size_t multiple = 42;
     constexpr size_t threads = 2;
     accessor instance{ multiple, threads };
-    BOOST_REQUIRE_EQUAL(instance.get_size(), two);
+    BC_REQUIRE_EQUAL(instance.get_size(), two);
 
     // On any given thread count must not change.
-    BOOST_REQUIRE_EQUAL(instance.get_count(), zero);
-    BOOST_REQUIRE_NE(instance.get_arena(), default_arena::get());
-    BOOST_REQUIRE_EQUAL(instance.get_count(), zero);
-    BOOST_REQUIRE_NE(instance.get_arena(), default_arena::get());
-    BOOST_REQUIRE_EQUAL(instance.get_count(), zero);
+    BC_REQUIRE_EQUAL(instance.get_count(), zero);
+    BC_REQUIRE_NE(instance.get_arena(), default_arena::get());
+    BC_REQUIRE_EQUAL(instance.get_count(), zero);
+    BC_REQUIRE_NE(instance.get_arena(), default_arena::get());
+    BC_REQUIRE_EQUAL(instance.get_count(), zero);
 }
 
-BOOST_AUTO_TEST_CASE(block_memory__get_arena__two_threads__independent_not_default_arenas)
+BC_AUTO_TEST_CASE(block_memory__get_arena__two_threads__independent_not_default_arenas)
 {
     // non-zero multiple ensures block_arenas but value is otherwise unimportant.
     constexpr size_t multiple = 42;
@@ -126,13 +126,13 @@ BOOST_AUTO_TEST_CASE(block_memory__get_arena__two_threads__independent_not_defau
 
     thread1.join();
 
-    BOOST_REQUIRE_NE(arena2, default_arena::get());
-    BOOST_REQUIRE_NE(arena1, default_arena::get());
-    BOOST_REQUIRE_NE(arena1, arena2);
-    BOOST_REQUIRE_NE(count1, count2);
+    BC_REQUIRE_NE(arena2, default_arena::get());
+    BC_REQUIRE_NE(arena1, default_arena::get());
+    BC_REQUIRE_NE(arena1, arena2);
+    BC_REQUIRE_NE(count1, count2);
 }
 
-BOOST_AUTO_TEST_CASE(block_memory__get_arena__overflow_threads__default_arena)
+BC_AUTO_TEST_CASE(block_memory__get_arena__overflow_threads__default_arena)
 {
     constexpr size_t multiple = 42;
     constexpr size_t threads = 2;
@@ -176,20 +176,20 @@ BOOST_AUTO_TEST_CASE(block_memory__get_arena__overflow_threads__default_arena)
     thread1.join();
 
     // Arenas are ordered by thread order above.
-    BOOST_REQUIRE_EQUAL(arena1, instance.get_arena_at(0));
-    BOOST_REQUIRE_EQUAL(arena2, instance.get_arena_at(1));
-    BOOST_REQUIRE_NE(arena1, arena2);
+    BC_REQUIRE_EQUAL(arena1, instance.get_arena_at(0));
+    BC_REQUIRE_EQUAL(arena2, instance.get_arena_at(1));
+    BC_REQUIRE_NE(arena1, arena2);
 
     // Index overflows to default arena.
-    BOOST_REQUIRE_EQUAL(arena3, default_arena::get());
+    BC_REQUIRE_EQUAL(arena3, default_arena::get());
 
     // Count reflects total, not the index of the thread.
-    BOOST_REQUIRE_EQUAL(count1a, 0u);
-    BOOST_REQUIRE_EQUAL(count2a, 1u);
-    BOOST_REQUIRE_EQUAL(count3a, 2u);
-    BOOST_REQUIRE_EQUAL(count1b, 1u);
-    BOOST_REQUIRE_EQUAL(count2b, 2u);
-    BOOST_REQUIRE_EQUAL(count3b, 3u);
+    BC_REQUIRE_EQUAL(count1a, 0u);
+    BC_REQUIRE_EQUAL(count2a, 1u);
+    BC_REQUIRE_EQUAL(count3a, 2u);
+    BC_REQUIRE_EQUAL(count1b, 1u);
+    BC_REQUIRE_EQUAL(count2b, 2u);
+    BC_REQUIRE_EQUAL(count3b, 3u);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()

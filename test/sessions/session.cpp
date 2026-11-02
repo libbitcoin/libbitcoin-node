@@ -94,10 +94,10 @@ struct session_setup_fixture
         node_{ query_, config_, log_ },
         session_{ node_ }
     {
-        BOOST_REQUIRE(test::clear(test::directory));
+        BC_REQUIRE(test::clear(test::directory));
         const auto ec = store_.create([](auto, auto) NOEXCEPT {});
-        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-        BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
+        BC_REQUIRE_MESSAGE(!ec, ec.message());
+        BC_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
 
         std::promise<code> started{};
         node_.start([&](const code& ec) NOEXCEPT
@@ -105,7 +105,7 @@ struct session_setup_fixture
             started.set_value(ec);
         });
 
-        BOOST_REQUIRE(!started.get_future().get());
+        BC_REQUIRE(!started.get_future().get());
 
         std::promise<code> running{};
         node_.run([&](const code& ec) NOEXCEPT
@@ -113,14 +113,14 @@ struct session_setup_fixture
             running.set_value(ec);
         });
 
-        BOOST_REQUIRE(!running.get_future().get());
+        BC_REQUIRE(!running.get_future().get());
     }
 
     ~session_setup_fixture()
     {
         node_.close();
         const auto ec = store_.close([](auto, auto) NOEXCEPT {});
-        BOOST_WARN_MESSAGE(!ec, ec.message());
+        BC_WARN_MESSAGE(!ec, ec.message());
         test::clear(test::directory);
     }
 
@@ -158,10 +158,10 @@ struct session_outbound_setup_fixture
         node_{ query_, config_, log_ }
     {
         using namespace network::messages::peer;
-        BOOST_REQUIRE(test::clear(test::directory));
+        BC_REQUIRE(test::clear(test::directory));
         const auto ec = store_.create([](auto, auto) NOEXCEPT {});
-        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-        BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
+        BC_REQUIRE_MESSAGE(!ec, ec.message());
+        BC_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
 
         const auto services = service::node_network | service::node_witness;
         const auto entry = "127.0.0.1:65115/0/" + std::to_string(services);
@@ -173,7 +173,7 @@ struct session_outbound_setup_fixture
             started.set_value(ec);
         });
 
-        BOOST_REQUIRE(!started.get_future().get());
+        BC_REQUIRE(!started.get_future().get());
 
         std::promise<code> running{};
         node_.run([&](const code& ec) NOEXCEPT
@@ -181,14 +181,14 @@ struct session_outbound_setup_fixture
             running.set_value(ec);
         });
 
-        BOOST_REQUIRE(!running.get_future().get());
+        BC_REQUIRE(!running.get_future().get());
     }
 
     ~session_outbound_setup_fixture()
     {
         node_.close();
         const auto ec = store_.close([](auto, auto) NOEXCEPT {});
-        BOOST_WARN_MESSAGE(!ec, ec.message());
+        BC_WARN_MESSAGE(!ec, ec.message());
         test::clear(test::directory);
     }
 
@@ -196,11 +196,11 @@ struct session_outbound_setup_fixture
     std::string accept()
     {
         using namespace network::messages::peer;
-        acceptor_.accept(socket_);
+        REQUIRE_SUCCESS(acceptor_, accept, socket_);
         system::data_array<heading::size()> head{};
-        boost::asio::read(socket_, boost::asio::buffer(head));
+        test::read(socket_, network::io::buffer(head));
         const auto message = heading::deserialize(head);
-        BOOST_REQUIRE(message);
+        BC_REQUIRE(message);
         return message->command;
     }
 
@@ -221,15 +221,10 @@ struct session_outbound_setup_fixture
     }
 
 protected:
-    using tcp = boost::asio::ip::tcp;
-    boost::asio::io_context io_{};
-    const tcp::endpoint endpoint_
-    {
-        boost::asio::ip::make_address("127.0.0.1"),
-        65115
-    };
-    tcp::acceptor acceptor_{ io_, endpoint_ };
-    tcp::socket socket_{ io_ };
+    network::io::context io_{};
+    const network::io::endpoint endpoint_{ test::loopback(65115) };
+    network::io::acceptor acceptor_{ io_, endpoint_ };
+    network::io::socket socket_{ io_ };
     configuration config_;
     node::store store_;
     node::query query_;
@@ -321,11 +316,11 @@ static const system::chain::header orphan
     0u
 };
 
-BOOST_FIXTURE_TEST_SUITE(session_tests, session_setup_fixture)
+BC_FIXTURE_TEST_SUITE(session_tests, session_setup_fixture)
 
 // organizers
 
-BOOST_AUTO_TEST_CASE(session__organize__orphan__orphan_header)
+BC_AUTO_TEST_CASE(session__organize__orphan__orphan_header)
 {
     std::promise<code> promise{};
     session_.organize(system::to_shared(orphan), [&](const code& ec, size_t) NOEXCEPT
@@ -333,10 +328,10 @@ BOOST_AUTO_TEST_CASE(session__organize__orphan__orphan_header)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
 }
 
-BOOST_AUTO_TEST_CASE(session__organize__milestone_orphan__orphan_header)
+BC_AUTO_TEST_CASE(session__organize__milestone_orphan__orphan_header)
 {
     std::promise<code> promise{};
     session_.organize(system::to_shared(orphan), false, [&](const code& ec, size_t) NOEXCEPT
@@ -344,10 +339,10 @@ BOOST_AUTO_TEST_CASE(session__organize__milestone_orphan__orphan_header)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
 }
 
-BOOST_AUTO_TEST_CASE(session__prioritize__unknown__not_found)
+BC_AUTO_TEST_CASE(session__prioritize__unknown__not_found)
 {
     std::promise<code> promise{};
     session_.prioritize(orphan.hash(), [&](const code& ec, size_t) NOEXCEPT
@@ -355,10 +350,10 @@ BOOST_AUTO_TEST_CASE(session__prioritize__unknown__not_found)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), database::error::not_found);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), database::error::not_found);
 }
 
-BOOST_AUTO_TEST_CASE(session__submit__relay_disabled__pooling_disabled)
+BC_AUTO_TEST_CASE(session__submit__relay_disabled__pooling_disabled)
 {
     std::promise<code> promise{};
     const auto txs = system::to_shared<const system::chain::transaction_cptrs>();
@@ -367,10 +362,10 @@ BOOST_AUTO_TEST_CASE(session__submit__relay_disabled__pooling_disabled)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::pooling_disabled);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::pooling_disabled);
 }
 
-BOOST_AUTO_TEST_CASE(session__estimate__disabled__estimate_disabled)
+BC_AUTO_TEST_CASE(session__estimate__disabled__estimate_disabled)
 {
     std::promise<code> promise{};
     session_.estimate(1, estimator::mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
@@ -378,16 +373,16 @@ BOOST_AUTO_TEST_CASE(session__estimate__disabled__estimate_disabled)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::estimate_disabled);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::estimate_disabled);
 }
 
 // events
 
-BOOST_AUTO_TEST_CASE(session__notify_one__subscribed__notified)
+BC_AUTO_TEST_CASE(session__notify_one__subscribed__notified)
 {
     std::promise<object_key> keyed{};
     std::promise<code> notified{};
-    boost::asio::post(node_.strand(), [&]() NOEXCEPT
+    network::io::post(node_.strand(), [&]() NOEXCEPT
     {
         keyed.set_value(session_.subscribe_chase([&](const code& ec, event_value value) NOEXCEPT
         {
@@ -400,70 +395,69 @@ BOOST_AUTO_TEST_CASE(session__notify_one__subscribed__notified)
     });
 
     session_.notify_one(keyed.get_future().get(), error::orphan_header, chases::template_{ 42 });
-    BOOST_REQUIRE_EQUAL(notified.get_future().get(), error::orphan_header);
+    BC_REQUIRE_EQUAL(notified.get_future().get(), error::orphan_header);
 }
 
 // suspensions
 
-BOOST_AUTO_TEST_CASE(session__fault__node_error__suspended)
+BC_AUTO_TEST_CASE(session__fault__node_error__suspended)
 {
-    BOOST_REQUIRE(!session_.suspended());
+    BC_REQUIRE(!session_.suspended());
     session_.fault(error::orphan_header);
-    BOOST_REQUIRE(session_.suspended());
+    BC_REQUIRE(session_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(session__resume__suspended__resumed)
+BC_AUTO_TEST_CASE(session__resume__suspended__resumed)
 {
     session_.suspend(error::orphan_header);
-    BOOST_REQUIRE(session_.suspended());
-    BOOST_REQUIRE(session_.resume());
-    BOOST_REQUIRE(!session_.suspended());
+    BC_REQUIRE(session_.suspended());
+    BC_REQUIRE(session_.resume());
+    BC_REQUIRE(!session_.suspended());
 }
 
 // properties
 
-BOOST_AUTO_TEST_CASE(session__database_settings__always__node_database_settings)
+BC_AUTO_TEST_CASE(session__database_settings__always__node_database_settings)
 {
-    BOOST_REQUIRE_EQUAL(&session_.database_settings(), &node_.database_settings());
+    BC_REQUIRE_EQUAL(&session_.database_settings(), &node_.database_settings());
 }
 
-BOOST_AUTO_TEST_CASE(session__is_current_time__zero__false)
+BC_AUTO_TEST_CASE(session__is_current_time__zero__false)
 {
-    BOOST_REQUIRE(!session_.is_current_time(0));
+    BC_REQUIRE(!session_.is_current_time(0));
 }
 
-BOOST_AUTO_TEST_CASE(session__start_time__always__node_start_time)
+BC_AUTO_TEST_CASE(session__start_time__always__node_start_time)
 {
-    BOOST_REQUIRE_EQUAL(session_.start_time(), node_.start_time());
+    BC_REQUIRE_EQUAL(session_.start_time(), node_.start_time());
 }
 
-BOOST_AUTO_TEST_CASE(session__channel_counts__no_connections__zero)
+BC_AUTO_TEST_CASE(session__channel_counts__no_connections__zero)
 {
-    BOOST_REQUIRE_EQUAL(session_.channel_count(), 0u);
-    BOOST_REQUIRE_EQUAL(session_.inbound_channel_count(), 0u);
-    BOOST_REQUIRE_EQUAL(session_.address_count(), 0u);
+    BC_REQUIRE_EQUAL(session_.channel_count(), 0u);
+    BC_REQUIRE_EQUAL(session_.inbound_channel_count(), 0u);
+    BC_REQUIRE_EQUAL(session_.address_count(), 0u);
 }
 
 // methods
 
-BOOST_AUTO_TEST_CASE(session__connect__listening_endpoint__version_received)
+BC_AUTO_TEST_CASE(session__connect__listening_endpoint__version_received)
 {
     using namespace network::messages::peer;
-    using tcp = boost::asio::ip::tcp;
-    boost::asio::io_context io{};
-    tcp::acceptor acceptor{ io, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65113 } };
-    tcp::socket socket{ io };
+    network::io::context io{};
+    network::io::acceptor acceptor{ io, test::loopback(65113) };
+    network::io::socket socket{ io };
     session_.connect(network::config::endpoint{ "127.0.0.1:65113" });
-    acceptor.accept(socket);
+    REQUIRE_SUCCESS(acceptor, accept, socket);
 
     system::data_array<heading::size()> head{};
-    boost::asio::read(socket, boost::asio::buffer(head));
+    test::read(socket, network::io::buffer(head));
     const auto message = heading::deserialize(head);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->command, version::command);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->command, version::command);
 }
 
-BOOST_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
+BC_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
 {
     std::promise<code> promise{};
     session_.connect(network::config::endpoint{ "127.0.0.1:65114" }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
@@ -472,28 +466,27 @@ BOOST_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
         return false;
     });
 
-    BOOST_REQUIRE(promise.get_future().get());
+    BC_REQUIRE(promise.get_future().get());
 }
 
-BOOST_AUTO_TEST_CASE(protocol__connect__listening_endpoint__version_received)
+BC_AUTO_TEST_CASE(protocol__connect__listening_endpoint__version_received)
 {
     using namespace network::messages::peer;
-    using tcp = boost::asio::ip::tcp;
-    boost::asio::io_context io{};
-    tcp::acceptor acceptor{ io, tcp::endpoint{ boost::asio::ip::make_address("127.0.0.1"), 65116 } };
-    tcp::socket socket{ io };
+    network::io::context io{};
+    network::io::acceptor acceptor{ io, test::loopback(65116) };
+    network::io::socket socket{ io };
     session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
     protocol.connect(network::config::endpoint{ "127.0.0.1:65116" });
-    acceptor.accept(socket);
+    REQUIRE_SUCCESS(acceptor, accept, socket);
 
     system::data_array<heading::size()> head{};
-    boost::asio::read(socket, boost::asio::buffer(head));
+    test::read(socket, network::io::buffer(head));
     const auto message = heading::deserialize(head);
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->command, version::command);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->command, version::command);
 }
 
-BOOST_AUTO_TEST_CASE(protocol__connect__refused_endpoint__handler_error)
+BC_AUTO_TEST_CASE(protocol__connect__refused_endpoint__handler_error)
 {
     std::promise<code> promise{};
     session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
@@ -503,165 +496,165 @@ BOOST_AUTO_TEST_CASE(protocol__connect__refused_endpoint__handler_error)
         return false;
     });
 
-    BOOST_REQUIRE(promise.get_future().get());
+    BC_REQUIRE(promise.get_future().get());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(session_outbound_tests, session_outbound_setup_fixture)
+BC_FIXTURE_TEST_SUITE(session_outbound_tests, session_outbound_setup_fixture)
 
 using namespace network::messages::peer;
 
-BOOST_AUTO_TEST_CASE(session_outbound__start__cached_host__version_received)
+BC_AUTO_TEST_CASE(session_outbound__start__cached_host__version_received)
 {
-    BOOST_REQUIRE_EQUAL(accept(), version::command);
+    BC_REQUIRE_EQUAL(accept(), version::command);
 }
 
-BOOST_AUTO_TEST_CASE(session_outbound__handle_chase__stale__handled)
+BC_AUTO_TEST_CASE(session_outbound__handle_chase__stale__handled)
 {
-    BOOST_REQUIRE_EQUAL(accept(), version::command);
+    BC_REQUIRE_EQUAL(accept(), version::command);
     auto future = subscribe(chase::template_);
     node_.notify(error::success, chases::stale{});
     node_.notify(error::success, chases::template_{ 0 });
-    BOOST_REQUIRE(future.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
-    BOOST_REQUIRE_EQUAL(future.get(), error::success);
+    BC_REQUIRE(future.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+    BC_REQUIRE_EQUAL(future.get(), error::success);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(session_broadcast_tests, session_broadcast_setup_fixture)
+BC_FIXTURE_TEST_SUITE(session_broadcast_tests, session_broadcast_setup_fixture)
 
 using namespace network::messages::peer;
 
-BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__inbound__peer_captured)
+BC_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__inbound__peer_captured)
 {
-    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    BC_REQUIRE(handshake(service::node_network, level::bip130));
     send(ping{ 42 }, level::bip130);
-    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+    BC_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
     const auto rows = std::make_shared<network::diagnostics::rows>();
-    BOOST_REQUIRE(!diagnose(rows, target::inbound));
-    BOOST_REQUIRE_EQUAL(rows->size(), 1u);
-    BOOST_REQUIRE(rows->front().group == target::inbound);
-    BOOST_REQUIRE_EQUAL(rows->front().peer_version, level::bip130);
-    BOOST_REQUIRE_EQUAL(rows->front().peer_services, service::node_network);
-    BOOST_REQUIRE_EQUAL(rows->front().peer_user_agent, "/test/");
+    BC_REQUIRE(!diagnose(rows, target::inbound));
+    BC_REQUIRE_EQUAL(rows->size(), 1u);
+    BC_REQUIRE(rows->front().group == target::inbound);
+    BC_REQUIRE_EQUAL(rows->front().peer_version, level::bip130);
+    BC_REQUIRE_EQUAL(rows->front().peer_services, service::node_network);
+    BC_REQUIRE_EQUAL(rows->front().peer_user_agent, "/test/");
 }
 
-BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__manual__none_captured)
+BC_AUTO_TEST_CASE(protocol_observer__handle_broadcast_diagnostics__manual__none_captured)
 {
-    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    BC_REQUIRE(handshake(service::node_network, level::bip130));
     send(ping{ 42 }, level::bip130);
-    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+    BC_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
     const auto rows = std::make_shared<network::diagnostics::rows>();
-    BOOST_REQUIRE(!diagnose(rows, target::manual));
-    BOOST_REQUIRE(rows->empty());
+    BC_REQUIRE(!diagnose(rows, target::manual));
+    BC_REQUIRE(rows->empty());
 }
 
-BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__identified__stopped)
+BC_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__identified__stopped)
 {
-    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    BC_REQUIRE(handshake(service::node_network, level::bip130));
     send(ping{ 42 }, level::bip130);
-    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+    BC_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
     const auto rows = std::make_shared<network::diagnostics::rows>();
-    BOOST_REQUIRE(!diagnose(rows, target::all));
-    BOOST_REQUIRE_EQUAL(rows->size(), 1u);
-    BOOST_REQUIRE(!terminate(rows->front().identifier));
+    BC_REQUIRE(!diagnose(rows, target::all));
+    BC_REQUIRE_EQUAL(rows->size(), 1u);
+    BC_REQUIRE(!terminate(rows->front().identifier));
 }
 
-BOOST_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__unidentified__operation_failed)
+BC_AUTO_TEST_CASE(protocol_observer__handle_broadcast_terminator__unidentified__operation_failed)
 {
-    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    BC_REQUIRE(handshake(service::node_network, level::bip130));
     send(ping{ 42 }, level::bip130);
-    BOOST_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
+    BC_REQUIRE(pong::deserialize(level::bip130, receive(pong::command)));
 
     const auto rows = std::make_shared<network::diagnostics::rows>();
-    BOOST_REQUIRE(!diagnose(rows, target::all));
-    BOOST_REQUIRE_EQUAL(rows->size(), 1u);
-    BOOST_REQUIRE_EQUAL(terminate(add1(rows->front().identifier)), network::error::operation_failed);
+    BC_REQUIRE(!diagnose(rows, target::all));
+    BC_REQUIRE_EQUAL(rows->size(), 1u);
+    BC_REQUIRE_EQUAL(terminate(add1(rows->front().identifier)), network::error::operation_failed);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(session_peer_blockless_tests, session_peer_blockless_setup_fixture)
+BC_FIXTURE_TEST_SUITE(session_peer_blockless_tests, session_peer_blockless_setup_fixture)
 
 using namespace network::messages::peer;
 
-BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__blocks_not_provided__pong)
+BC_AUTO_TEST_CASE(session_peer__attach_protocols__blocks_not_provided__pong)
 {
-    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    BC_REQUIRE(handshake(service::node_network, level::bip130));
     send(ping{ 42 }, level::bip130);
     const auto message = pong::deserialize(level::bip130, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(session_peer_bip31_relay_tests, session_peer_bip31_relay_setup_fixture)
+BC_FIXTURE_TEST_SUITE(session_peer_bip31_relay_tests, session_peer_bip31_relay_setup_fixture)
 
 using namespace network::messages::peer;
 
-BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip37_relay_peer_bip31_node__pong)
+BC_AUTO_TEST_CASE(session_peer__attach_protocols__bip37_relay_peer_bip31_node__pong)
 {
-    BOOST_REQUIRE(handshake(0, level::bip37, true));
+    BC_REQUIRE(handshake(0, level::bip37, true));
     send(ping{ 42 }, level::bip31);
     const auto message = pong::deserialize(level::bip31, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(session_peer_tests, p2p_setup_fixture)
+BC_FIXTURE_TEST_SUITE(session_peer_tests, p2p_setup_fixture)
 
 using namespace network::messages::peer;
 
-BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip130_network_peer__pong)
+BC_AUTO_TEST_CASE(session_peer__attach_protocols__bip130_network_peer__pong)
 {
-    BOOST_REQUIRE(handshake(service::node_network, level::bip130));
+    BC_REQUIRE(handshake(service::node_network, level::bip130));
     send(ping{ 42 }, level::bip130);
     const auto message = pong::deserialize(level::bip130, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__headers_network_peer__genesis_block)
+BC_AUTO_TEST_CASE(session_peer__attach_protocols__headers_network_peer__genesis_block)
 {
-    BOOST_REQUIRE(handshake(service::node_network, level::headers_protocol));
+    BC_REQUIRE(handshake(service::node_network, level::headers_protocol));
 
     const system::chain::block& genesis = config_.bitcoin.genesis_block;
     const get_data get{ { { inventory_item::type_id::block, genesis.hash() } } };
     send(get, level::headers_protocol);
-    BOOST_REQUIRE(receive(block::command) == genesis.to_data(false));
+    BC_REQUIRE(receive(block::command) == genesis.to_data(false));
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(session_peer_relay_tests, p2p_relay_setup_fixture)
+BC_FIXTURE_TEST_SUITE(session_peer_relay_tests, p2p_relay_setup_fixture)
 
 using namespace network::messages::peer;
 
-BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip37_relay_peer__pong)
+BC_AUTO_TEST_CASE(session_peer__attach_protocols__bip37_relay_peer__pong)
 {
-    BOOST_REQUIRE(handshake(0, level::bip37, true));
+    BC_REQUIRE(handshake(0, level::bip37, true));
     send(ping{ 42 }, level::bip37);
     const auto message = pong::deserialize(level::bip37, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_AUTO_TEST_CASE(session_peer__attach_protocols__bip31_relay_peer__pong)
+BC_AUTO_TEST_CASE(session_peer__attach_protocols__bip31_relay_peer__pong)
 {
-    BOOST_REQUIRE(handshake(0, level::bip31, true));
+    BC_REQUIRE(handshake(0, level::bip31, true));
     send(ping{ 42 }, level::bip31);
     const auto message = pong::deserialize(level::bip31, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
 BC_POP_WARNING()

@@ -46,7 +46,7 @@ struct p2p_setup_fixture
     void send(const Message& message, uint32_t version)
     {
         system::data_chunk payload(message.size(version));
-        BOOST_REQUIRE(message.serialize(version, payload));
+        BC_REQUIRE(message.serialize(version, payload));
         send(Message::command, payload);
     }
 
@@ -58,6 +58,10 @@ struct p2p_setup_fixture
 
     /// Read framed messages until the command (true) or the terminal.
     bool received(const std::string& command, const std::string& terminal);
+
+    /// Read framed messages, true if the node drops the connection before
+    /// sending the command.
+    bool dropped(const std::string& command);
 
     /// Perform the version handshake, retains the node's version message.
     bool handshake(uint64_t services=0,
@@ -111,8 +115,8 @@ protected:
     full_node node_;
 
 private:
-    boost::asio::io_context io_{};
-    boost::asio::ip::tcp::socket socket_{ io_ };
+    network::io::context io_{};
+    network::io::socket socket_{ io_ };
     std::shared_ptr<subscription> subscription_
     {
         std::make_shared<subscription>()
@@ -212,7 +216,7 @@ struct p2p_compact_setup_fixture
     static const system::chain::block& block2() NOEXCEPT;
 
     inline p2p_compact_setup_fixture(const initializer& setup={},
-        uint16_t compact_timeout=max_uint16, uint16_t missing_percent=100)
+        uint16_t compact_timeout=max_uint16, uint8_t missing_percent=100)
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             config.network.enable_compact = true;

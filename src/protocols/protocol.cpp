@@ -218,7 +218,7 @@ void protocol::handle_subscribed(const code& ec, object_key key) NOEXCEPT
     const auto self = dynamic_cast<network::protocol&>(*this)
         .shared_from_sibling<node::protocol, network::protocol>();
 
-    boost::asio::post(channel_->strand(),
+    network::io::post(channel_->strand(),
         std::bind(&protocol::subscribed, self, ec, key));
 }
 

@@ -49,16 +49,16 @@ struct full_node_setup_fixture
         query_{ store_ },
         node_{ query_, config_, log_ }
     {
-        BOOST_REQUIRE(test::clear(test::directory));
+        BC_REQUIRE(test::clear(test::directory));
         const auto ec = store_.create([](auto, auto) NOEXCEPT {});
-        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
+        BC_REQUIRE_MESSAGE(!ec, ec.message());
     }
 
     ~full_node_setup_fixture()
     {
         close();
         const auto ec = store_.close([](auto, auto) NOEXCEPT {});
-        BOOST_WARN_MESSAGE(!ec, ec.message());
+        BC_WARN_MESSAGE(!ec, ec.message());
         test::clear(test::directory);
     }
 
@@ -181,45 +181,45 @@ static const system::chain::header orphan
     0u
 };
 
-BOOST_FIXTURE_TEST_SUITE(full_node_tests, full_node_setup_fixture)
+BC_FIXTURE_TEST_SUITE(full_node_tests, full_node_setup_fixture)
 
 // start/run/close
 
-BOOST_AUTO_TEST_CASE(full_node__start__uninitialized__store_uninitialized)
+BC_AUTO_TEST_CASE(full_node__start__uninitialized__store_uninitialized)
 {
-    BOOST_REQUIRE_EQUAL(start(), error::store_uninitialized);
+    BC_REQUIRE_EQUAL(start(), error::store_uninitialized);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__start__invalid_candidate_top__organize1)
+BC_AUTO_TEST_CASE(full_node__start__invalid_candidate_top__organize1)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(query_.push_candidate(database::header_link{ 42 }));
-    BOOST_REQUIRE_EQUAL(start(), error::organize1);
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(query_.push_candidate(database::header_link{ 42 }));
+    BC_REQUIRE_EQUAL(start(), error::organize1);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__run__started__success)
+BC_AUTO_TEST_CASE(full_node__run__started__success)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
-    BOOST_REQUIRE(!node_.suspended());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
+    BC_REQUIRE(!node_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(full_node__run__closed__service_stopped)
+BC_AUTO_TEST_CASE(full_node__run__closed__service_stopped)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
     close();
-    BOOST_REQUIRE_EQUAL(run(), network::error::service_stopped);
+    BC_REQUIRE_EQUAL(run(), network::error::service_stopped);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__run__closed_while_queued__service_stopped)
+BC_AUTO_TEST_CASE(full_node__run__closed_while_queued__service_stopped)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
 
     std::promise<bool> blocked{};
-    boost::asio::post(node_.strand(), [&]() NOEXCEPT
+    network::io::post(node_.strand(), [&]() NOEXCEPT
     {
         blocked.set_value(await([&]() { return node_.closed(); }));
     });
@@ -231,26 +231,26 @@ BOOST_AUTO_TEST_CASE(full_node__run__closed_while_queued__service_stopped)
     });
 
     close();
-    BOOST_REQUIRE(blocked.get_future().get());
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), network::error::service_stopped);
+    BC_REQUIRE(blocked.get_future().get());
+    BC_REQUIRE_EQUAL(promise.get_future().get(), network::error::service_stopped);
 }
 
 // events
 
-BOOST_AUTO_TEST_CASE(full_node__notify__subscribed__notified)
+BC_AUTO_TEST_CASE(full_node__notify__subscribed__notified)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
     auto future = subscribe(chase::template_);
     node_.notify(error::orphan_header, chases::template_{ 42 });
-    BOOST_REQUIRE(ready(future));
-    BOOST_REQUIRE_EQUAL(future.get(), error::orphan_header);
+    BC_REQUIRE(ready(future));
+    BC_REQUIRE_EQUAL(future.get(), error::orphan_header);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__notify_one__subscribed__notified)
+BC_AUTO_TEST_CASE(full_node__notify_one__subscribed__notified)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
 
     std::promise<object_key> keyed{};
     std::promise<code> notified{};
@@ -267,13 +267,13 @@ BOOST_AUTO_TEST_CASE(full_node__notify_one__subscribed__notified)
     });
 
     node_.notify_one(keyed.get_future().get(), error::orphan_header, chases::template_{ 42 });
-    BOOST_REQUIRE_EQUAL(notified.get_future().get(), error::orphan_header);
+    BC_REQUIRE_EQUAL(notified.get_future().get(), error::orphan_header);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__unsubscribe_chase__subscribed__service_stopped)
+BC_AUTO_TEST_CASE(full_node__unsubscribe_chase__subscribed__service_stopped)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
 
     std::promise<object_key> keyed{};
     std::promise<code> stopped{};
@@ -290,127 +290,127 @@ BOOST_AUTO_TEST_CASE(full_node__unsubscribe_chase__subscribed__service_stopped)
     });
 
     node_.unsubscribe_chase(keyed.get_future().get());
-    BOOST_REQUIRE_EQUAL(stopped.get_future().get(), network::error::service_stopped);
+    BC_REQUIRE_EQUAL(stopped.get_future().get(), network::error::service_stopped);
 }
 
 // suspensions
 
-BOOST_AUTO_TEST_CASE(full_node__fault__node_error__suspended)
+BC_AUTO_TEST_CASE(full_node__fault__node_error__suspended)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
     auto future = subscribe(chase::suspend);
     node_.fault(error::orphan_header);
-    BOOST_REQUIRE(ready(future));
-    BOOST_REQUIRE_EQUAL(future.get(), error::suspended_channel);
-    BOOST_REQUIRE(node_.suspended());
+    BC_REQUIRE(ready(future));
+    BC_REQUIRE_EQUAL(future.get(), error::suspended_channel);
+    BC_REQUIRE(node_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(full_node__resume__suspended__resumed)
+BC_AUTO_TEST_CASE(full_node__resume__suspended__resumed)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
     node_.suspend(error::orphan_header);
-    BOOST_REQUIRE(node_.suspended());
+    BC_REQUIRE(node_.suspended());
     auto future = subscribe(chase::resume);
-    BOOST_REQUIRE(node_.resume());
-    BOOST_REQUIRE(ready(future));
-    BOOST_REQUIRE_EQUAL(future.get(), error::success);
-    BOOST_REQUIRE(!node_.suspended());
+    BC_REQUIRE(node_.resume());
+    BC_REQUIRE(ready(future));
+    BC_REQUIRE_EQUAL(future.get(), error::success);
+    BC_REQUIRE(!node_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(full_node__snapshot__running__success_suspended)
+BC_AUTO_TEST_CASE(full_node__snapshot__running__success_suspended)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
-    BOOST_REQUIRE(!node_.snapshot([](auto, auto) NOEXCEPT {}));
-    BOOST_REQUIRE(node_.suspended());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
+    BC_REQUIRE(!node_.snapshot([](auto, auto) NOEXCEPT {}));
+    BC_REQUIRE(node_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(full_node__reload__not_full__success_not_suspended)
+BC_AUTO_TEST_CASE(full_node__reload__not_full__success_not_suspended)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
-    BOOST_REQUIRE_EQUAL(node_.reload([](auto, auto) NOEXCEPT {}), error::success);
-    BOOST_REQUIRE(!node_.suspended());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
+    BC_REQUIRE_EQUAL(node_.reload([](auto, auto) NOEXCEPT {}), error::success);
+    BC_REQUIRE(!node_.suspended());
 }
 
 // chasers
 
-BOOST_AUTO_TEST_CASE(full_node__notify__snap__resumed)
+BC_AUTO_TEST_CASE(full_node__notify__snap__resumed)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
     auto future = subscribe(chase::resume);
     node_.notify(error::success, chases::snap{ 0 });
-    BOOST_REQUIRE(ready(future));
-    BOOST_REQUIRE_EQUAL(future.get(), error::success);
+    BC_REQUIRE(ready(future));
+    BC_REQUIRE_EQUAL(future.get(), error::success);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__notify__block__pruned)
+BC_AUTO_TEST_CASE(full_node__notify__block__pruned)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
     auto pruned = subscribe(chase::pruned);
     node_.notify(error::success, chases::block{ 0 });
-    BOOST_REQUIRE(ready(pruned));
-    BOOST_REQUIRE_EQUAL(pruned.get(), error::success);
+    BC_REQUIRE(ready(pruned));
+    BC_REQUIRE_EQUAL(pruned.get(), error::success);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__notify__block_after_prune__not_suspended)
+BC_AUTO_TEST_CASE(full_node__notify__block_after_prune__not_suspended)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
     auto resumed = subscribe(chase::resume);
     node_.notify(error::success, chases::block{ 0 });
-    BOOST_REQUIRE(ready(resumed));
-    BOOST_REQUIRE_EQUAL(resumed.get(), error::success);
+    BC_REQUIRE(ready(resumed));
+    BC_REQUIRE_EQUAL(resumed.get(), error::success);
 
     auto templated = subscribe(chase::template_);
     node_.notify(error::success, chases::block{ 0 });
     node_.notify(error::success, chases::template_{ 0 });
-    BOOST_REQUIRE(ready(templated));
-    BOOST_REQUIRE(!node_.suspended());
+    BC_REQUIRE(ready(templated));
+    BC_REQUIRE(!node_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(full_node__notify__space_not_full__not_suspended)
+BC_AUTO_TEST_CASE(full_node__notify__space_not_full__not_suspended)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
     auto future = subscribe(chase::template_);
     node_.notify(error::success, chases::space{});
     node_.notify(error::success, chases::template_{ 0 });
-    BOOST_REQUIRE(ready(future));
-    BOOST_REQUIRE(!query_.is_full());
-    BOOST_REQUIRE(!node_.suspended());
+    BC_REQUIRE(ready(future));
+    BC_REQUIRE(!query_.is_full());
+    BC_REQUIRE(!node_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(full_node__notify__transaction__not_suspended)
+BC_AUTO_TEST_CASE(full_node__notify__transaction__not_suspended)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
-    BOOST_REQUIRE(!run());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
     auto future = subscribe(chase::template_);
     node_.notify(error::success, chases::transaction{ 0 });
     node_.notify(error::success, chases::template_{ 0 });
-    BOOST_REQUIRE(ready(future));
-    BOOST_REQUIRE(!node_.suspended());
+    BC_REQUIRE(ready(future));
+    BC_REQUIRE(!node_.suspended());
 }
 
 // organizers
 
-BOOST_AUTO_TEST_CASE(full_node__organize__orphan__orphan_header)
+BC_AUTO_TEST_CASE(full_node__organize__orphan__orphan_header)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
 
     std::promise<code> promise{};
     node_.organize(system::to_shared(orphan), [&](const code& ec, size_t) NOEXCEPT
@@ -418,13 +418,13 @@ BOOST_AUTO_TEST_CASE(full_node__organize__orphan__orphan_header)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__organize__milestone_orphan__orphan_header)
+BC_AUTO_TEST_CASE(full_node__organize__milestone_orphan__orphan_header)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
 
     std::promise<code> promise{};
     node_.organize(system::to_shared(orphan), true, [&](const code& ec, size_t) NOEXCEPT
@@ -432,13 +432,13 @@ BOOST_AUTO_TEST_CASE(full_node__organize__milestone_orphan__orphan_header)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::orphan_header);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__prioritize__unknown__not_found)
+BC_AUTO_TEST_CASE(full_node__prioritize__unknown__not_found)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
 
     std::promise<code> promise{};
     node_.prioritize(orphan.hash(), [&](const code& ec, size_t) NOEXCEPT
@@ -446,13 +446,13 @@ BOOST_AUTO_TEST_CASE(full_node__prioritize__unknown__not_found)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), database::error::not_found);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), database::error::not_found);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__submit__relay_disabled__pooling_disabled)
+BC_AUTO_TEST_CASE(full_node__submit__relay_disabled__pooling_disabled)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!start());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
 
     std::promise<code> promise{};
     const auto txs = system::to_shared<const system::chain::transaction_cptrs>();
@@ -461,10 +461,10 @@ BOOST_AUTO_TEST_CASE(full_node__submit__relay_disabled__pooling_disabled)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::pooling_disabled);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::pooling_disabled);
 }
 
-BOOST_AUTO_TEST_CASE(full_node__estimate__disabled__estimate_disabled)
+BC_AUTO_TEST_CASE(full_node__estimate__disabled__estimate_disabled)
 {
     std::promise<code> promise{};
     node_.estimate(1, estimator::mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
@@ -472,56 +472,56 @@ BOOST_AUTO_TEST_CASE(full_node__estimate__disabled__estimate_disabled)
         promise.set_value(ec);
     });
 
-    BOOST_REQUIRE_EQUAL(promise.get_future().get(), error::estimate_disabled);
+    BC_REQUIRE_EQUAL(promise.get_future().get(), error::estimate_disabled);
 }
 
 // properties
 
-BOOST_AUTO_TEST_CASE(full_node__start_time__always__not_after_now)
+BC_AUTO_TEST_CASE(full_node__start_time__always__not_after_now)
 {
-    BOOST_REQUIRE_NE(node_.start_time(), 0);
-    BOOST_REQUIRE(node_.start_time() <= network::zulu_time());
+    BC_REQUIRE_NE(node_.start_time(), 0);
+    BC_REQUIRE(node_.start_time() <= network::zulu_time());
 }
 
-BOOST_AUTO_TEST_CASE(full_node__is_current_header__genesis__false)
+BC_AUTO_TEST_CASE(full_node__is_current_header__genesis__false)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!node_.is_current_header(database::header_link{ 0 }));
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!node_.is_current_header(database::header_link{ 0 }));
 }
 
-BOOST_AUTO_TEST_CASE(full_node__is_current_header__missing__false)
+BC_AUTO_TEST_CASE(full_node__is_current_header__missing__false)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!node_.is_current_header(database::header_link{ 42 }));
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!node_.is_current_header(database::header_link{ 42 }));
 }
 
-BOOST_AUTO_TEST_CASE(full_node__is_recent__genesis__false)
+BC_AUTO_TEST_CASE(full_node__is_recent__genesis__false)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(!node_.is_recent());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!node_.is_recent());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(full_node_current_tests, full_node_current_setup_fixture)
+BC_FIXTURE_TEST_SUITE(full_node_current_tests, full_node_current_setup_fixture)
 
-BOOST_AUTO_TEST_CASE(full_node__is_current_header__zero_window__true)
+BC_AUTO_TEST_CASE(full_node__is_current_header__zero_window__true)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(node_.is_current_header(database::header_link{ 42 }));
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(node_.is_current_header(database::header_link{ 42 }));
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_FIXTURE_TEST_SUITE(full_node_maximum_height_tests, full_node_maximum_height_setup_fixture)
+BC_FIXTURE_TEST_SUITE(full_node_maximum_height_tests, full_node_maximum_height_setup_fixture)
 
-BOOST_AUTO_TEST_CASE(full_node__is_recent__confirmed_to_maximum_height__true)
+BC_AUTO_TEST_CASE(full_node__is_recent__confirmed_to_maximum_height__true)
 {
-    BOOST_REQUIRE(initialize());
-    BOOST_REQUIRE(query_.push_confirmed(database::header_link{ 0 }, false));
-    BOOST_REQUIRE(node_.is_recent());
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(query_.push_confirmed(database::header_link{ 0 }, false));
+    BC_REQUIRE(node_.is_recent());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
 BC_POP_WARNING()

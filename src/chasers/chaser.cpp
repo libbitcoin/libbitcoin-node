@@ -130,7 +130,7 @@ bool chaser::wire_block_demanded() const NOEXCEPT
 // Strand.
 // ----------------------------------------------------------------------------
 
-asio::strand& chaser::strand() NOEXCEPT
+io::strand& chaser::strand() NOEXCEPT
 {
     return strand_;
 }

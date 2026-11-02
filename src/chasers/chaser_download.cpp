@@ -79,11 +79,7 @@ map_ptr chaser_download::empty_map() NOEXCEPT
 // static
 map_ptr chaser_download::split(const map_ptr& map) NOEXCEPT
 {
-    const auto half = empty_map();
-    auto& index = map->get<association::pos>();
-    const auto end = std::next(index.begin(), to_half(map->size()));
-    half->merge(index, index.begin(), end);
-    return half;
+    return std::make_shared<associations>(map->extract(to_half(map->size())));
 }
 
 // start/stop
@@ -205,7 +201,7 @@ void chaser_download::handle_purged(const code& ec) NOEXCEPT
     if (closed())
         return;
 
-    boost::asio::post(strand(),
+    network::io::post(strand(),
         std::bind(&chaser_download::do_handle_purged,
             this, ec));
 }
@@ -264,7 +260,7 @@ void chaser_download::update(object_key channel, uint64_t speed,
         return;
     }
 
-    boost::asio::post(strand(),
+    network::io::post(strand(),
         BIND(do_update, channel, speed, handler));
 }
 

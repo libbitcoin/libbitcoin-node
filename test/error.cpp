@@ -18,352 +18,352 @@
  */
 #include "test.hpp"
 
-BOOST_AUTO_TEST_SUITE(error_tests)
+BC_AUTO_TEST_SUITE(error_tests)
 
 // error_t
 // These test std::error_code equality operator overrides.
 
 // general
 
-BOOST_AUTO_TEST_CASE(error_t__code__success__false_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__success__false_expected_message)
 {
     constexpr auto value = error::success;
     const auto ec = code(value);
-    BOOST_REQUIRE(!ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "success");
+    BC_REQUIRE(!ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "success");
 }
 
 // database
 
-BOOST_AUTO_TEST_CASE(error_t__code__store_uninitialized__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__store_uninitialized__true_expected_message)
 {
     constexpr auto value = error::store_uninitialized;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "store not initialized");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "store not initialized");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__store_reload__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__store_reload__true_expected_message)
 {
     constexpr auto value = error::store_reload;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "store reload");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "store reload");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__store_prune__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__store_prune__true_expected_message)
 {
     constexpr auto value = error::store_prune;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "store prune");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "store prune");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__store_snapshot__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__store_snapshot__true_expected_message)
 {
     constexpr auto value = error::store_snapshot;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "store snapshot");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "store snapshot");
 }
 
 // network
 
-BOOST_AUTO_TEST_CASE(error_t__code__slow_channel__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__slow_channel__true_expected_message)
 {
     constexpr auto value = error::slow_channel;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "slow channel");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "slow channel");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__stalled_channel__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__stalled_channel__true_expected_message)
 {
     constexpr auto value = error::stalled_channel;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "stalled channel");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "stalled channel");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__exhausted_channel__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__exhausted_channel__true_expected_message)
 {
     constexpr auto value = error::exhausted_channel;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "exhausted channel");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "exhausted channel");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__sacrificed_channel__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__sacrificed_channel__true_expected_message)
 {
     constexpr auto value = error::sacrificed_channel;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "sacrificed channel");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "sacrificed channel");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__suspended_channel__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__suspended_channel__true_expected_message)
 {
     constexpr auto value = error::suspended_channel;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "suspended channel");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "suspended channel");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__suspended_service__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__suspended_service__true_expected_message)
 {
     constexpr auto value = error::suspended_service;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "suspended service");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "suspended service");
 }
 
 // blockchain
 
-BOOST_AUTO_TEST_CASE(error_t__code__orphan_block__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__orphan_block__true_expected_message)
 {
     constexpr auto value = error::orphan_block;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "orphan block");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "orphan block");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__orphan_header__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__orphan_header__true_expected_message)
 {
     constexpr auto value = error::orphan_header;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "orphan header");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "orphan header");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__duplicate_block__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__duplicate_block__true_expected_message)
 {
     constexpr auto value = error::duplicate_block;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "duplicate block");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "duplicate block");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__duplicate_header__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__duplicate_header__true_expected_message)
 {
     constexpr auto value = error::duplicate_header;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "duplicate header");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "duplicate header");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimate_disabled__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimate_disabled__true_expected_message)
 {
     constexpr auto value = error::estimate_disabled;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimate_disabled");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimate_disabled");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__unexpected_header__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__unexpected_header__true_expected_message)
 {
     constexpr auto value = error::unexpected_header;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "unexpected header");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "unexpected header");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimate_premature__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimate_premature__true_expected_message)
 {
     constexpr auto value = error::estimate_premature;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimate_premature");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimate_premature");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimate_false__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimate_false__true_expected_message)
 {
     constexpr auto value = error::estimate_false;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimate_false");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimate_false");
 }
 
 // faults
 
-BOOST_AUTO_TEST_CASE(error_t__code__protocol1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__protocol1__true_expected_message)
 {
     constexpr auto value = error::protocol1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "protocol1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "protocol1");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__protocol2__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__protocol2__true_expected_message)
 {
     constexpr auto value = error::protocol2;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "protocol2");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "protocol2");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__header1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__header1__true_expected_message)
 {
     constexpr auto value = error::header1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "header1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "header1");
 }
 
 // TODO: organize2-...
-BOOST_AUTO_TEST_CASE(error_t__code__organize1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__organize1__true_expected_message)
 {
     constexpr auto value = error::organize1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "organize1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "organize1");
 }
 
 // TODO: validate2-...
-BOOST_AUTO_TEST_CASE(error_t__code__validate1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__validate1__true_expected_message)
 {
     constexpr auto value = error::validate1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "validate1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "validate1");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__validate10__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__validate10__true_expected_message)
 {
     constexpr auto value = error::validate10;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "validate10");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "validate10");
 }
 
 // TODO: confirm2-...
-BOOST_AUTO_TEST_CASE(error_t__code__confirm1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__confirm1__true_expected_message)
 {
     constexpr auto value = error::confirm1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "confirm1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "confirm1");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_initialize__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimates_initialize__true_expected_message)
 {
     constexpr auto value = error::estimates_initialize;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_initialize");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimates_initialize");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_push1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimates_push1__true_expected_message)
 {
     constexpr auto value = error::estimates_push1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_push1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimates_push1");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_push2__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimates_push2__true_expected_message)
 {
     constexpr auto value = error::estimates_push2;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_push2");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimates_push2");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_pop1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimates_pop1__true_expected_message)
 {
     constexpr auto value = error::estimates_pop1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pop1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimates_pop1");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_pop2__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimates_pop2__true_expected_message)
 {
     constexpr auto value = error::estimates_pop2;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pop2");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimates_pop2");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_pool__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__estimates_pool__true_expected_message)
 {
     constexpr auto value = error::estimates_pool;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pool");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "estimates_pool");
 }
 
 // batch
 
-BOOST_AUTO_TEST_CASE(error_t__code__batch1__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__batch1__true_expected_message)
 {
     constexpr auto value = error::batch1;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "batch1");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "batch1");
 }
 
 // TODO: batch2-...
 
 // configuration
 
-BOOST_AUTO_TEST_CASE(error_t__code__silent_unwitnessed__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__silent_unwitnessed__true_expected_message)
 {
     constexpr auto value = error::silent_unwitnessed;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "silent payments require witness");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "silent payments require witness");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__silent_pruned__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__silent_pruned__true_expected_message)
 {
     constexpr auto value = error::silent_pruned;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "silent payments start in pruned blocks");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "silent payments start in pruned blocks");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__filter_pruned__true_expected_message)
+BC_AUTO_TEST_CASE(error_t__code__filter_pruned__true_expected_message)
 {
     constexpr auto value = error::filter_pruned;
     const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "client filters require unpruned blocks");
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "client filters require unpruned blocks");
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()

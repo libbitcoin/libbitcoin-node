@@ -19,15 +19,11 @@
 #ifndef LIBBITCOIN_NODE_TEST_HPP
 #define LIBBITCOIN_NODE_TEST_HPP
 
-#include <boost/test/unit_test.hpp>
-
 #include <filesystem>
 #include <bitcoin/node.hpp>
 
 #define TEST_NAME \
-    boost::unit_test::framework::current_test_case().p_name.get()
-#define SUITE_NAME \
-    boost::unit_test::framework::current_auto_test_suite().p_name.get()
+    ::libbitcoin::system::unit_test::session::instance().case_name()
 #define TEST_DIRECTORY \
     test::directory
 #define TEST_PATH \
@@ -102,13 +98,46 @@ struct directory_setup_fixture
 
     directory_setup_fixture() NOEXCEPT
     {
-        BOOST_REQUIRE(clear(directory));
+        BC_REQUIRE(clear(directory));
     }
     ~directory_setup_fixture() NOEXCEPT
     {
-        BOOST_REQUIRE(clear(directory));
+        BC_REQUIRE(clear(directory));
     }
 };
+
+// Require success of a synchronous io call (the code is appended).
+#define REQUIRE_SUCCESS(object, method, ...) \
+{ \
+    code require_ec{}; \
+    (object).method(__VA_ARGS__ __VA_OPT__(,) require_ec); \
+    BC_REQUIRE_EQUAL(require_ec, ::libbitcoin::network::error::success); \
+}
+
+// Blocking transfers of test peers (required to succeed).
+template <typename Stream, typename Buffers>
+inline size_t write(Stream& stream, const Buffers& buffers) NOEXCEPT
+{
+    code ec{};
+    const auto size = network::io::write(stream, buffers, ec);
+    BC_REQUIRE_EQUAL(ec, network::error::success);
+    return size;
+}
+
+template <typename Stream, typename Buffers>
+inline size_t read(Stream& stream, const Buffers& buffers) NOEXCEPT
+{
+    code ec{};
+    const auto size = network::io::read(stream, buffers, ec);
+    BC_REQUIRE_EQUAL(ec, network::error::success);
+    return size;
+}
+
+// A loopback endpoint (an ephemeral port by default).
+inline network::io::endpoint loopback(uint16_t port=0) NOEXCEPT
+{
+    return { system::ip::address{ system::ip::ipv4{ { 127, 0, 0, 1 } } }, port };
+}
 
 } // namespace test
 

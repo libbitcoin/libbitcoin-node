@@ -263,11 +263,11 @@ static database::association item(size_t height) NOEXCEPT
     return { {}, { possible_narrow_cast<uint8_t>(height) }, context };
 }
 
-BOOST_AUTO_TEST_SUITE(chaser_download_tests)
+BC_AUTO_TEST_SUITE(chaser_download_tests)
 
 // split
 
-BOOST_AUTO_TEST_CASE(chaser_download__split__four__lower_half_split)
+BC_AUTO_TEST_CASE(chaser_download__split__four__lower_half_split)
 {
     const auto map = chaser_download::empty_map();
     map->insert(item(4));
@@ -276,164 +276,164 @@ BOOST_AUTO_TEST_CASE(chaser_download__split__four__lower_half_split)
     map->insert(item(2));
 
     const auto half = chaser_download::split(map);
-    BOOST_REQUIRE_EQUAL(half->size(), two);
-    BOOST_REQUIRE_EQUAL(map->size(), two);
-    BOOST_REQUIRE(half->exists(size_t{ 1 }));
-    BOOST_REQUIRE(half->exists(size_t{ 2 }));
-    BOOST_REQUIRE(map->exists(size_t{ 3 }));
-    BOOST_REQUIRE(map->exists(size_t{ 4 }));
+    BC_REQUIRE_EQUAL(half->size(), two);
+    BC_REQUIRE_EQUAL(map->size(), two);
+    BC_REQUIRE(half->exists(size_t{ 1 }));
+    BC_REQUIRE(half->exists(size_t{ 2 }));
+    BC_REQUIRE(map->exists(size_t{ 3 }));
+    BC_REQUIRE(map->exists(size_t{ 4 }));
 }
 
-BOOST_AUTO_TEST_CASE(chaser_download__split__one__empty_split)
+BC_AUTO_TEST_CASE(chaser_download__split__one__empty_split)
 {
     const auto map = chaser_download::empty_map();
     map->insert(item(1));
 
     const auto half = chaser_download::split(map);
-    BOOST_REQUIRE(half->empty());
-    BOOST_REQUIRE_EQUAL(map->size(), one);
+    BC_REQUIRE(half->empty());
+    BC_REQUIRE_EQUAL(map->size(), one);
 }
 
 // update
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__update__maximum__exhausted_channel, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__update__maximum__exhausted_channel, chaser_download_setup_fixture)
 {
-    BOOST_REQUIRE(update(1, max_uint64) == node::error::exhausted_channel);
+    BC_REQUIRE(update(1, max_uint64) == node::error::exhausted_channel);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__update__zero__stalled_channel, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__update__zero__stalled_channel, chaser_download_setup_fixture)
 {
-    BOOST_REQUIRE(update(1, 0) == node::error::stalled_channel);
+    BC_REQUIRE(update(1, 0) == node::error::stalled_channel);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__update__below_minimum_count__success, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__update__below_minimum_count__success, chaser_download_setup_fixture)
 {
-    BOOST_REQUIRE(!update(1, 100));
-    BOOST_REQUIRE(!update(2, 1));
-    BOOST_REQUIRE(!update(3, 1));
+    BC_REQUIRE(!update(1, 100));
+    BC_REQUIRE(!update(2, 1));
+    BC_REQUIRE(!update(3, 1));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__update__not_below_mean__success, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__update__not_below_mean__success, chaser_download_setup_fixture)
 {
-    BOOST_REQUIRE(!update(1, 100));
-    BOOST_REQUIRE(!update(2, 100));
-    BOOST_REQUIRE(!update(3, 100));
-    BOOST_REQUIRE(!update(4, 200));
+    BC_REQUIRE(!update(1, 100));
+    BC_REQUIRE(!update(2, 100));
+    BC_REQUIRE(!update(3, 100));
+    BC_REQUIRE(!update(4, 200));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__update__below_mean_within_deviation__success, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__update__below_mean_within_deviation__success, chaser_download_setup_fixture)
 {
-    BOOST_REQUIRE(!update(1, 100));
-    BOOST_REQUIRE(!update(2, 200));
-    BOOST_REQUIRE(!update(3, 300));
-    BOOST_REQUIRE(!update(4, 150));
+    BC_REQUIRE(!update(1, 100));
+    BC_REQUIRE(!update(2, 200));
+    BC_REQUIRE(!update(3, 300));
+    BC_REQUIRE(!update(4, 150));
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__update__below_mean_beyond_deviation__slow_channel, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__update__below_mean_beyond_deviation__slow_channel, chaser_download_setup_fixture)
 {
-    BOOST_REQUIRE(!update(1, 100));
-    BOOST_REQUIRE(!update(2, 100));
-    BOOST_REQUIRE(!update(3, 100));
-    BOOST_REQUIRE(!update(4, 100));
-    BOOST_REQUIRE(update(5, 10) == node::error::slow_channel);
+    BC_REQUIRE(!update(1, 100));
+    BC_REQUIRE(!update(2, 100));
+    BC_REQUIRE(!update(3, 100));
+    BC_REQUIRE(!update(4, 100));
+    BC_REQUIRE(update(5, 10) == node::error::slow_channel);
 }
 
 // starved
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__starved__recorded_speeds__slowest_other_split, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__starved__recorded_speeds__slowest_other_split, chaser_download_setup_fixture)
 {
     const auto key = subscribe();
-    BOOST_REQUIRE(!update(key, 100));
-    BOOST_REQUIRE(!update(42, 1));
+    BC_REQUIRE(!update(key, 100));
+    BC_REQUIRE(!update(42, 1));
     node_.notify({}, chases::starved{ 42 });
 
     chases::split split{};
-    BOOST_REQUIRE(await(split));
-    BOOST_REQUIRE_EQUAL(split.channel, 42u);
+    BC_REQUIRE(await(split));
+    BC_REQUIRE_EQUAL(split.channel, 42u);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__starved__no_speeds__stall, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__starved__no_speeds__stall, chaser_download_setup_fixture)
 {
     subscribe();
     node_.notify({}, chases::starved{ 42 });
 
     chases::stall stall{};
-    BOOST_REQUIRE(await(stall));
-    BOOST_REQUIRE_EQUAL(stall.channel, 42u);
+    BC_REQUIRE(await(stall));
+    BC_REQUIRE_EQUAL(stall.channel, 42u);
 }
 
 // regressed
 
-////BOOST_FIXTURE_TEST_CASE(chaser_download__regressed__below_window__purged_and_downloaded, chaser_download_candidate_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_download__regressed__below_window__purged_and_downloaded, chaser_download_candidate_setup_fixture)
 ////{
 ////    subscribe();
 ////    node_.notify({}, chases::regressed{ 0 });
 
 ////    chases::purge purge{};
-////    BOOST_REQUIRE(await(purge));
-////    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
+////    BC_REQUIRE(await(purge));
+////    BC_REQUIRE_EQUAL(purge.branch_point, zero);
 
 ////    chases::download download{};
-////    BOOST_REQUIRE(await(download));
-////    BOOST_REQUIRE_EQUAL(download.count, two);
-////    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
-////    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
+////    BC_REQUIRE(await(download));
+////    BC_REQUIRE_EQUAL(download.count, two);
+////    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
+////    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
 ////}
 
-////BOOST_FIXTURE_TEST_CASE(chaser_download__regressed__above_window__not_purged, chaser_download_candidate_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_download__regressed__above_window__not_purged, chaser_download_candidate_setup_fixture)
 ////{
 ////    subscribe();
 ////    node_.notify({}, chases::regressed{ 5 });
 ////    node_.notify({}, chases::regressed{ 0 });
 
 ////    chases::purge purge{};
-////    BOOST_REQUIRE(await(purge));
-////    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
+////    BC_REQUIRE(await(purge));
+////    BC_REQUIRE_EQUAL(purge.branch_point, zero);
 ////}
 
-////BOOST_FIXTURE_TEST_CASE(chaser_download__disorganized__below_window__purged, chaser_download_candidate_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_download__disorganized__below_window__purged, chaser_download_candidate_setup_fixture)
 ////{
 ////    subscribe();
 ////    node_.notify({}, chases::disorganized{ 0 });
 
 ////    chases::purge purge{};
-////    BOOST_REQUIRE(await(purge));
-////    BOOST_REQUIRE_EQUAL(purge.branch_point, zero);
+////    BC_REQUIRE(await(purge));
+////    BC_REQUIRE_EQUAL(purge.branch_point, zero);
 ////}
 
 // get_hashes/put_hashes
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__get_hashes__candidates__expected_map, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__get_hashes__candidates__expected_map, chaser_download_candidate_setup_fixture)
 {
     const auto work = get_hashes();
-    BOOST_REQUIRE(!work.ec);
-    BOOST_REQUIRE(work.racer);
-    BOOST_REQUIRE_EQUAL(work.map->size(), two);
-    BOOST_REQUIRE(work.map->exists(p2p_compact_setup_fixture::block1().hash()));
-    BOOST_REQUIRE(work.map->exists(p2p_compact_setup_fixture::block2().hash()));
-    BOOST_REQUIRE(get_hashes().map->empty());
+    BC_REQUIRE(!work.ec);
+    BC_REQUIRE(work.racer);
+    BC_REQUIRE_EQUAL(work.map->size(), two);
+    BC_REQUIRE(work.map->exists(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(work.map->exists(p2p_compact_setup_fixture::block2().hash()));
+    BC_REQUIRE(get_hashes().map->empty());
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__put_hashes__taken_map__download_and_restored, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__put_hashes__taken_map__download_and_restored, chaser_download_candidate_setup_fixture)
 {
     subscribe();
     const auto map = take_candidates();
-    BOOST_REQUIRE(!put_hashes(map));
+    BC_REQUIRE(!put_hashes(map));
 
     chases::download download{};
-    BOOST_REQUIRE(await(download));
-    BOOST_REQUIRE_EQUAL(download.count, two);
-    BOOST_REQUIRE_EQUAL(get_hashes().map->size(), two);
+    BC_REQUIRE(await(download));
+    BC_REQUIRE_EQUAL(download.count, two);
+    BC_REQUIRE_EQUAL(get_hashes().map->size(), two);
 }
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__get_hashes__purging__dropped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__get_hashes__purging__dropped, chaser_download_candidate_setup_fixture)
 {
     subscribe();
     auto work = get_hashes();
     node_.notify({}, chases::regressed{ 0 });
 
     chases::purge purge{};
-    BOOST_REQUIRE(await(purge));
+    BC_REQUIRE(await(purge));
 
     std::atomic_bool got{ false };
     std::atomic_bool put{ false };
@@ -442,30 +442,30 @@ BOOST_FIXTURE_TEST_CASE(chaser_download__get_hashes__purging__dropped, chaser_do
     work.racer.reset();
 
     chases::download download{};
-    BOOST_REQUIRE(await(download));
-    BOOST_REQUIRE_EQUAL(download.count, two);
-    BOOST_REQUIRE(!got);
-    BOOST_REQUIRE(!put);
+    BC_REQUIRE(await(download));
+    BC_REQUIRE_EQUAL(download.count, two);
+    BC_REQUIRE(!got);
+    BC_REQUIRE(!put);
 }
 
 // checked
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__checked__window_downloaded__windowed, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__checked__window_downloaded__windowed, chaser_download_candidate_setup_fixture)
 {
     subscribe();
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
     send(peer::block::command, p2p_compact_setup_fixture::block1().to_data(true));
     send(peer::block::command, p2p_compact_setup_fixture::block2().to_data(true));
 
     chases::windowed windowed{};
-    BOOST_REQUIRE(await(windowed));
-    BOOST_REQUIRE_EQUAL(windowed.height, two);
+    BC_REQUIRE(await(windowed));
+    BC_REQUIRE_EQUAL(windowed.height, two);
 }
 
 // valid
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__valid__requested_not_positioned__no_download, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__valid__requested_not_positioned__no_download, chaser_download_candidate_setup_fixture)
 {
     subscribe();
     node_.notify({}, chases::valid{ 1 });
@@ -473,68 +473,68 @@ BOOST_FIXTURE_TEST_CASE(chaser_download__valid__requested_not_positioned__no_dow
     node_.notify({}, chases::starved{ 42 });
 
     chases::stall stall{};
-    BOOST_REQUIRE(await(stall));
+    BC_REQUIRE(await(stall));
 
     const auto map = get_hashes().map;
-    BOOST_REQUIRE_EQUAL(map->size(), two);
-    BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block1().hash()));
-    BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block2().hash()));
-    BOOST_REQUIRE(get_hashes().map->empty());
+    BC_REQUIRE_EQUAL(map->size(), two);
+    BC_REQUIRE(map->exists(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(map->exists(p2p_compact_setup_fixture::block2().hash()));
+    BC_REQUIRE(get_hashes().map->empty());
 }
 
 // bump
 
-BOOST_FIXTURE_TEST_CASE(chaser_download__bump__purging__download_on_purged, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__bump__purging__download_on_purged, chaser_download_candidate_setup_fixture)
 {
     subscribe();
     auto work = get_hashes();
     node_.notify({}, chases::regressed{ 0 });
 
     chases::purge purge{};
-    BOOST_REQUIRE(await(purge));
+    BC_REQUIRE(await(purge));
 
     node_.notify({}, chases::bump{ 0 });
     node_.notify({}, chases::starved{ 42 });
 
     chases::stall stall{};
-    BOOST_REQUIRE(await(stall));
+    BC_REQUIRE(await(stall));
     work.racer.reset();
 
     chases::download download{};
-    BOOST_REQUIRE(await(download));
-    BOOST_REQUIRE_EQUAL(download.count, two);
+    BC_REQUIRE(await(download));
+    BC_REQUIRE_EQUAL(download.count, two);
 }
 
 // compact
 
-////BOOST_FIXTURE_TEST_CASE(chaser_download__handle_compact_timer__expired__download, chaser_download_compact_setup_fixture)
+////BC_FIXTURE_TEST_CASE(chaser_download__handle_compact_timer__expired__download, chaser_download_compact_setup_fixture)
 ////{
 ////    subscribe();
 
 ////    chases::download download{};
-////    BOOST_REQUIRE(await(download));
-////    BOOST_REQUIRE_EQUAL(download.count, one);
-////    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
+////    BC_REQUIRE(await(download));
+////    BC_REQUIRE_EQUAL(download.count, one);
+////    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
 ////}
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
-BOOST_AUTO_TEST_SUITE(protocol_block_in_31800_tests)
+BC_AUTO_TEST_SUITE(protocol_block_in_31800_tests)
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__subscribed__candidates__get_data, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__subscribed__candidates__get_data, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
 
     const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
-    BOOST_REQUIRE(request);
-    BOOST_REQUIRE_EQUAL(request->items.size(), two);
-    BOOST_REQUIRE(request->items.front().hash == p2p_compact_setup_fixture::block1().hash());
-    BOOST_REQUIRE(request->items.back().hash == p2p_compact_setup_fixture::block2().hash());
+    BC_REQUIRE(request);
+    BC_REQUIRE_EQUAL(request->items.size(), two);
+    BC_REQUIRE(request->items.front().hash == p2p_compact_setup_fixture::block1().hash());
+    BC_REQUIRE(request->items.back().hash == p2p_compact_setup_fixture::block2().hash());
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__unrequested__not_stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__unrequested__not_stopped, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
     const chain::block& genesis = config_.bitcoin.genesis_block;
@@ -542,210 +542,210 @@ BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__unrequest
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__malleated_transactions__stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__malleated_transactions__stopped, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
     const auto& block1 = p2p_compact_setup_fixture::block1();
     const chain::block malleated{ block1.header(), { *p2p_compact_setup_fixture::block2().transactions_ptr()->front() } };
-    BOOST_REQUIRE(malleated.hash() == block1.hash());
+    BC_REQUIRE(malleated.hash() == block1.hash());
     send(peer::block::command, malleated.to_data(true));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
-    BOOST_REQUIRE(!query_.is_associated(query_.to_header(block1.hash())));
+    BC_REQUIRE(dropped(pong::command));
+    BC_REQUIRE(!query_.is_associated(query_.to_header(block1.hash())));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__witness_before_bip141__stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__witness_before_bip141__stopped, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
-    BOOST_REQUIRE(witness_block1().hash() == p2p_compact_setup_fixture::block1().hash());
+    BC_REQUIRE(witness_block1().hash() == p2p_compact_setup_fixture::block1().hash());
     send(peer::block::command, witness_block1().to_data(true));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
-    BOOST_REQUIRE(!query_.is_associated(query_.to_header(witness_block1().hash())));
+    BC_REQUIRE(dropped(pong::command));
+    BC_REQUIRE(!query_.is_associated(query_.to_header(witness_block1().hash())));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pruned_witness__stopped, chaser_download_pruned_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pruned_witness__stopped, chaser_download_pruned_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
     send(peer::block::command, witness_block1().to_data(true));
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
-    BOOST_REQUIRE(!query_.is_associated(query_.to_header(witness_block1().hash())));
+    BC_REQUIRE(dropped(pong::command));
+    BC_REQUIRE(!query_.is_associated(query_.to_header(witness_block1().hash())));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pruned__associated, chaser_download_pruned_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pruned__associated, chaser_download_pruned_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
     const auto& block1 = p2p_compact_setup_fixture::block1();
     send(peer::block::command, block1.to_data(true));
 
-    BOOST_REQUIRE(associated(block1.hash()));
+    BC_REQUIRE(associated(block1.hash()));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__report__not_stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__report__not_stopped, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
     subscribe();
 
     node_.notify({}, chases::report{ 1 });
     chases::report report{};
-    BOOST_REQUIRE(await(report));
+    BC_REQUIRE(await(report));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_with_work__stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_with_work__stopped, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
     node_.notify({}, chases::purge{ 0 });
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BC_REQUIRE(dropped(pong::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__stall_with_work__stopped_and_work_divided, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__stall_with_work__stopped_and_work_divided, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(!put_hashes(take_candidates()));
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(!put_hashes(take_candidates()));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
     node_.notify({}, chases::stall{ 42 });
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BC_REQUIRE(dropped(pong::command));
 
     const auto map = take(two);
-    BOOST_REQUIRE_EQUAL(map->size(), two);
-    BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block1().hash()));
-    BOOST_REQUIRE(map->exists(p2p_compact_setup_fixture::block2().hash()));
+    BC_REQUIRE_EQUAL(map->size(), two);
+    BC_REQUIRE(map->exists(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(map->exists(p2p_compact_setup_fixture::block2().hash()));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_then_split__stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_then_split__stopped, chaser_download_candidate_setup_fixture)
 {
     subscribe();
     const auto map = take_candidates();
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
 
     chases::starved starved{};
-    BOOST_REQUIRE(await(starved));
-    BOOST_REQUIRE(!put_hashes(map));
+    BC_REQUIRE(await(starved));
+    BC_REQUIRE(!put_hashes(map));
 
     const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
-    BOOST_REQUIRE(request);
-    BOOST_REQUIRE_EQUAL(request->items.size(), two);
+    BC_REQUIRE(request);
+    BC_REQUIRE_EQUAL(request->items.size(), two);
 
     node_.notify_one(starved.channel, {}, chases::split{ 42 });
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
-    BOOST_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
+    BC_REQUIRE(dropped(pong::command));
+    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block2().hash()));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_with_work__not_stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_with_work__not_stopped, chaser_download_candidate_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
     subscribe();
 
     node_.notify({}, chases::download{ 1 });
     chases::download download{};
-    BOOST_REQUIRE(await(download));
+    BC_REQUIRE(await(download));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_without_work__not_stopped, chaser_download_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__purge_without_work__not_stopped, chaser_download_setup_fixture)
 {
     subscribe();
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
 
     chases::starved starved{};
-    BOOST_REQUIRE(await(starved));
+    BC_REQUIRE(await(starved));
 
     node_.notify({}, chases::purge{ 0 });
     node_.notify({}, chases::download{ 1 });
-    BOOST_REQUIRE(await(starved));
+    BC_REQUIRE(await(starved));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__split_single__not_stopped, chaser_download_candidate_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__split_single__not_stopped, chaser_download_candidate_setup_fixture)
 {
     // The channel is given one of the two candidates (the other is held).
     const auto work = get_hashes();
-    BOOST_REQUIRE(!put_hashes(chaser_download::split(work.map)));
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(!put_hashes(chaser_download::split(work.map)));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
     subscribe();
 
     node_.notify({}, chases::split{ 42 });
     chases::split split{};
-    BOOST_REQUIRE(await(split));
+    BC_REQUIRE(await(split));
     send(ping{ 42 }, node_version->value);
 
     const auto message = pong::deserialize(node_version->value, receive(pong::command));
-    BOOST_REQUIRE(message);
-    BOOST_REQUIRE_EQUAL(message->nonce, 42u);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 42u);
 }
 
 // performance
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes__stopped, chaser_download_sampled_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes__stopped, chaser_download_sampled_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BC_REQUIRE(dropped(pong::command));
 }
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviation__stopped, chaser_download_sampled_local_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviation__stopped, chaser_download_sampled_local_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
     receive(get_data::command);
 
-    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+    BC_REQUIRE(dropped(pong::command));
 }
 
-////BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__partial_then_no_bytes__stopped, chaser_download_sampled_setup_fixture)
+////BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__partial_then_no_bytes__stopped, chaser_download_sampled_setup_fixture)
 ////{
-////    BOOST_REQUIRE(handshake(peer_services));
+////    BC_REQUIRE(handshake(peer_services));
 ////    receive(get_data::command);
 
 ////    const auto& block1 = p2p_compact_setup_fixture::block1();
 ////    send(peer::block::command, block1.to_data(true));
-////    BOOST_REQUIRE(associated(block1.hash()));
+////    BC_REQUIRE(associated(block1.hash()));
 
-////    BOOST_REQUIRE_THROW(receive(pong::command), boost::system::system_error);
+////    BC_REQUIRE(dropped(pong::command));
 ////}
 
-BOOST_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__idle__deferred_get_data, chaser_download_compact_sampled_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__idle__deferred_get_data, chaser_download_compact_sampled_setup_fixture)
 {
-    BOOST_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(handshake(peer_services));
 
     const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
-    BOOST_REQUIRE(request);
-    BOOST_REQUIRE_EQUAL(request->items.size(), one);
-    BOOST_REQUIRE(request->items.front().hash == p2p_compact_setup_fixture::block1().hash());
+    BC_REQUIRE(request);
+    BC_REQUIRE_EQUAL(request->items.size(), one);
+    BC_REQUIRE(request->items.front().hash == p2p_compact_setup_fixture::block1().hash());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()

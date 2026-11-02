@@ -161,7 +161,7 @@ void chaser_transaction::start_scan(bool remap) NOEXCEPT
     const auto bound = query.is_pooling() ? query.get_scan_frontier() :
         max_size_t;
     const auto top = query.to_top_confirmed();
-    boost::asio::post(scan_threadpool_.service(),
+    network::io::post(scan_threadpool_.service(),
         BIND(do_scan, top, bound, remap));
 }
 

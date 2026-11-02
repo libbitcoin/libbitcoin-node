@@ -216,7 +216,7 @@ void full_node::put_hashes(const map_ptr& map,
 
 void full_node::notify(const code& ec, event_value value) NOEXCEPT
 {
-    boost::asio::post(strand(),
+    network::io::post(strand(),
         std::bind(&full_node::do_notify,
             this, ec, value));
 }
@@ -231,7 +231,7 @@ void full_node::do_notify(const code& ec, event_value value) NOEXCEPT
 void full_node::notify_one(object_key key, const code& ec,
     event_value value) NOEXCEPT
 {
-    boost::asio::post(strand(),
+    network::io::post(strand(),
         std::bind(&full_node::do_notify_one,
             this, key, ec, value));
 }
@@ -255,7 +255,7 @@ object_key full_node::subscribe_chase(event_notifier&& handler) NOEXCEPT
 void full_node::subscribe_chase(event_notifier&& handler,
     event_completer&& complete) NOEXCEPT
 {
-    boost::asio::post(strand(),
+    network::io::post(strand(),
         std::bind(&full_node::do_subscribe_chase,
             this, std::move(handler), std::move(complete)));
 }

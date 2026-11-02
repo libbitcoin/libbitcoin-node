@@ -52,7 +52,7 @@ protected:
     template <class Derived, typename Method, typename... Args>
     inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
     {
-        return boost::asio::post(validation_threadpool_.service(),
+        return network::io::post(validation_threadpool_.service(),
             BIND_TO(method, args));
     }
 
@@ -118,7 +118,7 @@ protected:
     virtual void exit_silent_capture(bool bank) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
-    network::asio::strand& strand() NOEXCEPT override;
+    network::io::strand& strand() NOEXCEPT override;
     bool stranded() const NOEXCEPT override;
 
 private:
@@ -166,7 +166,7 @@ private:
     network::threadpool validation_threadpool_;
 
     // These are thread safe.
-    network::asio::strand validation_strand_;
+    network::io::strand validation_strand_;
     atomic_counter validate_backlog_{};
     std::atomic_bool disk_recovering_{};
     std::atomic_bool window_archived_{};

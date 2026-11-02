@@ -72,10 +72,10 @@ struct chaser_setup_fixture
         node_{ query_, config_, log_ },
         chaser_{ node_ }
     {
-        BOOST_REQUIRE(test::clear(test::directory));
+        BC_REQUIRE(test::clear(test::directory));
         const auto ec = store_.create([](auto, auto) NOEXCEPT {});
-        BOOST_REQUIRE_MESSAGE(!ec, ec.message());
-        BOOST_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
+        BC_REQUIRE_MESSAGE(!ec, ec.message());
+        BC_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
 
         std::promise<code> started{};
         node_.start([&](const code& ec) NOEXCEPT
@@ -83,7 +83,7 @@ struct chaser_setup_fixture
             started.set_value(ec);
         });
 
-        BOOST_REQUIRE(!started.get_future().get());
+        BC_REQUIRE(!started.get_future().get());
 
         std::promise<code> running{};
         node_.run([&](const code& ec) NOEXCEPT
@@ -91,14 +91,14 @@ struct chaser_setup_fixture
             running.set_value(ec);
         });
 
-        BOOST_REQUIRE(!running.get_future().get());
+        BC_REQUIRE(!running.get_future().get());
     }
 
     ~chaser_setup_fixture()
     {
         node_.close();
         const auto ec = store_.close([](auto, auto) NOEXCEPT {});
-        BOOST_WARN_MESSAGE(!ec, ec.message());
+        BC_WARN_MESSAGE(!ec, ec.message());
         test::clear(test::directory);
     }
 
@@ -111,31 +111,31 @@ protected:
     chaser_accessor chaser_;
 };
 
-BOOST_FIXTURE_TEST_SUITE(chaser_tests, chaser_setup_fixture)
+BC_FIXTURE_TEST_SUITE(chaser_tests, chaser_setup_fixture)
 
-BOOST_AUTO_TEST_CASE(chaser__fault__node_error__returned_suspended)
+BC_AUTO_TEST_CASE(chaser__fault__node_error__returned_suspended)
 {
-    BOOST_REQUIRE_EQUAL(chaser_.fault(error::orphan_header), error::orphan_header);
-    BOOST_REQUIRE(chaser_.suspended());
+    BC_REQUIRE_EQUAL(chaser_.fault(error::orphan_header), error::orphan_header);
+    BC_REQUIRE(chaser_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(chaser__snapshot__running__success_suspended)
+BC_AUTO_TEST_CASE(chaser__snapshot__running__success_suspended)
 {
-    BOOST_REQUIRE(!chaser_.snapshot([](auto, auto) NOEXCEPT {}));
-    BOOST_REQUIRE(chaser_.suspended());
+    BC_REQUIRE(!chaser_.snapshot([](auto, auto) NOEXCEPT {}));
+    BC_REQUIRE(chaser_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(chaser__reload__not_full__success)
+BC_AUTO_TEST_CASE(chaser__reload__not_full__success)
 {
-    BOOST_REQUIRE(!chaser_.reload([](auto, auto) NOEXCEPT {}));
-    BOOST_REQUIRE(!chaser_.suspended());
+    BC_REQUIRE(!chaser_.reload([](auto, auto) NOEXCEPT {}));
+    BC_REQUIRE(!chaser_.suspended());
 }
 
-BOOST_AUTO_TEST_CASE(chaser__notify_one__subscribed__notified)
+BC_AUTO_TEST_CASE(chaser__notify_one__subscribed__notified)
 {
     std::promise<object_key> keyed{};
     std::promise<code> notified{};
-    boost::asio::post(node_.strand(), [&]() NOEXCEPT
+    network::io::post(node_.strand(), [&]() NOEXCEPT
     {
         keyed.set_value(chaser_.subscribe_chase([&](const code& ec, event_value value) NOEXCEPT
         {
@@ -148,49 +148,49 @@ BOOST_AUTO_TEST_CASE(chaser__notify_one__subscribed__notified)
     });
 
     chaser_.notify_one(keyed.get_future().get(), error::orphan_header, chases::template_{ 42 });
-    BOOST_REQUIRE_EQUAL(notified.get_future().get(), error::orphan_header);
+    BC_REQUIRE_EQUAL(notified.get_future().get(), error::orphan_header);
 }
 
-BOOST_AUTO_TEST_CASE(chaser__node_config__always__node_config)
+BC_AUTO_TEST_CASE(chaser__node_config__always__node_config)
 {
-    BOOST_REQUIRE_EQUAL(&chaser_.node_config(), &config_);
-    BOOST_REQUIRE_EQUAL(&chaser_.database_settings(), &config_.database);
+    BC_REQUIRE_EQUAL(&chaser_.node_config(), &config_);
+    BC_REQUIRE_EQUAL(&chaser_.database_settings(), &config_.database);
 }
 
-BOOST_AUTO_TEST_CASE(chaser__is_current_header__genesis__false)
+BC_AUTO_TEST_CASE(chaser__is_current_header__genesis__false)
 {
-    BOOST_REQUIRE(!chaser_.is_current_header(database::header_link{ 0 }));
+    BC_REQUIRE(!chaser_.is_current_header(database::header_link{ 0 }));
 }
 
-BOOST_AUTO_TEST_CASE(chaser__is_recent__genesis__false)
+BC_AUTO_TEST_CASE(chaser__is_recent__genesis__false)
 {
-    BOOST_REQUIRE(!chaser_.is_recent());
+    BC_REQUIRE(!chaser_.is_recent());
 }
 
-BOOST_AUTO_TEST_CASE(chaser__wire_tx_demanded__demanded__true)
+BC_AUTO_TEST_CASE(chaser__wire_tx_demanded__demanded__true)
 {
-    BOOST_REQUIRE(!chaser_.wire_tx_demanded());
+    BC_REQUIRE(!chaser_.wire_tx_demanded());
 
     node_.demand_wire_tx(true);
-    BOOST_REQUIRE(chaser_.wire_tx_demanded());
-    BOOST_REQUIRE(!chaser_.wire_block_demanded());
+    BC_REQUIRE(chaser_.wire_tx_demanded());
+    BC_REQUIRE(!chaser_.wire_block_demanded());
 
     node_.demand_wire_tx(false);
-    BOOST_REQUIRE(!chaser_.wire_tx_demanded());
+    BC_REQUIRE(!chaser_.wire_tx_demanded());
 }
 
-BOOST_AUTO_TEST_CASE(chaser__wire_block_demanded__demanded__true)
+BC_AUTO_TEST_CASE(chaser__wire_block_demanded__demanded__true)
 {
-    BOOST_REQUIRE(!chaser_.wire_block_demanded());
+    BC_REQUIRE(!chaser_.wire_block_demanded());
 
     node_.demand_wire_block(true);
-    BOOST_REQUIRE(chaser_.wire_block_demanded());
-    BOOST_REQUIRE(!chaser_.wire_tx_demanded());
+    BC_REQUIRE(chaser_.wire_block_demanded());
+    BC_REQUIRE(!chaser_.wire_tx_demanded());
 
     node_.demand_wire_block(false);
-    BOOST_REQUIRE(!chaser_.wire_block_demanded());
+    BC_REQUIRE(!chaser_.wire_block_demanded());
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+BC_AUTO_TEST_SUITE_END()
 
 BC_POP_WARNING()

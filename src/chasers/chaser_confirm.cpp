@@ -456,7 +456,7 @@ void chaser_confirm::broadcast(const header_link& link,
     BC_ASSERT(stranded());
 
     if (wire_block_demanded() && is_current_chain(true))
-        boost::asio::post(broadcast_strand_,
+        network::io::post(broadcast_strand_,
             BIND(do_broadcast, link, organized));
 }
 
