@@ -142,6 +142,7 @@ include_bitcoin_node_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/estimator.hpp \
     ${srcdir}/../../include/bitcoin/node/events.hpp \
     ${srcdir}/../../include/bitcoin/node/full_node.hpp \
+    ${srcdir}/../../include/bitcoin/node/preprocessor.hpp \
     ${srcdir}/../../include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
 

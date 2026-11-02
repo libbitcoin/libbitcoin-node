@@ -39,7 +39,6 @@
     <Linkage-libbitcoin-node>dynamic</Linkage-libbitcoin-node>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'ltcg'">
-    <Linkage-openssl>static</Linkage-openssl>
     <Linkage-secp256k1 Condition="'$(Option-secp256k1)' == 'true'">ltcg</Linkage-secp256k1>
     <Linkage-libbitcoin-system>ltcg</Linkage-libbitcoin-system>
     <Linkage-libbitcoin-database>ltcg</Linkage-libbitcoin-database>
