@@ -278,6 +278,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\preprocessor.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
