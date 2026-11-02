@@ -24,21 +24,6 @@
 /// Pulls in common /node headers (excluding settings/config/full_node).
 #include <bitcoin/node/chase.hpp>
 
-/// Now we use the generic helper definitions above to define BCN_API
-/// and BCN_INTERNAL. BCN_API is used for the public API symbols. It either DLL
-/// imports or DLL exports (or does nothing for static build) BCN_INTERNAL is
-/// used for non-api symbols.
-#if defined BCN_STATIC
-    #define BCN_API
-    #define BCN_INTERNAL
-#elif defined BCN_DLL
-    #define BCN_API      BC_HELPER_DLL_EXPORT
-    #define BCN_INTERNAL BC_HELPER_DLL_LOCAL
-#else
-    #define BCN_API      BC_HELPER_DLL_IMPORT
-    #define BCN_INTERNAL BC_HELPER_DLL_LOCAL
-#endif
-
 /// For common types below.
 #include <bitcoin/network.hpp>
 
