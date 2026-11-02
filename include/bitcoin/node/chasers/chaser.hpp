@@ -160,6 +160,9 @@ protected:
     /// The height of the top checkpoint.
     size_t checkpoint() const NOEXCEPT;
 
+    /// The node's start time.
+    time_t start_time() const NOEXCEPT;
+
     /// Position (requires strand).
     /// -----------------------------------------------------------------------
 

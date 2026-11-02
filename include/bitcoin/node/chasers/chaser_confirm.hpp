@@ -80,8 +80,9 @@ private:
     // This is thread safe.
     network::io::strand broadcast_strand_;
 
-    // This is protected by strand.
+    // These are protected by strand.
     network::deadline::ptr stale_timer_{};
+    size_t maximum_height_;
 };
 
 } // namespace node
