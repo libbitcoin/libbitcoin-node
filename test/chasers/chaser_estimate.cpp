@@ -98,18 +98,6 @@ struct chaser_estimate_setup_fixture
         node_.notify(node::error::success, chases::pruned{ link.value });
     }
 
-    void notify_organized(const hash_digest& hash)
-    {
-        const auto link = query_.to_header(hash);
-        node_.notify(node::error::success, chases::organized{ link.value });
-    }
-
-    void notify_reorganized(const hash_digest& hash)
-    {
-        const auto link = query_.to_header(hash);
-        node_.notify(node::error::success, chases::reorganized{ link.value });
-    }
-
     bool confirm2()
     {
         const system::settings bitcoin{ chain::selection::mainnet };
@@ -187,6 +175,54 @@ struct chaser_estimate_uncoalesced_setup_fixture
     }
 };
 
+// Runs the protected handlers on the chaser strand.
+class estimate_accessor
+  : public node::chaser_estimate
+{
+public:
+    using chaser_estimate::chaser_estimate;
+
+    template <typename Method>
+    void run(Method&& method) NOEXCEPT
+    {
+        std::promise<void> promise{};
+        network::io::post(strand(), [&]() NOEXCEPT
+        {
+            method();
+            promise.set_value();
+        });
+
+        promise.get_future().wait();
+    }
+
+    bool chase(const node::event_value& value) NOEXCEPT
+    {
+        const auto result = handle_chase({}, value);
+        run([]() NOEXCEPT {});
+        return result;
+    }
+
+    void pruned(const database::header_link& link) NOEXCEPT
+    {
+        run([&]() NOEXCEPT { do_pruned(link.value); });
+    }
+
+    void organized(const database::header_link& link) NOEXCEPT
+    {
+        run([&]() NOEXCEPT { do_organized(link.value); });
+    }
+
+    void reorganized(const database::header_link& link) NOEXCEPT
+    {
+        run([&]() NOEXCEPT { do_reorganized(link.value); });
+    }
+
+    void transaction(const database::tx_link& link) NOEXCEPT
+    {
+        run([&]() NOEXCEPT { do_transaction(link.value); });
+    }
+};
+
 BC_POP_WARNING()
 
 BC_AUTO_TEST_SUITE(chaser_estimate_tests)
@@ -218,22 +254,6 @@ BC_FIXTURE_TEST_CASE(chaser_estimate__estimate__initialized_no_fees__estimate_fa
     BC_REQUIRE_EQUAL(result.second, estimator::estimate_failed);
 }
 
-////BC_FIXTURE_TEST_CASE(chaser_estimate__estimate__organized_and_reorganized__estimate_false, chaser_estimate_enabled_setup_fixture)
-////{
-////    const auto& block1 = p2p_compact_setup_fixture::block1();
-////    const auto& block2 = p2p_compact_setup_fixture::block2();
-////    notify_pruned(block1.hash());
-////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
-
-////    notify_pruned(block1.hash());
-////    notify_organized(block1.hash());
-////    BC_REQUIRE(confirm2());
-////    notify_organized(block2.hash());
-////    notify_reorganized(block2.hash());
-////    notify_reorganized(block2.hash());
-////    BC_REQUIRE_EQUAL(estimate(1, estimator::mode::basic).first, node::error::estimate_false);
-////}
-
 BC_FIXTURE_TEST_CASE(chaser_estimate__top_height__not_initialized__zero, chaser_estimate_enabled_setup_fixture)
 {
     const node::chaser_estimate instance{ node_ };
@@ -241,32 +261,100 @@ BC_FIXTURE_TEST_CASE(chaser_estimate__top_height__not_initialized__zero, chaser_
     BC_REQUIRE_EQUAL(instance.top_height(), zero);
 }
 
-////BC_FIXTURE_TEST_CASE(chaser_estimate__organized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
-////{
-////    notify_pruned(p2p_compact_setup_fixture::block1().hash());
-////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+BC_FIXTURE_TEST_CASE(chaser_estimate__pruned__horizon_within_chain__initialized, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    instance.pruned(query_.to_header(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(instance.initialized());
+    BC_REQUIRE_EQUAL(instance.top_height(), 1u);
+}
 
-////    node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
-////    BC_REQUIRE(suspended());
-////}
+BC_FIXTURE_TEST_CASE(chaser_estimate__organized__next_confirmed__pushed, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    instance.pruned(query_.to_header(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(confirm2());
 
-////BC_FIXTURE_TEST_CASE(chaser_estimate__organized__unconfirmed_above_top__suspended, chaser_estimate_enabled_setup_fixture)
-////{
-////    notify_pruned(p2p_compact_setup_fixture::block1().hash());
-////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+    const auto link2 = query_.to_header(p2p_compact_setup_fixture::block2().hash());
+    instance.organized(link2);
+    BC_REQUIRE_EQUAL(instance.top_height(), 2u);
 
-////    BC_REQUIRE(store_header2());
-////    notify_organized(p2p_compact_setup_fixture::block2().hash());
-////    BC_REQUIRE(suspended());
-////}
+    instance.organized(link2);
+    BC_REQUIRE_EQUAL(instance.top_height(), 2u);
+    BC_REQUIRE(!node_.suspended());
+}
 
-////BC_FIXTURE_TEST_CASE(chaser_estimate__reorganized__invalid_link__suspended, chaser_estimate_enabled_setup_fixture)
-////{
-////    notify_pruned(p2p_compact_setup_fixture::block1().hash());
-////    BC_REQUIRE_EQUAL(initialized(1, estimator::mode::basic).first, node::error::estimate_false);
+BC_FIXTURE_TEST_CASE(chaser_estimate__reorganized__top__popped, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    instance.pruned(query_.to_header(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(confirm2());
 
-////    node_.notify(node::error::success, chases::reorganized{ node::header_t{ 42 } });
-////    BC_REQUIRE(suspended());
-////}
+    const auto link2 = query_.to_header(p2p_compact_setup_fixture::block2().hash());
+    instance.organized(link2);
+    instance.reorganized(link2);
+    BC_REQUIRE_EQUAL(instance.top_height(), 1u);
+
+    instance.reorganized(link2);
+    BC_REQUIRE_EQUAL(instance.top_height(), 1u);
+    BC_REQUIRE(!node_.suspended());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_estimate__handle_chase__initialized__handled, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    const auto link1 = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    BC_REQUIRE(instance.chase(chases::block{ link1.value }));
+    BC_REQUIRE(!instance.initialized());
+
+    BC_REQUIRE(instance.chase(chases::pruned{ link1.value }));
+    BC_REQUIRE(instance.initialized());
+    BC_REQUIRE(confirm2());
+
+    const auto link2 = query_.to_header(p2p_compact_setup_fixture::block2().hash());
+    BC_REQUIRE(instance.chase(chases::organized{ link2.value }));
+    BC_REQUIRE_EQUAL(instance.top_height(), 2u);
+
+    BC_REQUIRE(instance.chase(chases::reorganized{ link2.value }));
+    BC_REQUIRE_EQUAL(instance.top_height(), 1u);
+
+    const auto coinbase = p2p_compact_setup_fixture::block2().transactions_ptr()->front();
+    BC_REQUIRE(instance.chase(chases::transaction{ query_.to_tx(coinbase->hash(false)).value }));
+    BC_REQUIRE(instance.chase(chases::bump{}));
+    BC_REQUIRE(!instance.chase(chases::stop{}));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_estimate__organized__unstored_link__suspended, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    instance.pruned(query_.to_header(p2p_compact_setup_fixture::block1().hash()));
+    instance.organized(database::header_link{ 42 });
+    BC_REQUIRE(suspended());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_estimate__organized__header_only__suspended, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    instance.pruned(query_.to_header(p2p_compact_setup_fixture::block1().hash()));
+    BC_REQUIRE(store_header2());
+    instance.organized(query_.to_header(p2p_compact_setup_fixture::block2().hash()));
+    BC_REQUIRE(suspended());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_estimate__reorganized__unstored_link__suspended, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    instance.pruned(query_.to_header(p2p_compact_setup_fixture::block1().hash()));
+    instance.reorganized(database::header_link{ 42 });
+    BC_REQUIRE(suspended());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_estimate__transaction__unstored_link__suspended, chaser_estimate_enabled_setup_fixture)
+{
+    estimate_accessor instance{ node_ };
+    instance.pruned(query_.to_header(p2p_compact_setup_fixture::block1().hash()));
+    instance.transaction(database::tx_link{ 42 });
+    BC_REQUIRE(suspended());
+}
 
 BC_AUTO_TEST_SUITE_END()
