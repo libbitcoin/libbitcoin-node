@@ -35,8 +35,8 @@ public:
     protocol_transaction_out_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
-        node_witness_(session->node_settings().provide_witness),
-        network::tracker<protocol_transaction_out_106>(session->log)
+        network::tracker<protocol_transaction_out_106>(session->log),
+        node_witness_(session->node_settings().provide_witness)
     {
     }
 

@@ -31,10 +31,10 @@ using namespace system::chain;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser::chaser(full_node& node) NOEXCEPT
-  : node_(node),
+  : reporter(node.log),
+    node_(node),
     strand_(node.service().get_executor()),
-    top_checkpoint_height_(node.system_settings().top_checkpoint().height()),
-    reporter(node.log)
+    top_checkpoint_height_(node.system_settings().top_checkpoint().height())
 {
 }
 

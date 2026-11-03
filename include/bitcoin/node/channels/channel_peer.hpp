@@ -41,9 +41,9 @@ public:
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
         network::channel_peer(log, socket, identifier, config.network, options),
+        network::tracker<channel_peer>(log),
         witness_(config.node.require_witness),
-        announcement_cache_(config.node.announcement_cache),
-        network::tracker<channel_peer>(log)
+        announcement_cache_(config.node.announcement_cache)
     {
     }
 

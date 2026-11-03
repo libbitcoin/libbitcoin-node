@@ -35,8 +35,8 @@ public:
     protocol_block_out_70001(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : protocol_block_out_106(session, channel),
-        enable_not_found_(session->network_settings().enable_not_found),
-        network::tracker<protocol_block_out_70001>(session->log)
+        network::tracker<protocol_block_out_70001>(session->log),
+        enable_not_found_(session->network_settings().enable_not_found)
     {
     }
 
