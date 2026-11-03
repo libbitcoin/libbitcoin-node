@@ -17,9 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "../test.hpp"
+#include <algorithm>
 #include <chrono>
 #include <future>
 #include <memory>
+#include <mutex>
+#include <optional>
+#include <thread>
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
@@ -65,6 +69,101 @@ static uint256_t work(size_t count)
     return uint256_t{ count } * system::chain::header::proof(difficulty_one);
 }
 
+static uint32_t now()
+{
+    return system::possible_narrow_and_sign_cast<uint32_t>(network::zulu_time());
+}
+
+// A node that runs its network without starting its own chasers.
+class harness_node
+  : public full_node
+{
+public:
+    using full_node::full_node;
+
+protected:
+    void do_start(const result_handler& handler) NOEXCEPT override
+    {
+        network::net::do_start(handler);
+    }
+
+    void do_run(const result_handler& handler) NOEXCEPT override
+    {
+        network::net::do_run(handler);
+    }
+};
+
+class header_accessor
+  : public chaser_header
+{
+public:
+    using chaser_header::chaser_header;
+};
+
+// Records every chase event, and awaits a count of a given kind.
+class chase_recorder
+{
+public:
+    template <chase Kind>
+    using payload_t = std::remove_cvref_t<decltype(to_payload<Kind>(std::declval<const event_value&>()))>;
+
+    bool subscribe(full_node& node)
+    {
+        const auto subscribed = std::make_shared<std::promise<void>>();
+        auto subscription = subscribed->get_future();
+        node.subscribe_chase([this](const code& ec, event_value value) NOEXCEPT
+        {
+            if (ec)
+                return false;
+
+            std::lock_guard lock{ mutex_ };
+            events_.push_back(value);
+            return true;
+        }, [subscribed](const code&, auto) NOEXCEPT
+        {
+            subscribed->set_value();
+        });
+
+        return subscription.wait_for(await_limit) == std::future_status::ready;
+    }
+
+    size_t count(chase kind) const
+    {
+        std::lock_guard lock{ mutex_ };
+        return std::count_if(events_.cbegin(), events_.cend(), [kind](const auto& value) NOEXCEPT { return to_chase(value) == kind; });
+    }
+
+    bool await(chase kind, size_t number=1) const
+    {
+        const auto deadline = std::chrono::steady_clock::now() + await_limit;
+        while (count(kind) < number)
+        {
+            if (std::chrono::steady_clock::now() > deadline)
+                return false;
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        return true;
+    }
+
+    template <chase Kind>
+    std::optional<payload_t<Kind>> payload(size_t number=1) const
+    {
+        std::lock_guard lock{ mutex_ };
+        for (const auto& value: events_)
+            if (to_chase(value) == Kind && is_zero(--number))
+                return to_payload<Kind>(value);
+
+        return {};
+    }
+
+private:
+    mutable std::mutex mutex_;
+    std::vector<event_value> events_{};
+};
+
+// A running node whose only chaser is the header chaser under test.
 struct chaser_header_setup_fixture
 {
     DELETE_COPY_MOVE(chaser_header_setup_fixture);
@@ -76,7 +175,8 @@ struct chaser_header_setup_fixture
       : config_{ configured(configure) },
         store_{ config_.database },
         query_{ store_ },
-        node_{ query_, config_, log_ }
+        node_{ query_, config_, log_ },
+        header_{ node_ }
     {
         test::clear(test::directory);
         auto ec = store_.create([](auto, auto) {});
@@ -90,6 +190,16 @@ struct chaser_header_setup_fixture
         });
 
         ec = started.get_future().get();
+        BC_REQUIRE_MESSAGE(!ec, ec.message());
+        BC_REQUIRE(events_.subscribe(node_));
+
+        std::promise<code> chased{};
+        network::io::post(node_.strand(), [&]() NOEXCEPT
+        {
+            chased.set_value(header_.start());
+        });
+
+        ec = chased.get_future().get();
         BC_REQUIRE_MESSAGE(!ec, ec.message());
 
         std::promise<code> running{};
@@ -136,7 +246,7 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        node_.organize(header, [promise](const code& ec, size_t height) NOEXCEPT
+        header_.organize(header, [promise](const code& ec, size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
         });
@@ -150,12 +260,10 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        const auto handler = [promise](const code& ec, size_t height) NOEXCEPT
+        header_.organize(header, milestone, [promise](const code& ec, size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
-        };
-
-        node_.organize(header, milestone, handler);
+        });
 
         BC_REQUIRE(future.wait_for(await_limit) == std::future_status::ready);
         return future.get();
@@ -166,7 +274,7 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        node_.prioritize(hash, [promise](const code& ec, size_t height) NOEXCEPT
+        header_.prioritize(hash, [promise](const code& ec, size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
         });
@@ -180,7 +288,7 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<void>>();
         auto future = promise->get_future();
-        node_.get_minimum_work([promise](const code&, const uint256_t&) NOEXCEPT
+        header_.get_minimum_work([promise](const code&, const uint256_t&) NOEXCEPT
         {
             promise->set_value();
         });
@@ -188,34 +296,12 @@ struct chaser_header_setup_fixture
         BC_REQUIRE(future.wait_for(await_limit) == std::future_status::ready);
     }
 
-    /// Notify the event and wait (bounded) for the awaited event.
+    /// Notify the event and wait (bounded) for one more of the awaited event.
     bool notify(const event_value& event, chase awaited)
     {
-        const auto subscribed = std::make_shared<std::promise<void>>();
-        const auto heard = std::make_shared<std::promise<void>>();
-        auto subscription = subscribed->get_future();
-        auto hearing = heard->get_future();
-
-        node_.subscribe_chase([heard, awaited](const code& ec, event_value value) NOEXCEPT
-        {
-            if (ec)
-                return false;
-
-            if (to_chase(value) != awaited)
-                return true;
-
-            heard->set_value();
-            return false;
-        }, [subscribed](const code&, auto) NOEXCEPT
-        {
-            subscribed->set_value();
-        });
-
-        if (subscription.wait_for(await_limit) != std::future_status::ready)
-            return false;
-
+        const auto expected = add1(events_.count(awaited));
         node_.notify(error::success, event);
-        return hearing.wait_for(await_limit) == std::future_status::ready;
+        return events_.await(awaited, expected);
     }
 
     header_t link(const system::hash_digest& hash) const
@@ -226,6 +312,11 @@ struct chaser_header_setup_fixture
     bool candidate(size_t height, const system::hash_digest& hash) const
     {
         return query_.to_candidate(height) == query_.to_header(hash);
+    }
+
+    bool confirmed(size_t height, const system::hash_digest& hash) const
+    {
+        return query_.to_confirmed(height) == query_.to_header(hash);
     }
 
     bool unconfirmable(const system::hash_digest& hash) const
@@ -249,12 +340,44 @@ struct chaser_header_setup_fixture
             query_.push_candidate(query_.to_header(header.hash()));
     }
 
+    /// Push an archived header onto the confirmed chain directly.
+    bool confirm(const system::hash_digest& hash)
+    {
+        return query_.push_confirmed(query_.to_header(hash), false);
+    }
+
 protected:
     configuration config_;
     node::store store_;
     node::query query_;
     network::logger log_{};
-    full_node node_;
+    harness_node node_;
+    header_accessor header_;
+    chase_recorder events_{};
+};
+
+struct chaser_header_current_setup_fixture
+  : chaser_header_setup_fixture
+{
+    chaser_header_current_setup_fixture()
+      : chaser_header_setup_fixture([](configuration& config)
+        {
+            config.node.currency_window_minutes = 60;
+        })
+    {
+    }
+};
+
+struct chaser_header_unmarked_setup_fixture
+  : chaser_header_setup_fixture
+{
+    chaser_header_unmarked_setup_fixture()
+      : chaser_header_setup_fixture([](configuration& config)
+        {
+            config.database.mark_unconfirmable = false;
+        })
+    {
+    }
 };
 
 struct chaser_header_window_setup_fixture
@@ -444,48 +567,181 @@ BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__equal_work_branch__cached_n
     BC_REQUIRE_EQUAL(duplicate.second, 1u);
 }
 
-////BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_cached_branch__reorganized, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    const auto b1 = make(genesis_hash(), 2);
-////    const auto b2 = make(b1->hash(), 3);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_cached_branch__reorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto b1 = make(genesis_hash(), 2);
+    const auto b2 = make(b1->hash(), 3);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+    BC_REQUIRE(query_.to_header(b1->hash()).is_terminal());
 
-////    const auto result = organize(b2, false);
-////    BC_REQUIRE_EQUAL(result.first, error::success);
-////    BC_REQUIRE_EQUAL(result.second, 2u);
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
-////    BC_REQUIRE(candidate(1, b1->hash()));
-////    BC_REQUIRE(candidate(2, b2->hash()));
-////    BC_REQUIRE(!query_.is_candidate_header(query_.to_header(a1->hash())));
-////}
+    const auto result = organize(b2, false);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 2u);
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+    BC_REQUIRE(candidate(1, b1->hash()));
+    BC_REQUIRE(candidate(2, b2->hash()));
+    BC_REQUIRE(!query_.to_header(a1->hash()).is_terminal());
+    BC_REQUIRE(!query_.is_candidate_header(query_.to_header(a1->hash())));
 
-////BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_archived_branch__reorganized, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    const auto a2 = make(a1->hash(), 4);
-////    const auto a3 = make(a2->hash(), 5);
-////    const auto b1 = make(genesis_hash(), 2);
-////    const auto b2 = make(b1->hash(), 3);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
-////    BC_REQUIRE(candidate(2, b2->hash()));
+    // The cached branch is archived by the reorganization and not current.
+    BC_REQUIRE(events_.await(chase::regressed));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>()->branch_point, 0u);
+    BC_REQUIRE_EQUAL(events_.count(chase::headers), 0u);
+    BC_REQUIRE_EQUAL(events_.count(chase::bump), 0u);
+}
 
-////    const auto weak = organize(a2, false);
-////    BC_REQUIRE_EQUAL(weak.first, error::success);
-////    BC_REQUIRE_EQUAL(weak.second, 2u);
-////    BC_REQUIRE(candidate(2, b2->hash()));
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__stronger_archived_branch__reorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 4);
+    const auto a3 = make(a2->hash(), 5);
+    const auto b1 = make(genesis_hash(), 2);
+    const auto b2 = make(b1->hash(), 3);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+    BC_REQUIRE(candidate(2, b2->hash()));
 
-////    const auto result = organize(a3, false);
-////    BC_REQUIRE_EQUAL(result.first, error::success);
-////    BC_REQUIRE_EQUAL(result.second, 3u);
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 3u);
-////    BC_REQUIRE(candidate(1, a1->hash()));
-////    BC_REQUIRE(candidate(2, a2->hash()));
-////    BC_REQUIRE(candidate(3, a3->hash()));
-////}
+    // Extends the archived (reorganized out) a1 to a tie, so cached.
+    const auto weak = organize(a2, false);
+    BC_REQUIRE_EQUAL(weak.first, error::success);
+    BC_REQUIRE_EQUAL(weak.second, 2u);
+    BC_REQUIRE(candidate(2, b2->hash()));
+    BC_REQUIRE(query_.to_header(a2->hash()).is_terminal());
+
+    // Branch is cached a2 over archived a1, both pushed in order.
+    const auto result = organize(a3, false);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 3u);
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 3u);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(candidate(2, a2->hash()));
+    BC_REQUIRE(candidate(3, a3->hash()));
+    BC_REQUIRE(!query_.is_candidate_header(query_.to_header(b1->hash())));
+    BC_REQUIRE(!query_.is_candidate_header(query_.to_header(b2->hash())));
+    BC_REQUIRE(events_.await(chase::regressed, 2));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>(2)->branch_point, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__deep_cached_branch__reorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    const auto a3 = make(a2->hash(), 3);
+    const auto b1 = make(genesis_hash(), 4);
+    const auto b2 = make(b1->hash(), 5);
+    const auto b3 = make(b2->hash(), 6);
+    const auto b4 = make(b3->hash(), 7);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a3, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b3, false).first, error::success);
+    BC_REQUIRE(candidate(3, a3->hash()));
+    BC_REQUIRE(query_.to_header(b3->hash()).is_terminal());
+
+    const auto result = organize(b4, false);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 4u);
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 4u);
+    BC_REQUIRE(candidate(1, b1->hash()));
+    BC_REQUIRE(candidate(2, b2->hash()));
+    BC_REQUIRE(candidate(3, b3->hash()));
+    BC_REQUIRE(candidate(4, b4->hash()));
+    BC_REQUIRE(!query_.is_candidate_header(query_.to_header(a3->hash())));
+    BC_REQUIRE(events_.await(chase::regressed));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>()->branch_point, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__branch_above_genesis__reorganized_at_branch_point, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    const auto a3 = make(a2->hash(), 3);
+    const auto c3 = make(a2->hash(), 4);
+    const auto c4 = make(c3->hash(), 5);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a3, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(c3, false).first, error::success);
+    BC_REQUIRE(candidate(3, a3->hash()));
+
+    const auto result = organize(c4, false);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 4u);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(candidate(2, a2->hash()));
+    BC_REQUIRE(candidate(3, c3->hash()));
+    BC_REQUIRE(candidate(4, c4->hash()));
+    BC_REQUIRE(events_.await(chase::regressed));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>()->branch_point, 2u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__reorganized_twice__both_regressions_notified, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto b1 = make(genesis_hash(), 2);
+    const auto b2 = make(b1->hash(), 3);
+    const auto a2 = make(a1->hash(), 4);
+    const auto a3 = make(a2->hash(), 5);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a3, false).first, error::success);
+    BC_REQUIRE(candidate(3, a3->hash()));
+    BC_REQUIRE(events_.await(chase::regressed, 2));
+    BC_REQUIRE_EQUAL(events_.count(chase::regressed), 2u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__milestone__archived_milestone, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    BC_REQUIRE_EQUAL(organize(a1, true).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(query_.is_milestone(query_.to_header(a1->hash())));
+    BC_REQUIRE(!query_.is_milestone(query_.to_header(a2->hash())));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__current_header__bumped_once_and_headers, chaser_header_current_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1, now());
+    const auto a2 = make(a1->hash(), 2, now());
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE(events_.await(chase::bump));
+    BC_REQUIRE_EQUAL(events_.payload<chase::bump>()->height, 1u);
+    BC_REQUIRE(events_.await(chase::headers));
+    BC_REQUIRE_EQUAL(events_.payload<chase::headers>()->branch_point, 0u);
+
+    // Only the first current header following a regression bumps.
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(events_.await(chase::headers, 2));
+    BC_REQUIRE_EQUAL(events_.payload<chase::headers>(2)->branch_point, 1u);
+    BC_REQUIRE_EQUAL(events_.count(chase::bump), 1u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__current_reorganization__bumped_above_branch_point, chaser_header_current_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1, now());
+    const auto a2 = make(a1->hash(), 2, now());
+    const auto c2 = make(a1->hash(), 3, now());
+    const auto c3 = make(c2->hash(), 4, now());
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(c2, false).first, error::success);
+    BC_REQUIRE(events_.await(chase::bump));
+
+    BC_REQUIRE_EQUAL(organize(c3, false).first, error::success);
+    BC_REQUIRE(candidate(3, c3->hash()));
+    BC_REQUIRE(events_.await(chase::regressed));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>()->branch_point, 1u);
+    BC_REQUIRE(events_.await(chase::bump, 2));
+    BC_REQUIRE_EQUAL(events_.payload<chase::bump>(2)->height, 2u);
+}
 
 BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__fork_activation__candidate, chaser_header_fork_setup_fixture)
 {
@@ -559,28 +815,31 @@ BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__under_reached_checkpoint__c
     BC_REQUIRE_EQUAL(orphan.first, error::orphan_header);
 }
 
-////BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__above_reached_checkpoint__reorganized, chaser_header_checkpoint_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    const auto a2 = make(a1->hash(), 3);
-////    const auto a3 = make(a2->hash(), 4);
-////    const auto c3 = make(a2->hash(), 5);
-////    const auto c4 = make(c3->hash(), 6);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(a3, false).first, error::success);
+BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__above_reached_checkpoint__reorganized, chaser_header_checkpoint_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 3);
+    const auto a3 = make(a2->hash(), 4);
+    const auto c3 = make(a2->hash(), 5);
+    const auto c4 = make(c3->hash(), 6);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a3, false).first, error::success);
 
-////    const auto weak = organize(c3, false);
-////    BC_REQUIRE_EQUAL(weak.first, error::success);
-////    BC_REQUIRE_EQUAL(weak.second, 3u);
-////    BC_REQUIRE(candidate(3, a3->hash()));
+    const auto weak = organize(c3, false);
+    BC_REQUIRE_EQUAL(weak.first, error::success);
+    BC_REQUIRE_EQUAL(weak.second, 3u);
+    BC_REQUIRE(candidate(3, a3->hash()));
 
-////    const auto result = organize(c4, false);
-////    BC_REQUIRE_EQUAL(result.first, error::success);
-////    BC_REQUIRE_EQUAL(result.second, 4u);
-////    BC_REQUIRE(candidate(3, c3->hash()));
-////    BC_REQUIRE(candidate(4, c4->hash()));
-////}
+    const auto result = organize(c4, false);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 4u);
+    BC_REQUIRE(candidate(2, a2->hash()));
+    BC_REQUIRE(candidate(3, c3->hash()));
+    BC_REQUIRE(candidate(4, c4->hash()));
+    BC_REQUIRE(events_.await(chase::regressed));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>()->branch_point, 2u);
+}
 
 // window
 // ----------------------------------------------------------------------------
@@ -644,19 +903,63 @@ BC_FIXTURE_TEST_CASE(chaser_header__prioritize__unknown__not_found, chaser_heade
     BC_REQUIRE_EQUAL(result.second, 0u);
 }
 
-////BC_FIXTURE_TEST_CASE(chaser_header__prioritize__tied_branch__reorganized, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    const auto b1 = make(genesis_hash(), 2);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-////    BC_REQUIRE(candidate(1, a1->hash()));
+BC_FIXTURE_TEST_CASE(chaser_header__prioritize__tied_branch__reorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto b1 = make(genesis_hash(), 2);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+    BC_REQUIRE(candidate(1, a1->hash()));
 
-////    const auto result = prioritize(b1->hash());
-////    BC_REQUIRE_EQUAL(result.first, error::success);
-////    BC_REQUIRE_EQUAL(result.second, 1u);
-////    BC_REQUIRE(candidate(1, b1->hash()));
-////}
+    const auto result = prioritize(b1->hash());
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 1u);
+    BC_REQUIRE(candidate(1, b1->hash()));
+    BC_REQUIRE(!query_.is_candidate_header(query_.to_header(a1->hash())));
+    BC_REQUIRE(events_.await(chase::regressed));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>()->branch_point, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__prioritize__weaker_branch__cached_unchanged, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    const auto b1 = make(genesis_hash(), 3);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+
+    const auto result = prioritize(b1->hash());
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 1u);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(candidate(2, a2->hash()));
+    BC_REQUIRE(query_.to_header(b1->hash()).is_terminal());
+    BC_REQUIRE_EQUAL(events_.count(chase::regressed), 0u);
+
+    // The branch remains cached, so it reorganizes once it has more work.
+    const auto b2 = make(b1->hash(), 4);
+    const auto b3 = make(b2->hash(), 5);
+    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b3, false).first, error::success);
+    BC_REQUIRE(candidate(3, b3->hash()));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__prioritize__reorganized_out_tie__archived_duplicate, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto b1 = make(genesis_hash(), 2);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+    BC_REQUIRE_EQUAL(prioritize(b1->hash()).first, error::success);
+    BC_REQUIRE(candidate(1, b1->hash()));
+
+    // The reorganized out a1 is archived, so not cached for prioritization.
+    const auto cached = organize(a1, false);
+    BC_REQUIRE_EQUAL(cached.first, error::duplicate_header);
+    BC_REQUIRE_EQUAL(cached.second, max_size_t);
+    BC_REQUIRE(query_.to_header(a1->hash()) != query_.to_candidate(1));
+}
 
 BC_FIXTURE_TEST_CASE(chaser_header__prioritize__cached_with_child__unchanged, chaser_header_setup_fixture)
 {
@@ -679,76 +982,160 @@ BC_FIXTURE_TEST_CASE(chaser_header__prioritize__cached_with_child__unchanged, ch
 // disorganize
 // ----------------------------------------------------------------------------
 
-////BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_top__disorganized, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    const auto a2 = make(a1->hash(), 2);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-////    BC_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::disorganized));
-////    flush();
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_top__disorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::disorganized));
+    flush();
 
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
-////    BC_REQUIRE(unconfirmable(a2->hash()));
-////    BC_REQUIRE(!unconfirmable(a1->hash()));
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
+    BC_REQUIRE(unconfirmable(a2->hash()));
+    BC_REQUIRE(!unconfirmable(a1->hash()));
+    BC_REQUIRE_EQUAL(events_.payload<chase::disorganized>()->branch_point, 0u);
+    BC_REQUIRE(events_.await(chase::suspend));
 
-////    const auto cached = organize(make(genesis_hash(), 1), false);
-////    BC_REQUIRE_EQUAL(cached.first, error::duplicate_header);
-////    BC_REQUIRE_EQUAL(cached.second, 1u);
-////}
+    // The valid portion of the branch is retained in the tree with state.
+    const auto cached = organize(make(genesis_hash(), 1), false);
+    BC_REQUIRE_EQUAL(cached.first, error::duplicate_header);
+    BC_REQUIRE_EQUAL(cached.second, 1u);
+}
 
-////BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unchecked_first__disorganized, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    const auto a2 = make(a1->hash(), 2);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-////    BC_REQUIRE(notify(chases::unchecked{ link(a1->hash()) }, chase::disorganized));
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_top__cached_branch_reorganizes_when_extended, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    const auto b2 = make(a1->hash(), 3);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::disorganized));
+    flush();
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
 
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
-////    BC_REQUIRE(unconfirmable(a1->hash()));
-////    BC_REQUIRE(unconfirmable(a2->hash()));
-////}
+    // The sibling extends cached a1, which is pushed from the tree.
+    const auto result = organize(b2, false);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 2u);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(candidate(2, b2->hash()));
+    BC_REQUIRE(unconfirmable(a2->hash()));
 
-////BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unconfirmable_top__disorganized, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE(notify(chases::unconfirmable{ link(a1->hash()) }, chase::disorganized));
+    // The unconfirmable header cannot be extended.
+    const auto child = organize(make(a2->hash(), 4), false);
+    BC_REQUIRE_EQUAL(child.first, database::error::block_unconfirmable);
+}
 
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
-////    BC_REQUIRE(unconfirmable(a1->hash()));
-////}
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unchecked_first__disorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(notify(chases::unchecked{ link(a1->hash()) }, chase::disorganized));
+    flush();
 
-////BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_above_confirmed__confirmed_candidates, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    const auto a2 = make(a1->hash(), 2);
-////    const auto b1 = make(genesis_hash(), 3);
-////    const auto b2 = make(b1->hash(), 4);
-////    const auto b3 = make(b2->hash(), 5);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
-////    BC_REQUIRE(query_.push_confirmed(query_.to_header(a1->hash()), false));
-////    BC_REQUIRE(query_.push_confirmed(query_.to_header(a2->hash()), false));
-////    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
-////    BC_REQUIRE_EQUAL(organize(b3, false).first, error::success);
-////    BC_REQUIRE(candidate(3, b3->hash()));
-////    BC_REQUIRE(notify(chases::unvalid{ link(b2->hash()) }, chase::disorganized));
-////    flush();
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
+    BC_REQUIRE(unconfirmable(a1->hash()));
+    BC_REQUIRE(unconfirmable(a2->hash()));
+    BC_REQUIRE_EQUAL(events_.payload<chase::disorganized>()->branch_point, 0u);
 
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
-////    BC_REQUIRE(candidate(1, a1->hash()));
-////    BC_REQUIRE(candidate(2, a2->hash()));
-////    BC_REQUIRE(unconfirmable(b2->hash()));
-////    BC_REQUIRE(unconfirmable(b3->hash()));
-////    BC_REQUIRE(!unconfirmable(b1->hash()));
+    // Nothing of the branch is retained, so a1 is a stored duplicate.
+    const auto stored = organize(make(genesis_hash(), 1), false);
+    BC_REQUIRE_EQUAL(stored.first, database::error::block_unconfirmable);
+    BC_REQUIRE_EQUAL(stored.second, 1u);
+}
 
-////    const auto cached = organize(make(genesis_hash(), 3), false);
-////    BC_REQUIRE_EQUAL(cached.first, error::duplicate_header);
-////    BC_REQUIRE_EQUAL(cached.second, 1u);
-////}
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unconfirmable_top__disorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE(notify(chases::unconfirmable{ link(a1->hash()) }, chase::disorganized));
+    flush();
+
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
+    BC_REQUIRE(unconfirmable(a1->hash()));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_above_confirmed__confirmed_candidates, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    const auto b1 = make(genesis_hash(), 3);
+    const auto b2 = make(b1->hash(), 4);
+    const auto b3 = make(b2->hash(), 5);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(confirm(a1->hash()));
+    BC_REQUIRE(confirm(a2->hash()));
+    BC_REQUIRE_EQUAL(organize(b1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b3, false).first, error::success);
+    BC_REQUIRE(candidate(3, b3->hash()));
+    BC_REQUIRE(notify(chases::unvalid{ link(b2->hash()) }, chase::disorganized));
+    flush();
+
+    // Candidates are reset to the confirmed chain above the fork point.
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(candidate(2, a2->hash()));
+    BC_REQUIRE(unconfirmable(b2->hash()));
+    BC_REQUIRE(unconfirmable(b3->hash()));
+    BC_REQUIRE(!unconfirmable(b1->hash()));
+    BC_REQUIRE_EQUAL(events_.payload<chase::disorganized>()->branch_point, 2u);
+
+    const auto cached = organize(make(genesis_hash(), 3), false);
+    BC_REQUIRE_EQUAL(cached.first, error::duplicate_header);
+    BC_REQUIRE_EQUAL(cached.second, 1u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_above_confirmed_fork__retained_below_fork, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    const auto b2 = make(a1->hash(), 3);
+    const auto b3 = make(b2->hash(), 4);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(confirm(a1->hash()));
+    BC_REQUIRE(confirm(a2->hash()));
+    BC_REQUIRE_EQUAL(organize(b2, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(b3, false).first, error::success);
+    BC_REQUIRE(candidate(3, b3->hash()));
+    BC_REQUIRE(notify(chases::unvalid{ link(b3->hash()) }, chase::disorganized));
+    flush();
+
+    // The fork point (a1) is retained and the confirmed a2 is restored.
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(candidate(2, a2->hash()));
+    BC_REQUIRE(unconfirmable(b3->hash()));
+    BC_REQUIRE(!unconfirmable(b2->hash()));
+    BC_REQUIRE(!unconfirmable(a1->hash()));
+    BC_REQUIRE_EQUAL(events_.payload<chase::disorganized>()->branch_point, 2u);
+
+    const auto cached = organize(make(a1->hash(), 3), false);
+    BC_REQUIRE_EQUAL(cached.first, error::duplicate_header);
+    BC_REQUIRE_EQUAL(cached.second, 2u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_twice__second_ignored, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::disorganized));
+    BC_REQUIRE(notify(chases::unvalid{ link(a1->hash()) }, chase::unvalid));
+    flush();
+
+    // The second link is no longer a candidate, so it is not marked.
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 0u);
+    BC_REQUIRE(unconfirmable(a2->hash()));
+    BC_REQUIRE(!unconfirmable(a1->hash()));
+    BC_REQUIRE_EQUAL(events_.count(chase::disorganized), 1u);
+}
 
 BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_not_candidate__unchanged, chaser_header_setup_fixture)
 {
@@ -764,17 +1151,33 @@ BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_not_candidate__unchang
     BC_REQUIRE(!unconfirmable(x1->hash()));
 }
 
-////BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_fork_point__unchanged, chaser_header_setup_fixture)
-////{
-////    const auto a1 = make(genesis_hash(), 1);
-////    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
-////    BC_REQUIRE(notify(chases::unvalid{ link(genesis_hash()) }, chase::unvalid));
-////    flush();
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_fork_point__unchanged, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE(notify(chases::unvalid{ link(genesis_hash()) }, chase::unvalid));
+    flush();
 
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 1u);
-////    BC_REQUIRE(candidate(1, a1->hash()));
-////    BC_REQUIRE(!unconfirmable(genesis_hash()));
-////}
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 1u);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(!unconfirmable(genesis_hash()));
+    BC_REQUIRE_EQUAL(events_.count(chase::disorganized), 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unvalid_unmarked__unchanged, chaser_header_unmarked_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    const auto a2 = make(a1->hash(), 2);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+    BC_REQUIRE_EQUAL(organize(a2, false).first, error::success);
+    BC_REQUIRE(notify(chases::unvalid{ link(a2->hash()) }, chase::unvalid));
+    flush();
+
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+    BC_REQUIRE(candidate(2, a2->hash()));
+    BC_REQUIRE(!unconfirmable(a2->hash()));
+    BC_REQUIRE_EQUAL(events_.count(chase::disorganized), 0u);
+}
 
 BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__stop__unsubscribed, chaser_header_setup_fixture)
 {
@@ -788,18 +1191,18 @@ BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__stop__unsubscribed, chaser_hea
     BC_REQUIRE(!unconfirmable(a1->hash()));
 }
 
-////BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unstored_fork_point__unchanged, chaser_header_setup_fixture)
-////{
-////    const auto x2 = make(genesis_hash(), 1);
-////    BC_REQUIRE(query_.push_candidate(database::header_link{ 42 }));
-////    BC_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
-////    BC_REQUIRE(push(*x2, 2, 2));
-////    BC_REQUIRE(notify(chases::unvalid{ link(x2->hash()) }, chase::unvalid));
-////    flush();
+BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unstored_fork_point__unchanged, chaser_header_setup_fixture)
+{
+    const auto x2 = make(genesis_hash(), 1);
+    BC_REQUIRE(query_.push_candidate(database::header_link{ 42 }));
+    BC_REQUIRE(query_.push_confirmed(database::header_link{ 42 }, false));
+    BC_REQUIRE(push(*x2, 2, 2));
+    BC_REQUIRE(notify(chases::unvalid{ link(x2->hash()) }, chase::unvalid));
+    flush();
 
-////    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
-////    BC_REQUIRE(!unconfirmable(x2->hash()));
-////}
+    BC_REQUIRE_EQUAL(query_.get_top_candidate(), 2u);
+    BC_REQUIRE(!unconfirmable(x2->hash()));
+}
 
 BC_FIXTURE_TEST_CASE(chaser_header__handle_chase__unstored_candidate_below__unchanged, chaser_header_setup_fixture)
 {
