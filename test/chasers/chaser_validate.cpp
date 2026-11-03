@@ -34,6 +34,10 @@ static const ec_xonly validate_generator_xonly = base16_array
 (
     "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
 );
+static const ec_secret validate_generator_secret = base16_array
+(
+    "0000000000000000000000000000000000000000000000000000000000000001"
+);
 
 static const chain::block& validate_genesis()
 {
@@ -146,6 +150,126 @@ static const chain::block& validate_coinbases1()
     return instance;
 }
 
+// Batchable (pay key hash) and unbatchable (unpatterned) signature prevouts.
+static const chain::script& validate_pay_key_hash()
+{
+    static const auto hash = bitcoin_short_hash(validate_generator);
+    static const chain::script instance
+    {
+        chain::script::to_pay_key_hash_pattern(hash)
+    };
+
+    return instance;
+}
+
+static const chain::script& validate_unpatterned_key()
+{
+    using namespace chain;
+    static const script instance
+    {
+        operations
+        {
+            { to_chunk(validate_generator), true },
+            { opcode::checksigverify },
+            { opcode::push_positive_1 }
+        }
+    };
+
+    return instance;
+}
+
+// Silent payment eligible output.
+static const chain::script& validate_pay_taproot()
+{
+    using namespace chain;
+    static const script instance
+    {
+        operations
+        {
+            { opcode::push_positive_1 },
+            { to_chunk(validate_generator_xonly), true }
+        }
+    };
+
+    return instance;
+}
+
+static chain::transaction validate_funding()
+{
+    const auto half = validate_subsidy / two;
+    const chain::point null{ null_hash, chain::point::null_index };
+    const chain::script tagged{ data_chunk{ 0x01, 10 }, false };
+    const chain::input input{ null, tagged, max_uint32 };
+    const chain::output pay_key_hash{ half, validate_pay_key_hash() };
+    const chain::output unpatterned{ half, validate_unpatterned_key() };
+    const chain::outputs funded{ pay_key_hash, unpatterned };
+    return { 1u, chain::inputs{ input }, funded, 0u };
+}
+
+static chain::transaction validate_signed(const chain::transaction& funding)
+{
+    using namespace chain;
+    const auto half = validate_subsidy / two;
+    const auto hash = funding.hash(false);
+    const point first{ hash, 0 };
+    const point second{ hash, 1 };
+    const script empty{};
+    const output out{ validate_subsidy, validate_pay_taproot() };
+    const input first_unsigned{ first, empty, max_uint32 };
+    const input second_unsigned{ second, empty, max_uint32 };
+    const inputs unsigned_inputs{ first_unsigned, second_unsigned };
+    const transaction unsigned_tx{ 1u, unsigned_inputs, outputs{ out }, 0u };
+
+    endorsement pay_key_hash{};
+    endorsement unpatterned{};
+    const auto& secret = validate_generator_secret;
+    const auto& pay_key_hash_prevout = validate_pay_key_hash();
+    const auto& unpatterned_prevout = validate_unpatterned_key();
+    const auto version = script_version::unversioned;
+    const auto all = coverage::hash_all;
+    if (!unsigned_tx.create_endorsement(pay_key_hash, secret,
+            pay_key_hash_prevout, 0, half, all, version, 0) ||
+        !unsigned_tx.create_endorsement(unpatterned, secret,
+            unpatterned_prevout, 1, half, all, version, 0))
+        return {};
+
+    const auto key = to_chunk(validate_generator);
+    const script pay_key_hash_script
+    {
+        operations{ { pay_key_hash, true }, { key, true } }
+    };
+    const script unpatterned_script{ operations{ { unpatterned, true } } };
+    const input first_signed{ first, pay_key_hash_script, max_uint32 };
+    const input second_signed{ second, unpatterned_script, max_uint32 };
+    return { 1u, inputs{ first_signed, second_signed }, outputs{ out }, 0u };
+}
+
+// Funding at height 1, spent with signatures at maturity (height 101).
+static const chain::blocks& validate_matured()
+{
+    static const auto instance = []()
+    {
+        const auto funding = validate_funding();
+        const auto& genesis = validate_genesis();
+        chain::blocks blocks{ validate_block(genesis, 1, { funding }) };
+        for (uint32_t height = 2; height <= 100; ++height)
+        {
+            const auto tag = possible_narrow_cast<uint8_t>(height + 100u);
+            const auto coinbase = validate_coinbase(tag, validate_subsidy);
+            const auto& parent = blocks.back();
+            blocks.push_back(validate_block(parent, height, { coinbase }));
+        }
+
+        const auto coinbase = validate_coinbase(201, validate_subsidy);
+        const auto spend = validate_signed(funding);
+        const auto& parent = blocks.back();
+        blocks.push_back(validate_block(parent, 101, { coinbase, spend }));
+        return blocks;
+    }();
+
+    return instance;
+}
+
 static bool validate_store(node::query& query, const chain::block& block,
     uint32_t height)
 {
@@ -230,6 +354,35 @@ static bool validate_immature(node::query& query)
 static bool validate_coinbases(node::query& query)
 {
     return validate_candidate(query, validate_coinbases1(), 1);
+}
+
+static bool validate_matured_candidates(node::query& query)
+{
+    uint32_t height{};
+    for (const auto& block: validate_matured())
+    {
+        if (!validate_silent_store(query, block, ++height) ||
+            !query.push_candidate(query.to_header(block.hash())))
+            return false;
+    }
+
+    return true;
+}
+
+static bool validate_silent_candidates(node::query& query)
+{
+    return validate_silent_store(query, validate_a1(), 1) &&
+        query.push_candidate(query.to_header(validate_a1().hash())) &&
+        validate_silent_store(query, validate_a2(), 2) &&
+        query.push_candidate(query.to_header(validate_a2().hash()));
+}
+
+static void validate_silent_batched(configuration& config)
+{
+    config.node.use_gpu = false;
+    config.node.batch_silent = 1;
+    config.node.cpu_batch_silent = true;
+    config.node.silent_start_height = 0;
 }
 
 static void validate_uncheckpointed(configuration& config)
@@ -522,6 +675,34 @@ struct validate_current_overspent_fixture
     }
 };
 
+struct validate_captured_fixture
+  : validate_setup_fixture
+{
+    validate_captured_fixture()
+      : validate_setup_fixture(validate_matured_candidates, [](configuration& config)
+        {
+            config.bitcoin.checkpoints.clear();
+            config.node.batch_verify = 1;
+            config.node.cpu_batch_verify = true;
+            validate_silent_batched(config);
+        })
+    {
+    }
+};
+
+struct validate_silent_bypass_fixture
+  : validate_setup_fixture
+{
+    validate_silent_bypass_fixture()
+      : validate_setup_fixture(validate_silent_candidates, [](configuration& config)
+        {
+            validate_silent_batched(config);
+            config.node.maximum_height = 2;
+        })
+    {
+    }
+};
+
 BC_AUTO_TEST_SUITE(chaser_validate_tests)
 
 static bool validate_noncandidates(node::query& query)
@@ -735,6 +916,23 @@ BC_FIXTURE_TEST_CASE(chaser_validate__start__current_overspent_coinbase__unconfi
 {
     BC_REQUIRE(stated(validate_overspent1(), database::is_unconfirmable));
     BC_REQUIRE_EQUAL(query_.get_top_confirmed(), zero);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_validate__start__captured_signatures_silent_spend__confirmable_scanned, validate_captured_fixture)
+{
+    BC_REQUIRE(confirmed(101));
+    BC_REQUIRE(stated(validate_matured().back(), database::is_confirmable));
+    BC_REQUIRE(stated(validate_matured().back(), database::is_scanned));
+    BC_REQUIRE(await([&]() { return is_zero(query_.ecdsa_records(false)) && is_zero(query_.ecdsa_records(true)); }));
+    BC_REQUIRE(await([&]() { return is_zero(query_.prevalid_records(false)) && is_zero(query_.prevalid_records(true)); }));
+    BC_REQUIRE(await([&]() { return is_zero(query_.presilent_records(false)) && is_zero(query_.presilent_records(true)); }));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_validate__start__silent_batched_bypass__scanned, validate_silent_bypass_fixture)
+{
+    BC_REQUIRE(stated(validate_a1(), database::is_scanned));
+    BC_REQUIRE(stated(validate_a2(), database::is_scanned));
+    BC_REQUIRE(await([&]() { return is_zero(query_.presilent_records(false)) && is_zero(query_.presilent_records(true)); }));
 }
 
 
