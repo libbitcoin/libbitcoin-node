@@ -36,9 +36,9 @@ public:
     protocol_transaction_in_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
+        network::tracker<protocol_transaction_in_106>(session->log),
         tx_type_(session->node_settings().require_witness ?
-            type_id::witness_tx : type_id::transaction),
-        network::tracker<protocol_transaction_in_106>(session->log)
+            type_id::witness_tx : type_id::transaction)
     {
     }
 

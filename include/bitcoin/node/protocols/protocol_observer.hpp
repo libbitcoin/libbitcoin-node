@@ -38,14 +38,14 @@ public:
     protocol_observer(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
+        network::tracker<protocol_observer>(session->log),
         relay_disallowed_
         (
             std::dynamic_pointer_cast<network::channel_peer>(channel)->
                 is_negotiated(network::messages::peer::level::bip37) &&
             !session->network_settings().enable_relay
         ),
-        group_(to_group<std::decay_t<decltype(*session)>>()),
-        network::tracker<protocol_observer>(session->log)
+        group_(to_group<std::decay_t<decltype(*session)>>())
     {
     }
 

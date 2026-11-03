@@ -37,13 +37,13 @@ public:
     protocol_block_in_31800(const auto& session,
         const network::channel::ptr& channel, bool performance_enabled=true) NOEXCEPT
       : protocol_performer(session, channel, performance_enabled),
+        network::tracker<protocol_block_in_31800>(session->log),
         top_checkpoint_height_(
             session->system_settings().top_checkpoint().height()),
         block_type_(session->node_settings().require_witness ?
             type_id::witness_block : type_id::block),
         node_pruned_(session->node_settings().limited_blocks),
-        map_(chaser_download::empty_map()),
-        network::tracker<protocol_block_in_31800>(session->log)
+        map_(chaser_download::empty_map())
     {
     }
 

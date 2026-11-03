@@ -35,8 +35,8 @@ public:
     protocol_transaction_out_70001(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : protocol_transaction_out_60002(session, channel),
-        enable_not_found_(session->network_settings().enable_not_found),
-        network::tracker<protocol_transaction_out_70001>(session->log)
+        network::tracker<protocol_transaction_out_70001>(session->log),
+        enable_not_found_(session->network_settings().enable_not_found)
     {
     }
 

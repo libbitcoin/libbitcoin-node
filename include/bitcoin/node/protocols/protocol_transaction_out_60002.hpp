@@ -35,8 +35,8 @@ public:
     protocol_transaction_out_60002(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : protocol_transaction_out_106(session, channel),
-        enable_memory_pool_(session->network_settings().enable_memory_pool),
-        network::tracker<protocol_transaction_out_60002>(session->log)
+        network::tracker<protocol_transaction_out_60002>(session->log),
+        enable_memory_pool_(session->network_settings().enable_memory_pool)
     {
     }
 
