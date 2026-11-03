@@ -204,6 +204,11 @@ size_t chaser::checkpoint() const NOEXCEPT
     return top_checkpoint_height_;
 }
 
+time_t chaser::start_time() const NOEXCEPT
+{
+    return node_.start_time();
+}
+
 // Position.
 // ----------------------------------------------------------------------------
 

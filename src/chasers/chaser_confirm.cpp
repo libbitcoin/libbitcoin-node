@@ -37,7 +37,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    broadcast_strand_(node.service().get_executor())
+    broadcast_strand_(node.service().get_executor()),
+    maximum_height_(node.node_settings().maximum_height_())
 {
 }
 
@@ -416,6 +417,15 @@ bool chaser_confirm::set_organized(const header_link& link,
     broadcast(link, true);
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
+
+    if (confirmed_height == maximum_height_)
+    {
+        maximum_height_ = zero;
+        LOG_ONLY(const hh_mm_ss elapsed{ seconds{ zulu_time() - start_time() } };)
+        LOGN("Organized maximum height [" << confirmed_height << "] in "
+            << std::format("{:02}:{:02}:{:02}", elapsed.hours().count(),
+                elapsed.minutes().count(), elapsed.seconds().count()) << ".");
+    }
 
     announce(link, confirmed_height);
     return true;
