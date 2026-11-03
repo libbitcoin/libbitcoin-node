@@ -159,9 +159,21 @@ static bool confirm_confirmed(node::query& query, const chain::block& block,
         query.push_confirmed(query.to_header(block.hash()), true);
 }
 
+// An empty filter body stands in for one computed from populated prevouts.
 static bool confirm_filtered(node::query& query, const chain::block& block)
 {
-    return query.set_filter_body(query.to_header(block.hash()), block);
+    return query.set_filter_body(query.to_header(block.hash()), data_chunk{});
+}
+
+// The prevout cache the validate chaser leaves for confirmation.
+static bool confirm_prevouts(node::query& query, const chain::block& block)
+{
+    data_chunk prevouts{};
+    node::query::prevout_spends spends{};
+    database::tx_links conflicts{};
+    const auto link = query.to_header(block.hash());
+    return query.get_block_prevouts(prevouts, spends, conflicts, link) &&
+        query.set_prevouts(link, spends, conflicts);
 }
 
 // A candidate in the states the validate chaser leaves for confirmation.
@@ -169,6 +181,7 @@ static bool confirm_validated(node::query& query, const chain::block& block,
     uint32_t height)
 {
     return confirm_candidate(query, block, height) &&
+        confirm_prevouts(query, block) &&
         confirm_filtered(query, block) &&
         query.set_block_scanned(query.to_header(block.hash())) &&
         query.set_block_valid(query.to_header(block.hash()));
@@ -274,7 +287,8 @@ static bool confirm_unheaded(node::query& query)
 {
     return confirm_confirmed(query, confirm_c1(), 1) &&
         query.push_candidate(query.to_header(confirm_c1().hash())) &&
-        confirm_candidate(query, confirm_c2(), 2);
+        confirm_candidate(query, confirm_c2(), 2) &&
+        confirm_filtered(query, confirm_c2());
 }
 
 static bool confirm_unprevouted(node::query& query)
@@ -360,11 +374,8 @@ public:
     {
         const auto subscribed = std::make_shared<std::promise<void>>();
         auto subscription = subscribed->get_future();
-        node.subscribe_chase([this](const code& ec, event_value value) NOEXCEPT
+        node.subscribe_chase([this](const code&, event_value value) NOEXCEPT
         {
-            if (ec)
-                return false;
-
             std::lock_guard lock{ mutex_ };
             events_.push_back(value);
             return true;
@@ -394,6 +405,17 @@ public:
         }
 
         return true;
+    }
+
+    /// The recorded event kinds in order, for assertion messages.
+    std::string dump() const
+    {
+        std::lock_guard lock{ mutex_ };
+        std::string out{};
+        for (const auto& value: events_)
+            out += std::to_string(static_cast<int>(to_chase(value))) + " ";
+
+        return out;
     }
 
     template <chase Kind>
@@ -453,7 +475,13 @@ struct confirm_setup_fixture
         auto ec = store_.create([](auto, auto) {});
         BC_REQUIRE_MESSAGE(!ec, ec.message());
         BC_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
-        BC_REQUIRE(setup(query_));
+
+        // A failed setup must release the store or every later test fails.
+        const auto initialized = setup(query_);
+        if (!initialized)
+            store_.close([](auto, auto) {});
+
+        BC_REQUIRE(initialized);
 
         std::promise<code> started{};
         node_.start([&](const code& ec) NOEXCEPT { started.set_value(ec); });
@@ -482,6 +510,9 @@ struct confirm_setup_fixture
 
     ~confirm_setup_fixture()
     {
+        // The node stops only its own chasers.
+        header_.stopping(network::error::service_stopped);
+        confirm_.stopping(network::error::service_stopped);
         node_.close();
         const auto ec = store_.close([](auto, auto) {});
         BC_WARN_MESSAGE(!ec, ec.message());
@@ -742,7 +773,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__stronger_candidate_fork__reorganized
     BC_REQUIRE(!query_.is_strong_block(link(confirm_c1())));
 
     // The confirmed c1 is popped before the fork is pushed.
-    BC_REQUIRE(events_.await(chase::organized, 2));
+    BC_REQUIRE_MESSAGE(events_.await(chase::organized, 2), events_.dump());
     BC_REQUIRE_EQUAL(events_.count(chase::reorganized), 1u);
     BC_REQUIRE_EQUAL(events_.payload<chase::reorganized>()->link, link(confirm_c1()).value);
     BC_REQUIRE_EQUAL(events_.payload<chase::organized>(1)->link, link(confirm_d1()).value);
@@ -765,9 +796,9 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__weaker_candidate_fork__not_reorganiz
     BC_REQUIRE(confirm_validated(query_, confirm_d2(), 2));
     BC_REQUIRE(confirm_validated(query_, confirm_e3(), 3));
     node_.notify(node::error::success, chases::bump{ 0 });
-    BC_REQUIRE(events_.await(chase::unconfirmable));
+    BC_REQUIRE_MESSAGE(events_.await(chase::unconfirmable), events_.dump());
     BC_REQUIRE(stated(confirm_e3(), database::is_unconfirmable));
-    BC_REQUIRE(events_.await(chase::organized, 4));
+    BC_REQUIRE_MESSAGE(events_.await(chase::organized, 4), events_.dump());
     BC_REQUIRE(confirmed(confirm_c2(), 2));
     BC_REQUIRE(!query_.is_confirmed_block(link(confirm_d2())));
 }
@@ -777,18 +808,18 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__tied_candidate_fork__reorganized, co
     BC_REQUIRE(confirmed(confirm_d1(), 1));
     BC_REQUIRE(!query_.is_confirmed_block(link(confirm_c1())));
     BC_REQUIRE_EQUAL(query_.get_top_confirmed(), 1u);
-    BC_REQUIRE(events_.await(chase::reorganized));
+    BC_REQUIRE_MESSAGE(events_.await(chase::reorganized), events_.dump());
     BC_REQUIRE_EQUAL(events_.payload<chase::reorganized>()->link, link(confirm_c1()).value);
 }
 
 BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend__rolled_back_to_fork_point, confirm_immature_fixture)
 {
     BC_REQUIRE(stated(confirm_e2(), database::is_unconfirmable));
-    BC_REQUIRE(events_.await(chase::unconfirmable));
+    BC_REQUIRE_MESSAGE(events_.await(chase::unconfirmable), events_.dump());
     BC_REQUIRE_EQUAL(events_.payload<chase::unconfirmable>()->link, link(confirm_e2()).value);
 
     // The valid d1 is organized and then rolled back with the failed e2.
-    BC_REQUIRE(events_.await(chase::reorganized));
+    BC_REQUIRE_MESSAGE(events_.await(chase::reorganized), events_.dump());
     BC_REQUIRE_EQUAL(events_.payload<chase::organized>()->link, link(confirm_d1()).value);
     BC_REQUIRE_EQUAL(events_.payload<chase::reorganized>()->link, link(confirm_d1()).value);
     BC_REQUIRE_EQUAL(query_.get_top_confirmed(), 0u);
@@ -796,7 +827,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend__rolled_back_to_fork_
     BC_REQUIRE(stated(confirm_d1(), database::is_confirmable));
 
     // The header chaser pops both candidates, retaining d1 for extension.
-    BC_REQUIRE(events_.await(chase::disorganized));
+    BC_REQUIRE_MESSAGE(events_.await(chase::disorganized), events_.dump());
     BC_REQUIRE_EQUAL(events_.payload<chase::disorganized>()->branch_point, 0u);
     BC_REQUIRE(await([&]() { return query_.get_top_candidate() == 0u; }));
 }
@@ -804,7 +835,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend__rolled_back_to_fork_
 BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend_fork__rolled_back, confirm_immature_fork_fixture)
 {
     BC_REQUIRE(stated(confirm_e2(), database::is_unconfirmable));
-    BC_REQUIRE(events_.await(chase::organized, 2));
+    BC_REQUIRE_MESSAGE(events_.await(chase::organized, 2), events_.dump());
     BC_REQUIRE(confirmed(confirm_c1(), 1));
     BC_REQUIRE_EQUAL(query_.get_top_confirmed(), 1u);
     BC_REQUIRE(!query_.is_confirmed_block(link(confirm_d1())));
@@ -821,7 +852,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend_fork__rolled_back, co
     BC_REQUIRE_EQUAL(events_.count(chase::unconfirmable), 1u);
 
     // The header chaser resets the candidate chain to the confirmed chain.
-    BC_REQUIRE(events_.await(chase::disorganized));
+    BC_REQUIRE_MESSAGE(events_.await(chase::disorganized), events_.dump());
     BC_REQUIRE_EQUAL(events_.payload<chase::disorganized>()->branch_point, 1u);
     BC_REQUIRE(await([&]() { return query_.get_top_candidate() == 1u; }));
     BC_REQUIRE(candidate(confirm_c1(), 1));
@@ -830,7 +861,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend_fork__rolled_back, co
 BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend_deep_fork__rolled_back, confirm_immature_deep_fork_fixture)
 {
     BC_REQUIRE(stated(confirm_e3(), database::is_unconfirmable));
-    BC_REQUIRE(events_.await(chase::organized, 4));
+    BC_REQUIRE_MESSAGE(events_.await(chase::organized, 4), events_.dump());
     BC_REQUIRE(confirmed(confirm_c2(), 2));
     BC_REQUIRE(confirmed(confirm_c1(), 1));
     BC_REQUIRE_EQUAL(query_.get_top_confirmed(), 2u);
@@ -849,7 +880,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend_deep_fork__rolled_bac
     BC_REQUIRE_EQUAL(events_.payload<chase::organized>(2)->link, link(confirm_d2()).value);
     BC_REQUIRE_EQUAL(events_.payload<chase::organized>(3)->link, link(confirm_c1()).value);
     BC_REQUIRE_EQUAL(events_.payload<chase::organized>(4)->link, link(confirm_c2()).value);
-    BC_REQUIRE(events_.await(chase::disorganized));
+    BC_REQUIRE_MESSAGE(events_.await(chase::disorganized), events_.dump());
     BC_REQUIRE_EQUAL(events_.payload<chase::disorganized>()->branch_point, 2u);
     BC_REQUIRE(await([&]() { return query_.get_top_candidate() == 2u; }));
     BC_REQUIRE(candidate(confirm_c2(), 2));
@@ -897,7 +928,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__current_candidates__organized, confi
 {
     BC_REQUIRE(confirmed(confirm_d2(), 2));
     BC_REQUIRE(stated(confirm_d2(), database::is_confirmable));
-    BC_REQUIRE(events_.await(chase::block, 2));
+    BC_REQUIRE_MESSAGE(events_.await(chase::block, 2), events_.dump());
 }
 
 ////BC_FIXTURE_TEST_CASE(chaser_confirm__bump__recent_confirmable_candidate__organized_stale, confirm_windowed_fixture)
