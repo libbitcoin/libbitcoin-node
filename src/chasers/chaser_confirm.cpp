@@ -300,6 +300,10 @@ bool chaser_confirm::confirm_block(const header_link& link, size_t height,
 
     if (const auto ec = query.block_confirmable(link))
     {
+        // Database errors are fatal (or disk full recoverable).
+        if (database::error::error_category::contains(ec))
+            return complete_block(ec, link, height, false);
+
         if (!query.set_block_unconfirmable(link))
         {
             fault(error::confirm9);
