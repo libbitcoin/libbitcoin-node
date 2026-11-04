@@ -319,8 +319,8 @@ struct chaser_transaction_relative_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            const auto genesis = config.bitcoin.genesis_block.hash();
-            config.bitcoin.bip9_bit0_active_checkpoint = { genesis, 0 };
+            constexpr auto always = chain::chain_state::deployment::always_active;
+            config.bitcoin.bip9_bit0_deployment.start = always;
         })
     {
     }

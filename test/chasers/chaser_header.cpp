@@ -424,6 +424,7 @@ struct chaser_header_fork_setup_fixture
     chaser_header_fork_setup_fixture()
       : chaser_header_setup_fixture([](configuration& config)
         {
+            config.bitcoin.forks.bip90 = true;
             config.bitcoin.bip90_bip34_height = 1;
         })
     {

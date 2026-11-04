@@ -104,7 +104,8 @@ private:
     bool set_organized(const header_link& link,
         height_t candidate_height) NOEXCEPT;
     code push_header(const system::hash_digest& key) NOEXCEPT;
-    code push_header(const system::chain::header& header,
+    code push_header(database::header_link& link,
+        const system::chain::header& header,
         const system::chain::context& ctx, const uint256_t& work,
         bool milestone,
         bool compact) NOEXCEPT;
@@ -130,6 +131,10 @@ private:
     bool get_branch_work(uint256_t& branch_work,
         system::hashes& tree_branch, header_states& store_branch,
         const system::chain::header& header) const NOEXCEPT;
+
+    // Activations.
+    bool set_activations(const chain_state& from, const chain_state& to,
+        const database::header_link& link) NOEXCEPT;
 
     // Logging.
     void log_state_change(const chain_state& from,

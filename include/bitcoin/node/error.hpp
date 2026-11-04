@@ -91,6 +91,8 @@ enum error_t : uint8_t
     organize13,
     organize14,
     organize15,
+    organize16,
+    organize17,
     validate1,
     validate2,
     validate3,
