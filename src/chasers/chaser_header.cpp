@@ -350,7 +350,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Push new header as top of candidate chain.
-    if (const auto ec = push_header(header, state->context(),
+    header_link link{};
+    if (const auto ec = push_header(link, header, state->context(),
         state->cumulative_work(), milestone, compact))
     {
         handler(fault(ec), height);
@@ -386,6 +387,12 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // Logs from candidate block parent to the candidate (forward sequential).
     log_state_change(*parent, *state);
+    if (!set_activations(*parent, *state, link))
+    {
+        handler(fault(error::organize16), height);
+        return;
+    }
+
     state_ = state;
 
     // Advance top reached checkpoint and prune the tree.
@@ -540,6 +547,12 @@ void chaser_header::do_disorganize(header_t link) NOEXCEPT
 
     // Logs from previous top candidate to previous fork point (jumps back).
     log_state_change(*state_, *state);
+    if (!set_activations(*state_, *state, query.to_candidate(fork_point)))
+    {
+        fault(error::organize17);
+        return;
+    }
+
     state_ = state;
 
     // Candidate is same as confirmed, reset chasers to new top.
@@ -629,13 +642,12 @@ bool chaser_header::set_organized(const header_link& link,
 // Headers cannot be set strong, that is only when the block is archived.
 // Milestone is archived in the header and like checkpoint cannot change.
 // But unlike checkpointed, milestoned blocks may not be strong chain.
-code chaser_header::push_header(const header& header, const context& ctx,
-    const uint256_t& work, bool milestone, bool compact) NOEXCEPT
+code chaser_header::push_header(header_link& link, const header& header,
+    const context& ctx, const uint256_t& work, bool milestone,
+    bool compact) NOEXCEPT
 {
     auto& query = archive();
-    header_link link{};
-    const auto ec = query.set_code(link, header, ctx, work, milestone,
-        compact);
+    const auto ec = query.set_code(link, header, ctx, work, milestone, compact);
     if (ec)
         return ec;
 
@@ -650,9 +662,10 @@ code chaser_header::push_header(const hash_digest& key) NOEXCEPT
     if (!handle)
         return error::organize15;
 
+    header_link link{};
     const auto& header_ptr = handle.mapped();
     const auto& state = header_ptr->get_state();
-    return push_header(*header_ptr, state->context(),
+    return push_header(link, *header_ptr, state->context(),
         state->cumulative_work(), false, false);
 }
 
@@ -887,6 +900,20 @@ bool chaser_header::get_branch_work(uint256_t& work, hashes& tree_branch,
     }
 
     return true;
+}
+
+// Activations
+// ----------------------------------------------------------------------------
+
+bool chaser_header::set_activations(const chain_state& from,
+    const chain_state& to, const header_link& link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+    const auto deactivated = bit_and(from.flags(), bit_not(to.flags()));
+    const auto activated = bit_and(to.flags(), bit_not(from.flags()));
+    return query.clear_activation(deactivated)
+        && query.set_activation(activated, link);
 }
 
 // Logging

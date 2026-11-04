@@ -81,6 +81,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { organize13, "organize13" },
     { organize14, "organize14" },
     { organize15, "organize15" },
+    { organize16, "organize16" },
+    { organize17, "organize17" },
     { validate1, "validate1" },
     { validate2, "validate2" },
     { validate3, "validate3" },
