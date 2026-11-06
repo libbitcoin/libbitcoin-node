@@ -38,6 +38,8 @@
 #                                Default: OFF
 # -Denable-cuda=<ON/OFF>       Use cuda (gpu) batch signature verification (inert on macOS).
 #                                Default: ON
+# -Dwith-verbose=<ON/OFF>      Compile verbose logging.
+#                                Default: OFF
 # --build-libsecp256k1         Build bitcoin core libsecp256k1 libraries
 # --build-src-dir=<path>       Location for sources.
 #                                Default: $(pwd)
@@ -923,6 +925,8 @@ help()
     msg "                               Default: OFF"
     msg "-Denable-cuda=<ON/OFF>       Use cuda (gpu) batch signature verification (inert on macOS)."
     msg "                               Default: ON"
+    msg "-Dwith-verbose=<ON/OFF>      Compile verbose logging."
+    msg "                               Default: OFF"
     msg "--build-libsecp256k1         Build bitcoin core libsecp256k1 libraries"
     msg "--build-src-dir=<path>       Location for sources."
     msg "                               Default: $(pwd)"
