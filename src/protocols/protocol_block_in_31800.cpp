@@ -393,7 +393,7 @@ void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
 }
 
 void protocol_block_in_31800::handle_put_hashes(const code& ec,
-    size_t count) NOEXCEPT
+    size_t LOG_ONLY(count)) NOEXCEPT
 {
     LOGV("Put (" << count << ") work for [" << opposite() << "].");
 

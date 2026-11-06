@@ -349,7 +349,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 }
 
 void chaser_validate::notify_block(const code& ec, size_t height, 
-    const header_link& link, bool bypass, bool startup) NOEXCEPT
+    const header_link& link, bool LOG_ONLY(bypass), bool startup) NOEXCEPT
 {
     // Not stranded when complete_block is called from validate_block.
 
