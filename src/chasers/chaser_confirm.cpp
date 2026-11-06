@@ -353,7 +353,7 @@ bool chaser_confirm::complete_block(const code& ec, const header_link& link,
 }
 
 bool chaser_confirm::notify_block(const code& ec, size_t height,
-    const header_link& link, bool bypass) NOEXCEPT
+    const header_link& link, bool LOG_ONLY(bypass)) NOEXCEPT
 {
     if (ec)
     {
