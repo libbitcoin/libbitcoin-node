@@ -57,7 +57,6 @@ public:
     uint64_t batch_verify;
     uint64_t batch_silent;
     uint16_t current_connections;
-    uint16_t announcement_cache;
     uint16_t fee_estimate_horizon;
     uint32_t maximum_height;
     uint32_t maximum_concurrency;

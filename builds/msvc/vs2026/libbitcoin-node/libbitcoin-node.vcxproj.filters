@@ -189,6 +189,9 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70016.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\rolling_bloom_filter.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp">
       <Filter>src\sessions</Filter>
     </ClCompile>
@@ -358,6 +361,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\rolling_bloom_filter.hpp">
+      <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>

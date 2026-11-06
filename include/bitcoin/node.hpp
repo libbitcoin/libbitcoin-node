@@ -26,6 +26,7 @@
 #include <bitcoin/node/events.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/preprocessor.hpp>
+#include <bitcoin/node/rolling_bloom_filter.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
 #include <bitcoin/node/channels/channel.hpp>

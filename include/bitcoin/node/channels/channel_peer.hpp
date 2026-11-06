@@ -19,10 +19,10 @@
 #ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_PEER_HPP
 #define LIBBITCOIN_NODE_CHANNELS_CHANNEL_PEER_HPP
 
-#include <deque>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/rolling_bloom_filter.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -42,12 +42,14 @@ public:
       : node::channel(log, socket, identifier, config),
         network::channel_peer(log, socket, identifier, config.network, options),
         network::tracker<channel_peer>(log),
-        witness_(config.node.require_witness),
-        announcement_cache_(config.node.announcement_cache)
+        witness_(config.node.require_witness)
     {
     }
 
+    /// Record a block or tx hash known to the peer.
     void set_announced(const system::hash_digest& hash) NOEXCEPT;
+
+    /// The hash is (probably) known to the peer.
     bool was_announced(const system::hash_digest& hash) const NOEXCEPT;
 
 protected:
@@ -61,12 +63,11 @@ protected:
     }
 
 private:
-    // These are thread safe (const).
+    // This is thread safe (const).
     const bool witness_;
-    const size_t announcement_cache_;
 
     // This is protected by strand.
-    std::deque<system::hash_digest> announced_{};
+    rolling_bloom_filter announced_{};
 };
 
 } // namespace node

@@ -58,6 +58,7 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/error.cpp \
     ${srcdir}/../../src/estimator.cpp \
     ${srcdir}/../../src/full_node.cpp \
+    ${srcdir}/../../src/rolling_bloom_filter.cpp \
     ${srcdir}/../../src/settings.cpp \
     ${srcdir}/../../src/channels/channel_peer.cpp \
     ${srcdir}/../../src/chasers/chaser.cpp \
@@ -141,6 +142,7 @@ include_bitcoin_node_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/events.hpp \
     ${srcdir}/../../include/bitcoin/node/full_node.hpp \
     ${srcdir}/../../include/bitcoin/node/preprocessor.hpp \
+    ${srcdir}/../../include/bitcoin/node/rolling_bloom_filter.hpp \
     ${srcdir}/../../include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
 
@@ -244,6 +246,7 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/estimator.cpp \
     ${srcdir}/../../test/full_node.cpp \
     ${srcdir}/../../test/main.cpp \
+    ${srcdir}/../../test/rolling_bloom_filter.cpp \
     ${srcdir}/../../test/settings.cpp \
     ${srcdir}/../../test/test.cpp \
     ${srcdir}/../../test/chasers/chaser.cpp \
