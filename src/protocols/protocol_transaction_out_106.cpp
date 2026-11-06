@@ -132,10 +132,51 @@ bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT
         return true;
     }
 
+    // Txs queued on the strand ahead of the flush coalesce into its inv.
+    if (queued_.empty() && !writing_)
+    {
+        POST(do_flush);
+    }
+
     // bip144: get_data uses witness type_id but inv does not.
-    const inventory inv{ { { inventory_type(), hash } } };
-    NOTIFY(inv, handle_send, _1);
+    queued_.emplace_back(inventory_type(), hash);
+
+    if (queued_.size() == max_inventory)
+        send_queued();
+
     return true;
+}
+
+void protocol_transaction_out_106::do_flush() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped() || writing_ || queued_.empty())
+        return;
+
+    send_queued();
+}
+
+void protocol_transaction_out_106::handle_flush(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return;
+
+    writing_ = false;
+    do_flush();
+}
+
+// private
+void protocol_transaction_out_106::send_queued() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    auto items = std::move(queued_);
+    queued_.clear();
+    writing_ = true;
+    NOTIFY(inventory{ std::move(items) }, handle_flush, _1);
 }
 
 // Inbound (get_data).
