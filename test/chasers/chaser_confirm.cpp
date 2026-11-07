@@ -835,7 +835,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend__rolled_back_to_fork_
 BC_FIXTURE_TEST_CASE(chaser_confirm__start__immature_spend_fork__rolled_back, confirm_immature_fork_fixture)
 {
     BC_REQUIRE(stated(confirm_e2(), database::is_unconfirmable));
-    BC_REQUIRE_MESSAGE(events_.await(chase::organized, 2), events_.dump());
+    BC_REQUIRE_MESSAGE(events_.await(chase::unconfirmable), events_.dump());
     BC_REQUIRE(confirmed(confirm_c1(), 1));
     BC_REQUIRE_EQUAL(query_.get_top_confirmed(), 1u);
     BC_REQUIRE(!query_.is_confirmed_block(link(confirm_d1())));
@@ -894,7 +894,7 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__start__bypass_candidate__organized_unvalida
     BC_REQUIRE(!query_.is_confirmable(link(confirm_d1())));
     BC_REQUIRE(stated(confirm_d2(), database::is_confirmable));
     BC_REQUIRE(query_.is_filtered_head(link(confirm_d1())));
-    BC_REQUIRE_EQUAL(events_.count(chase::confirmable), 2u);
+    BC_REQUIRE_MESSAGE(events_.await(chase::confirmable, 2), events_.dump());
 }
 
 BC_FIXTURE_TEST_CASE(chaser_confirm__start__unfiltered_candidate__not_organized, confirm_unfiltered_fixture)
