@@ -22,9 +22,41 @@
 #include "../test.hpp"
 #include <condition_variable>
 #include <deque>
+#include <future>
 #include <mutex>
 
-#define P2P_FUNCTIONAL_ENDPOINT "127.0.0.1:65009"
+#define P2P_FUNCTIONAL_ENDPOINT "127.0.0.1"
+
+// A full node that retains its peer acceptor, for its bound endpoint.
+class bound_node
+  : public full_node
+{
+public:
+    using full_node::full_node;
+
+    /// The endpoint to which the peer acceptor is bound (requires run).
+    network::io::endpoint binding() NOEXCEPT
+    {
+        std::promise<network::io::endpoint> bound{};
+        network::io::post(strand(), [&]() NOEXCEPT
+        {
+            bound.set_value(acceptor_->local().to_endpoint());
+        });
+
+        return bound.get_future().get();
+    }
+
+protected:
+    network::acceptor::ptr create_acceptor(
+        const network::socket::context& context) NOEXCEPT override
+    {
+        acceptor_ = full_node::create_acceptor(context);
+        return acceptor_;
+    }
+
+private:
+    network::acceptor::ptr acceptor_{};
+};
 
 // Runs a real full node accepting on loopback, with the test acting as the
 // remote peer over a raw blocking socket (framing via peer messages).
@@ -112,7 +144,7 @@ protected:
     node::store store_;
     node::query query_;
     network::logger log_{};
-    full_node node_;
+    bound_node node_;
 
 private:
     network::io::context io_{};
