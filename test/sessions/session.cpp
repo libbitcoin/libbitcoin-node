@@ -460,14 +460,8 @@ BC_AUTO_TEST_CASE(session__connect__listening_endpoint__version_received)
 
 BC_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
 {
-    // A bound socket that is not listening refuses connections.
-    network::io::context io{};
-    network::io::socket refuser{ io };
-    REQUIRE_SUCCESS(refuser, open, network::io::tcp::v4());
-    REQUIRE_SUCCESS(refuser, bind, test::loopback());
-
     std::promise<code> promise{};
-    session_.connect(network::config::endpoint{ refuser.local_endpoint() }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
+    session_.connect(network::config::endpoint{ test::refuser() }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
     {
         promise.set_value(ec);
         return false;
@@ -495,15 +489,9 @@ BC_AUTO_TEST_CASE(protocol__connect__listening_endpoint__version_received)
 
 BC_AUTO_TEST_CASE(protocol__connect__refused_endpoint__handler_error)
 {
-    // A bound socket that is not listening refuses connections.
-    network::io::context io{};
-    network::io::socket refuser{ io };
-    REQUIRE_SUCCESS(refuser, open, network::io::tcp::v4());
-    REQUIRE_SUCCESS(refuser, bind, test::loopback());
-
     std::promise<code> promise{};
     session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
-    protocol.connect(network::config::endpoint{ refuser.local_endpoint() }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
+    protocol.connect(network::config::endpoint{ test::refuser() }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
     {
         promise.set_value(ec);
         return false;
