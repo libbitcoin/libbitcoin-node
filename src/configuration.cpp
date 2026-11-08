@@ -54,7 +54,7 @@ code configuration::initialize() NOEXCEPT
 
     // Batch tables are unused when their batching cannot run.
     const auto gpu = node.use_gpu && system::batched::compiled() &&
-        database::cuda_device();
+        system::cuda_device();
 
     if (!node.batch_verify_enabled() || !(node.cpu_batch_verify || gpu))
     {
