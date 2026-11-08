@@ -52,7 +52,6 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
     BC_REQUIRE_EQUAL(node.batch_silent, 1'000'000_u64);
     BC_REQUIRE_EQUAL(node.current_connections, 10_u16);
-    BC_REQUIRE_EQUAL(node.announcement_cache, 42_u16);
     BC_REQUIRE_EQUAL(node.fee_estimate_horizon, 0u);
     BC_REQUIRE_EQUAL(node.maximum_height, 0_u32);
     BC_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);

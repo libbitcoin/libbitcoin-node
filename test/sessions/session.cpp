@@ -164,7 +164,9 @@ struct session_outbound_setup_fixture
         BC_REQUIRE(query_.initialize(config_.bitcoin.genesis_block));
 
         const auto services = service::node_network | service::node_witness;
-        const auto entry = "127.0.0.1:65115/0/" + std::to_string(services);
+        const auto port = std::to_string(acceptor_.local_endpoint().port());
+        const auto flags = std::to_string(services);
+        const auto entry = "127.0.0.1:" + port + "/0/" + flags;
         std::ofstream{ config_.network.file() } << entry << std::endl;
 
         std::promise<code> started{};
@@ -222,8 +224,7 @@ struct session_outbound_setup_fixture
 
 protected:
     network::io::context io_{};
-    const network::io::endpoint endpoint_{ test::loopback(65115) };
-    network::io::acceptor acceptor_{ io_, endpoint_ };
+    network::io::acceptor acceptor_{ io_, test::loopback() };
     network::io::socket socket_{ io_ };
     configuration config_;
     node::store store_;
@@ -445,9 +446,9 @@ BC_AUTO_TEST_CASE(session__connect__listening_endpoint__version_received)
 {
     using namespace network::messages::peer;
     network::io::context io{};
-    network::io::acceptor acceptor{ io, test::loopback(65113) };
+    network::io::acceptor acceptor{ io, test::loopback() };
     network::io::socket socket{ io };
-    session_.connect(network::config::endpoint{ "127.0.0.1:65113" });
+    session_.connect(network::config::endpoint{ acceptor.local_endpoint() });
     REQUIRE_SUCCESS(acceptor, accept, socket);
 
     system::data_array<heading::size()> head{};
@@ -460,7 +461,7 @@ BC_AUTO_TEST_CASE(session__connect__listening_endpoint__version_received)
 BC_AUTO_TEST_CASE(session__connect__refused_endpoint__handler_error)
 {
     std::promise<code> promise{};
-    session_.connect(network::config::endpoint{ "127.0.0.1:65114" }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
+    session_.connect(network::config::endpoint{ test::refuser() }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
     {
         promise.set_value(ec);
         return false;
@@ -473,10 +474,10 @@ BC_AUTO_TEST_CASE(protocol__connect__listening_endpoint__version_received)
 {
     using namespace network::messages::peer;
     network::io::context io{};
-    network::io::acceptor acceptor{ io, test::loopback(65116) };
+    network::io::acceptor acceptor{ io, test::loopback() };
     network::io::socket socket{ io };
     session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
-    protocol.connect(network::config::endpoint{ "127.0.0.1:65116" });
+    protocol.connect(network::config::endpoint{ acceptor.local_endpoint() });
     REQUIRE_SUCCESS(acceptor, accept, socket);
 
     system::data_array<heading::size()> head{};
@@ -490,7 +491,7 @@ BC_AUTO_TEST_CASE(protocol__connect__refused_endpoint__handler_error)
 {
     std::promise<code> promise{};
     session_protocol_accessor protocol{ std::make_shared<session_accessor>(node_) };
-    protocol.connect(network::config::endpoint{ "127.0.0.1:65117" }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
+    protocol.connect(network::config::endpoint{ test::refuser() }, [&](const code& ec, const network::channel::ptr&) NOEXCEPT
     {
         promise.set_value(ec);
         return false;

@@ -26,25 +26,8 @@ struct channel_peer_setup_fixture
 {
     DELETE_COPY_MOVE(channel_peer_setup_fixture);
 
-    channel_peer_setup_fixture(uint16_t announcement_cache)
-      : config_{ test::node_configuration() },
-        channel_
-        {
-            [&]() NOEXCEPT
-            {
-                config_.node.announcement_cache = announcement_cache;
-                network::socket::parameters params
-                {
-                    .maximum_request = 42,
-                    .maximum_buffer = 42
-                };
-
-                const auto socket = std::make_shared<network::socket>(log_,
-                    pool_.service(), std::move(params));
-                return std::make_shared<node::channel_peer>(log_, socket, 42,
-                    config_, options);
-            }()
-        }
+    channel_peer_setup_fixture()
+      : config_{ test::node_configuration() }, channel_{ make_channel() }
     {
     }
 
@@ -55,18 +38,49 @@ struct channel_peer_setup_fixture
         BC_REQUIRE(pool_.join());
     }
 
-    /// Announce first then second, report whether each was announced.
-    std::pair<bool, bool> announce(const system::hash_digest& first,
-        const system::hash_digest& second)
+    node::channel_peer::ptr make_channel() NOEXCEPT
     {
-        std::promise<std::pair<bool, bool>> promise{};
+        using namespace system;
+        using socket = network::socket;
+        using channel = node::channel_peer;
+        socket::parameters params
+        {
+            .maximum_request = 42,
+            .maximum_buffer = 42
+        };
+
+        auto& io = pool_.service();
+        const auto wire = emplace_shared<socket>(log_, io, std::move(params));
+        return emplace_shared<channel>(log_, wire, 42, config_, options);
+    }
+
+    // A distinct uniform hash for each index.
+    static system::hash_digest hash(size_t index)
+    {
+        using namespace system;
+        return sha256_hash(to_little_endian<uint64_t>(index));
+    }
+
+    // Announce the hash on the channel strand.
+    void announce(const system::hash_digest& hash)
+    {
+        std::promise<bool> promise{};
         network::io::post(channel_->strand(), [&]() NOEXCEPT
         {
-            channel_->set_announced(first);
-            channel_->set_announced(second);
-            const auto announced1 = channel_->was_announced(first);
-            const auto announced2 = channel_->was_announced(second);
-            promise.set_value({ announced1, announced2 });
+            channel_->set_announced(hash);
+            promise.set_value(true);
+        });
+
+        BC_REQUIRE(promise.get_future().get());
+    }
+
+    // The hash is reported announced on the channel strand.
+    bool announced(const system::hash_digest& hash)
+    {
+        std::promise<bool> promise{};
+        network::io::post(channel_->strand(), [&]() NOEXCEPT
+        {
+            promise.set_value(channel_->was_announced(hash));
         });
 
         return promise.get_future().get();
@@ -81,57 +95,19 @@ protected:
     node::channel_peer::ptr channel_;
 };
 
-struct channel_peer_disabled_setup_fixture
-  : channel_peer_setup_fixture
+BC_FIXTURE_TEST_SUITE(channel_peer_tests, channel_peer_setup_fixture)
+
+BC_AUTO_TEST_CASE(channel_peer__was_announced__empty__false)
 {
-    channel_peer_disabled_setup_fixture()
-      : channel_peer_setup_fixture(0)
-    {
-    }
-};
-
-struct channel_peer_one_setup_fixture
-  : channel_peer_setup_fixture
-{
-    channel_peer_one_setup_fixture()
-      : channel_peer_setup_fixture(1)
-    {
-    }
-};
-
-struct channel_peer_two_setup_fixture
-  : channel_peer_setup_fixture
-{
-    channel_peer_two_setup_fixture()
-      : channel_peer_setup_fixture(2)
-    {
-    }
-};
-
-static const system::hash_digest first{ 0x01 };
-static const system::hash_digest second{ 0x02 };
-
-BC_AUTO_TEST_SUITE(channel_peer_tests)
-
-BC_FIXTURE_TEST_CASE(channel_peer__set_announced__zero_cache__not_announced, channel_peer_disabled_setup_fixture)
-{
-    const auto announced = announce(first, second);
-    BC_REQUIRE(!announced.first);
-    BC_REQUIRE(!announced.second);
+    const auto item = hash(0);
+    BC_REQUIRE(!announced(item));
 }
 
-BC_FIXTURE_TEST_CASE(channel_peer__set_announced__full_cache__oldest_evicted, channel_peer_one_setup_fixture)
+BC_AUTO_TEST_CASE(channel_peer__set_announced__one__announced)
 {
-    const auto announced = announce(first, second);
-    BC_REQUIRE(!announced.first);
-    BC_REQUIRE(announced.second);
-}
-
-BC_FIXTURE_TEST_CASE(channel_peer__set_announced__cache_not_full__both_announced, channel_peer_two_setup_fixture)
-{
-    const auto announced = announce(first, second);
-    BC_REQUIRE(announced.first);
-    BC_REQUIRE(announced.second);
+    const auto item = hash(0);
+    announce(item);
+    BC_REQUIRE(announced(item));
 }
 
 BC_AUTO_TEST_SUITE_END()

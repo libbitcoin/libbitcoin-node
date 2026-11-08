@@ -139,6 +139,18 @@ inline network::io::endpoint loopback(uint16_t port=0) NOEXCEPT
     return { system::ip::address{ system::ip::ipv4{ { 127, 0, 0, 1 } } }, port };
 }
 
+// A loopback endpoint on an ephemeral port with no socket bound to it.
+inline network::io::endpoint refuser() NOEXCEPT
+{
+    network::io::context context{};
+    network::io::socket socket{ context };
+    REQUIRE_SUCCESS(socket, open, network::io::tcp::v4());
+    REQUIRE_SUCCESS(socket, bind, loopback());
+    const auto endpoint = socket.local_endpoint();
+    REQUIRE_SUCCESS(socket, close);
+    return endpoint;
+}
+
 } // namespace test
 
 #endif

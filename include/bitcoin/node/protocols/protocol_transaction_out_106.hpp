@@ -81,11 +81,22 @@ protected:
         const network::messages::peer::get_data::cptr& message,
         const gate_t::ptr& gate) NOEXCEPT;
 
+    /// Queue the tx for announcement, unless known to the peer.
     virtual bool announce(const system::hash_digest& hash) NOEXCEPT;
 
+    /// Announce the queued txs unless an announcement is being written.
+    virtual void do_flush() NOEXCEPT;
+    virtual void handle_flush(const code& ec) NOEXCEPT;
+
 private:
+    void send_queued() NOEXCEPT;
+
     // These are thread safe.
     const bool node_witness_;
+
+    // These are protected by strand.
+    inventory_items queued_{};
+    bool writing_{};
 };
 
 } // namespace node
