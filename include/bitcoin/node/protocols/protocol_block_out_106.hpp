@@ -75,7 +75,7 @@ protected:
     virtual bool report_unservable(size_t index,
         const get_data::cptr& message, const gate_t::ptr& gate) NOEXCEPT;
 
-    /// The block is associated, and not pruned by a limited node.
+    /// The block is associated.
     bool is_servable(const system::hash_digest& hash,
         const database::header_link& link) NOEXCEPT;
 
