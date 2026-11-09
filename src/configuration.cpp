@@ -80,6 +80,7 @@ code configuration::initialize() NOEXCEPT
         network.identifier = system::from_little_endian<uint32_t>(hash);
     }
 
+    bitcoin.initialize();
     database.initialize(bitcoin, node.limited_blocks, node.silent_start_height);
     return network.initialize();
 }
