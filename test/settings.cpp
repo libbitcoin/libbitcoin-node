@@ -106,6 +106,14 @@ BC_AUTO_TEST_CASE(settings__node__testnet4_context__expected)
     BC_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
 }
 
+BC_AUTO_TEST_CASE(settings__node__testnet5_context__expected)
+{
+    const node::settings node{ system::chain::selection::testnet5 };
+    BC_REQUIRE(node.network == system::chain::selection::testnet5);
+    BC_REQUIRE_EQUAL(node.maximum_concurrency, 100'000_u32);
+    BC_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
+}
+
 BC_AUTO_TEST_CASE(settings__node__regtest_context__expected)
 {
     const node::settings node{ system::chain::selection::regtest };

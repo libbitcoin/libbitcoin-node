@@ -79,6 +79,7 @@ settings::settings(chain::selection context) NOEXCEPT
         }
 
         case chain::selection::testnet4:
+        case chain::selection::testnet5:
         {
             maximum_concurrency = 100'000;
             break;
