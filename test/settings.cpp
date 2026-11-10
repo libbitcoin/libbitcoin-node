@@ -40,7 +40,7 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.provide_witness, true);
     BC_REQUIRE_EQUAL(node.require_witness, true);
     BC_REQUIRE_EQUAL(node.provide_filters, false);
-    BC_REQUIRE_EQUAL(node.provide_privacy, false);
+    BC_REQUIRE_EQUAL(node.provide_privacy, true);
     BC_REQUIRE_EQUAL(node.limited_blocks, false);
     BC_REQUIRE_EQUAL(node.use_gpu, true);
     BC_REQUIRE_EQUAL(node.cpu_batch_verify, false);
@@ -130,17 +130,23 @@ BC_AUTO_TEST_CASE(settings__node__signet_context__expected)
     BC_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
 }
 
-BC_AUTO_TEST_CASE(settings__services_provided__default__network_witness)
+BC_AUTO_TEST_CASE(settings__services_provided__default__network_witness_v2)
 {
     const node::settings node{};
+    BC_REQUIRE_EQUAL(node.services_provided(), 0x0809_u64);
+}
+
+BC_AUTO_TEST_CASE(settings__services_provided__no_privacy__network_witness)
+{
+    node::settings node{};
+    node.provide_privacy = false;
     BC_REQUIRE_EQUAL(node.services_provided(), 0x0009_u64);
 }
 
-BC_AUTO_TEST_CASE(settings__services_provided__filters_privacy__network_witness_filters_v2)
+BC_AUTO_TEST_CASE(settings__services_provided__filters__network_witness_filters_v2)
 {
     node::settings node{};
     node.provide_filters = true;
-    node.provide_privacy = true;
     BC_REQUIRE_EQUAL(node.services_provided(), 0x0849_u64);
 }
 

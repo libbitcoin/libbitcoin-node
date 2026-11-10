@@ -54,9 +54,10 @@ configuration p2p_setup_fixture::configured(const configurator& configure)
     if (configure)
         configure(config);
 
-    // The store envelope is derived from the configured chain, as at startup.
+    // Derived values are computed from the configuration, as at startup.
     config.database.initialize(config.bitcoin, node_settings.limited_blocks,
         node_settings.silent_start_height);
+    BC_REQUIRE(!network_settings.initialize());
 
     return config;
 }
