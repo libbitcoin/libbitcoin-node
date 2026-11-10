@@ -70,25 +70,48 @@ set( repository_root_dir "${CMAKE_CURRENT_SOURCE_DIR}/../.." )
 if ( MSVC )
   set( CMAKE_STATIC_LIBRARY_PREFIX "lib" )
   set( CMAKE_SHARED_LIBRARY_PREFIX "lib" )
+  set( CMAKE_IMPORT_LIBRARY_PREFIX "lib" )
 
   if ( BUILD_SHARED_LIBS )
-    message( FATAL_ERROR "Shared libraries are not supported with the MSVC frontend." )
+    set( CMAKE_MSVC_RUNTIME_LIBRARY
+      "$<IF:$<CONFIG:Debug>,MultiThreadedDebugDLL,MultiThreadedDLL>" )
+  else()
+    set( CMAKE_MSVC_RUNTIME_LIBRARY
+      "$<IF:$<CONFIG:Debug>,MultiThreadedDebug,MultiThreaded>" )
   endif()
+
+  set( CMAKE_C_FLAGS_DEBUG "/Od /Ob1 /Oi /Gy /RTC1 /Zi" )
+  set( CMAKE_CXX_FLAGS_DEBUG "/Od /Ob1 /Oi /Gy /RTC1 /Zi" )
+  set( CMAKE_C_FLAGS_RELEASE "/O2 /Ob2 /Oi /Ot /Oy /GT /Qpar /Gy /GF /GS- /guard:cf- /Zi" )
+  set( CMAKE_CXX_FLAGS_RELEASE "/O2 /Ob2 /Oi /Ot /Oy /GT /Qpar /Gy /GF /GS- /guard:cf- /Zi" )
 
   add_compile_options(
     /W4
-    /bigobj
     /permissive-
+    /bigobj
     /Zc:__cplusplus
     /Zc:preprocessor
-    $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-command-line-argument> )
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-unused-command-line-argument>
+  )
 
   add_compile_definitions(
     UNICODE
     _UNICODE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
-    _WIN32_WINNT=0x0A00 )
+    _WIN32_WINNT=0x0A00
+    $<$<CONFIG:Debug>:_DEBUG>
+    $<$<CONFIG:Debug>:_CRTDBG_MAP_ALLOC>
+    $<$<CONFIG:Release>:NDEBUG>
+  )
+
+  add_link_options(
+    /ignore:4099
+    $<$<CONFIG:Debug>:/DEBUG>
+    $<$<CONFIG:Release>:/DEBUG>
+    $<$<CONFIG:Release>:/OPT:REF>
+    $<$<CONFIG:Release>:/OPT:ICF>
+  )
 endif()
 
 # Link POSIX threads on BSD.
@@ -244,10 +267,21 @@ if ( NOT MSVC )
 endif()
 
 if ( MSVC )
-  target_compile_definitions( libbitcoin-node
-    PUBLIC
-      BCN_STATIC
-  )
+  if ( BUILD_SHARED_LIBS )
+    target_compile_definitions( libbitcoin-node
+      PRIVATE
+        BCN_DLL
+        _DLL
+        _WINDLL
+    )
+  else()
+    target_compile_definitions( libbitcoin-node
+      PUBLIC
+        BCN_STATIC
+      PRIVATE
+        _LIB
+    )
+  endif()
 endif()
 
 file( GLOB_RECURSE libbitcoin_node_HEADERS CONFIGURE_DEPENDS
@@ -326,6 +360,14 @@ if ( with-tests )
     --build_info=yes
   )
 
+  if ( WIN32 AND BUILD_SHARED_LIBS )
+    set_tests_properties( libbitcoin-node-test
+      PROPERTIES
+        ENVIRONMENT_MODIFICATION
+          "PATH=path_list_prepend:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:libbitcoin-node-test>,\;>"
+    )
+  endif()
+
   target_compile_features( libbitcoin-node-test
     PUBLIC
       cxx_std_20
@@ -346,6 +388,13 @@ if ( with-tests )
         $<$<COMPILE_LANGUAGE:CXX>:-Wno-long-long>
         $<$<CXX_COMPILER_ID:GNU>:-fno-var-tracking-assignments>
         $<$<COMPILE_LANGUAGE:CXX>:-fstack-protector-all>
+    )
+  endif()
+
+  if ( MSVC )
+    target_compile_definitions( libbitcoin-node-test
+      PRIVATE
+        _CONSOLE
     )
   endif()
 
