@@ -44,7 +44,9 @@ void protocol_transaction_out_60002::start() NOEXCEPT
         return;
 
     if (enable_memory_pool_)
+    {
         SUBSCRIBE_CHANNEL(memory_pool, handle_receive_memory_pool, _1, _2);
+    }
 
     protocol_transaction_out_106::start();
 }
