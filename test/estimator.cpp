@@ -750,6 +750,14 @@ BC_AUTO_TEST_CASE(estimator__estimate__economical_all_targets_pass__expected)
     BC_REQUIRE_EQUAL(instance->estimate(1, estimator::mode::economical), 1u);
 }
 
+BC_AUTO_TEST_CASE(estimator__estimate__economical_target_failed__max_uint64)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 20u;
+    instance->history().small[0].confirmed[4] = 10u;
+    BC_REQUIRE_EQUAL(instance->estimate(4, estimator::mode::economical), max_uint64);
+}
+
 BC_AUTO_TEST_CASE(estimator__estimate__conservative_double_target_failed__max_uint64)
 {
     const auto instance = acessor::create();
@@ -763,6 +771,14 @@ BC_AUTO_TEST_CASE(estimator__estimate__conservative_all_targets_pass__expected)
     const auto instance = acessor::create();
     instance->history().small[0].total = 10u;
     BC_REQUIRE_EQUAL(instance->estimate(1, estimator::mode::conservative), 1u);
+}
+
+BC_AUTO_TEST_CASE(estimator__estimate__conservative_target_failed__max_uint64)
+{
+    const auto instance = acessor::create();
+    instance->history().small[0].total = 20u;
+    instance->history().small[0].confirmed[4] = 10u;
+    BC_REQUIRE_EQUAL(instance->estimate(4, estimator::mode::conservative), max_uint64);
 }
 
 // history

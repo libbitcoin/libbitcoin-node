@@ -52,7 +52,7 @@ uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
         case mode::economical:
         {
             const auto target1 = to_half(target);
-            const auto target2 = std::min(one, target);
+            const auto target2 = target;
             const auto target3 = std::min(large, two * target);
             const auto fee1 = compute(target1, confidence::low);
             const auto fee2 = compute(target2, confidence::mid);
@@ -62,7 +62,7 @@ uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
         case mode::conservative:
         {
             const auto target1 = to_half(target);
-            const auto target2 = std::min(one, target);
+            const auto target2 = target;
             const auto target3 = std::min(large, two * target);
             const auto fee1 = compute(target1, confidence::low);
             const auto fee2 = compute(target2, confidence::mid);
