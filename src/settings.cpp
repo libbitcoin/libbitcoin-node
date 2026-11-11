@@ -39,7 +39,7 @@ settings::settings() NOEXCEPT
     provide_witness{ true },
     require_witness{ true },
     provide_filters{ false },
-    provide_privacy{ false },
+    provide_privacy{ true },
     limited_blocks{ false },
     use_gpu{ true },
     cpu_batch_verify{ false },

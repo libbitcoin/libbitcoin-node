@@ -205,11 +205,11 @@ struct p2p_compact_not_current_setup_fixture
     }
 };
 
-BC_AUTO_TEST_CASE(functional_p2p__handshake__default__provides_network_and_witness)
+BC_AUTO_TEST_CASE(functional_p2p__handshake__default__provides_network_witness_and_encryption)
 {
     BC_REQUIRE(handshake());
     BC_REQUIRE_EQUAL(node_version->value, config_.network.protocol_maximum);
-    BC_REQUIRE_EQUAL(node_version->services, service::node_network | service::node_witness);
+    BC_REQUIRE_EQUAL(node_version->services, service::node_network | service::node_witness | service::node_encrypted_transport);
 }
 
 BC_AUTO_TEST_CASE(functional_p2p__ping__nonce__pong_echo)
