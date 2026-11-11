@@ -60,16 +60,24 @@ code chaser_validate::start() NOEXCEPT
         !node_settings().use_gpu ? "gpu disabled" : "no gpu";
 
     if (node_settings().batch_verify_enabled() && !verify_enabled_)
+    {
         LOGN("Signature batching disabled (" << reason << ").");
+    }
 
     if (node_settings().batch_silent_enabled() && !silent_enabled_)
+    {
         LOGN("Silent batching disabled (" << reason << ").");
+    }
 
     if (verify_enabled_ && !gpu_)
+    {
         LOGN("Signature batching on the cpu (" << reason << ").");
+    }
 
     if (silent_enabled_ && !gpu_)
+    {
         LOGN("Silent batching on the cpu (" << reason << ").");
+    }
 
     set_position(archive().get_fork());
     if (const auto ec = start_batch())
