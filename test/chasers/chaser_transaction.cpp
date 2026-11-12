@@ -324,6 +324,34 @@ struct chaser_transaction_fee_setup_fixture
     }
 };
 
+struct chaser_transaction_limit_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_limit_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.maximum_outcomes = 1;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_reserve_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_reserve_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 4'000'000;
+        })
+    {
+    }
+};
+
 struct chaser_transaction_no_witness_setup_fixture
   : chaser_transaction_setup_fixture
 {
@@ -535,10 +563,51 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__valid_twice__duplicate_transact
     BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::duplicate_transaction);
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__double_spend, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__success_archived, chaser_transaction_pooling_setup_fixture)
 {
-    BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::success);
-    BC_REQUIRE_EQUAL(submit(package({ spend(sub1(parent_value)) })).first, system::error::double_spend);
+    const auto first = spend(parent_value);
+    const auto second = spend(sub1(parent_value));
+    const auto first_result = submit(package({ first }));
+    const auto second_result = submit(package({ second }));
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(first->hash(false)));
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_no_added_fee__insufficient_fee, chaser_transaction_fee_setup_fixture)
+{
+    const auto first = submit(package({ spend(parent_value - 1'000) }));
+    const auto second = submit(package({ spend(parent_value - 999) }));
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, node::error::insufficient_fee);
+    BC_REQUIRE_EQUAL(second.second, zero);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_added_fee__success_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto second = spend(parent_value - 2'000);
+    const auto first_result = submit(package({ spend(parent_value - 1'000) }));
+    const auto second_result = submit(package({ second }));
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_outcomes_over_limit__pool_limit, chaser_transaction_limit_setup_fixture)
+{
+    const auto first = submit(package({ spend(parent_value) }));
+    const auto second = submit(package({ spend(sub1(parent_value)) }));
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_over_block__pool_limit, chaser_transaction_reserve_setup_fixture)
+{
+    const auto first = submit(package({ spend(parent_value - 1'000) }));
+    const auto second = submit(package({ spend(parent_value - 2'000) }));
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__parent_and_child__success_archived, chaser_transaction_pooling_setup_fixture)

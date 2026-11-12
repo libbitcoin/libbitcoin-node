@@ -41,6 +41,9 @@ public:
 
         /// Properties.
         double minimum_fee_rate;
+        uint32_t maximum_outcomes;
+        uint32_t bytes_per_sigop;
+        uint32_t coinbase_weight;
 
         /// Helpers.
         virtual uint64_t minimum_fee_rate_() const NOEXCEPT;

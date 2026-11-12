@@ -200,10 +200,12 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec,
     // against the presumed next block, so neither lock is misbehavior.
     // The rate and suspension cannot be advertised below bip133, so a tx that
     // violates either is not misbehavior (see protocol_transaction_in_70013).
+    // The peer cannot know the extent of a conflict component held here.
     if (ec &&
         (ec != error::pooling_disabled) &&
         (ec != error::insufficient_fee) &&
         (ec != error::duplicate_transaction) &&
+        (ec != database::error::pool_limit) &&
         (ec != system::error::double_spend) &&
         (ec != system::error::absolute_time_locked) &&
         (ec != system::error::relative_time_locked) &&

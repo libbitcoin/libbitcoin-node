@@ -208,6 +208,9 @@ BC_AUTO_TEST_CASE(settings__pool__default__expected)
     const node::settings::transaction_pool pool{};
     BC_REQUIRE_EQUAL(pool.minimum_fee_rate, 0.000001);
     BC_REQUIRE_EQUAL(pool.minimum_fee_rate_(), 100_u64);
+    BC_REQUIRE_EQUAL(pool.maximum_outcomes, 1'024_u32);
+    BC_REQUIRE_EQUAL(pool.bytes_per_sigop, 20_u32);
+    BC_REQUIRE_EQUAL(pool.coinbase_weight, 2'000_u32);
 }
 
 BC_AUTO_TEST_SUITE_END()

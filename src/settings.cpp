@@ -28,7 +28,10 @@ namespace libbitcoin {
 namespace node {
 
 settings::transaction_pool::transaction_pool() NOEXCEPT
-  : minimum_fee_rate{ 0.000001 }
+  : minimum_fee_rate{ 0.000001 },
+    maximum_outcomes{ 1'024 },
+    bytes_per_sigop{ 20 },
+    coinbase_weight{ 2'000 }
 {
 }
 

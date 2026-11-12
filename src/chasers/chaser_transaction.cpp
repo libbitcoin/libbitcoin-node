@@ -547,6 +547,11 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
     if (const auto ec = block::populate(txs, pool_, false))
         return ec;
 
+    const auto& settings = node_settings().pool;
+    const auto bip16 = pool_.is_enabled(flags::bip16_rule);
+    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
+    const auto bytes_per_sigop = settings.bytes_per_sigop;
+
     uint64_t fee{}, size{};
     for (index = zero; index < txs.size(); ++index)
     {
@@ -557,14 +562,44 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
         if (const auto ec = accept(tx))
             return ec;
 
+        const auto sigops = tx.signature_operations(bip16, bip141);
+        const auto cost = ceilinged_multiply<uint64_t>(sigops, bytes_per_sigop);
         fee = ceilinged_add(fee, tx.fee());
-        size = ceilinged_add(size, possible_wide_cast<uint64_t>(
-            tx.virtual_size()));
+        size = ceilinged_add(size, greater(tx.virtual_size(), cost));
     }
 
     // Compared in satoshis per virtual kilobyte.
-    const auto rate = node_settings().pool.minimum_fee_rate_();
+    const auto rate = settings.minimum_fee_rate_();
     if (ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size))
+    {
+        index = zero;
+        return error::insufficient_fee;
+    }
+
+    // A contested component fits a block less its header, count and coinbase.
+    constexpr auto count = variable_size(max_block_size / min_transaction_size);
+    constexpr auto bytes = chain::header::serialized_size() + count;
+    constexpr auto fixed = light_weight_factor * bytes;
+    const auto reserved = ceilinged_add(fixed, settings.coinbase_weight);
+    const auto weight = floored_subtract(max_block_weight, reserved);
+    const auto sigops = bip141 ? max_fast_sigops : max_block_sigops;
+    const system::pool::algorithm::totals_t limit
+    {
+        {},
+        possible_narrow_cast<uint32_t>(weight / light_weight_factor),
+        possible_narrow_cast<uint32_t>(sigops)
+    };
+
+    bool covered{};
+    if (const auto ec = archive().get_pool_coverage(covered, txs, stored,
+        database::context::from(pool_), rate, settings.bytes_per_sigop,
+        limit, settings.maximum_outcomes))
+    {
+        index = zero;
+        return ec == database::error::pool_limit ? ec : fault(ec);
+    }
+
+    if (!covered)
     {
         index = zero;
         return error::insufficient_fee;
@@ -596,7 +631,9 @@ code chaser_transaction::accept(const chain::transaction& tx) NOEXCEPT
     if (!ec) ec = tx.accept(pool_);
     if (!ec) ec = tx.accept_guard(pool_);
     if (!ec) ec = tx.confirm_guard(pool_);
-    return ec;
+
+    // An unconfirmed conflict is admitted by coverage.
+    return ec == system::error::double_spend ? error::success : ec;
 }
 
 // A block tx is under proof of work, so it is not subject to policy (fee
