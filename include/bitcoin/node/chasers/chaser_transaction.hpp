@@ -83,7 +83,7 @@ private:
 
     code validate(size_t& index, const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored) NOEXCEPT;
-    code validate(const system::chain::transaction& tx) NOEXCEPT;
+    code accept(const system::chain::transaction& tx) NOEXCEPT;
     code validate(const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
     database::tx_link to_stored(

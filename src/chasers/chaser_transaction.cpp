@@ -554,7 +554,7 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
             continue;
 
         const auto& tx = *txs.at(index);
-        if (const auto ec = validate(tx))
+        if (const auto ec = accept(tx))
             return ec;
 
         fee = ceilinged_add(fee, tx.fee());
@@ -562,15 +562,24 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
             tx.virtual_size()));
     }
 
-    index = zero;
-
     // Compared in satoshis per virtual kilobyte.
     const auto rate = node_settings().minimum_fee_rate_();
-    return ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size) ?
-        error::insufficient_fee : error::success;
+    if (ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size))
+    {
+        index = zero;
+        return error::insufficient_fee;
+    }
+
+    // Script validation is the most costly, so it follows the guards.
+    for (index = zero; index < txs.size(); ++index)
+        if (!stored.at(index))
+            if (const auto ec = txs.at(index)->connect(pool_))
+                return ec;
+
+    return error::success;
 }
 
-code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
+code chaser_transaction::accept(const chain::transaction& tx) NOEXCEPT
 {
     code ec{};
 
@@ -587,9 +596,6 @@ code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
     if (!ec) ec = tx.accept(pool_);
     if (!ec) ec = tx.accept_guard(pool_);
     if (!ec) ec = tx.confirm_guard(pool_);
-
-    // Script validation is the most costly, so it follows the guards.
-    if (!ec) ec = tx.connect(pool_);
     return ec;
 }
 
