@@ -46,7 +46,6 @@ settings::settings() NOEXCEPT
     cpu_batch_silent{ false },
     allowed_deviation{ 1.5 },
     minimum_fee_rate{ 0.000001 },
-    minimum_bump_rate{ 0.0 },
     batch_verify{ 1'000'000 },
     batch_silent{ 1'000'000 },
     current_connections{ 10 },
