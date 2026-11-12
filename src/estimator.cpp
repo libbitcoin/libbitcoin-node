@@ -213,12 +213,12 @@ bool estimator::pool(const rate& tx) NOEXCEPT
         return false;
 
     // The store does not pool, so there is no entry height.
-    if (tx.height == max_size_t)
+    if (tx.pooled_height == max_size_t)
         return true;
 
     size_t bin{};
     if (to_bin(bin, tx))
-        pend(bin, tx.height, true);
+        pend(bin, tx.pooled_height, true);
 
     return true;
 }
@@ -229,8 +229,8 @@ void estimator::conflict(const rates& txs, bool push) NOEXCEPT
     for (const auto& tx: txs)
     {
         size_t bin{};
-        if (tx.height != max_size_t && to_bin(bin, tx))
-            pend(bin, tx.height, !push);
+        if (tx.pooled_height != max_size_t && to_bin(bin, tx))
+            pend(bin, tx.pooled_height, !push);
     }
 }
 
@@ -322,7 +322,7 @@ bool estimator::update(const rates& block, size_t height, bool push) NOEXCEPT
             return false;
 
         // A tx not pooled before its block has no wait.
-        if (tx.height == max_size_t)
+        if (tx.pooled_height == max_size_t)
             continue;
 
         size_t bin{};
@@ -330,10 +330,10 @@ bool estimator::update(const rates& block, size_t height, bool push) NOEXCEPT
             continue;
 
         // Blocks waited beyond the first eligible, capped at the horizon.
-        const auto waited = std::min(floored_subtract(height, tx.height), large);
+        const auto waited = std::min(floored_subtract(height, tx.pooled_height), large);
         ++counts.at(bin);
         ++waits_.at(bin).at(waited);
-        pend(bin, tx.height, !push);
+        pend(bin, tx.pooled_height, !push);
     }
 
     // At age zero scale term is one.
