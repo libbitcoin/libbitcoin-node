@@ -100,14 +100,12 @@
     <ClCompile Include="..\..\..\..\test\chasers\chaser.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_download.cpp" />
-    <ClCompile Include="..\..\..\..\test\chasers\chaser_estimate.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_template.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_transaction.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_validate.cpp" />
     <ClCompile Include="..\..\..\..\test\configuration.cpp" />
     <ClCompile Include="..\..\..\..\test\error.cpp" />
-    <ClCompile Include="..\..\..\..\test\estimator.cpp" />
     <ClCompile Include="..\..\..\..\test\full_node.cpp" />
     <ClCompile Include="..\..\..\..\test\functional\p2p.cpp" />
     <ClCompile Include="..\..\..\..\test\functional\p2p_compact.cpp" />
