@@ -33,7 +33,6 @@ settings::settings() NOEXCEPT
     threads{ 0 },
     delay_inbound{ true },
     thread_priority{ true },
-    memory_priority{ true },
     provide_blocks{ true },
     require_blocks{ true },
     provide_witness{ true },
@@ -205,14 +204,6 @@ network::processing_priority settings::thread_priority_() const NOEXCEPT
     // highest is too much, as it makes the opreating system UI unresponsive.
     return thread_priority ? network::processing_priority::high :
         network::processing_priority::medium;
-}
-
-network::memory_priority settings::memory_priority_() const NOEXCEPT
-{
-    // highest is "normal" (os default), so false is a behavior change.
-    // highest is the OS default, so far low does not have a noticeable effect.
-    return memory_priority ? network::memory_priority::highest :
-        network::memory_priority::low;
 }
 
 } // namespace node

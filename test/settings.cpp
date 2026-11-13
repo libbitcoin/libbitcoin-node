@@ -33,7 +33,6 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE(node.network == system::chain::selection::none);
     BC_REQUIRE_EQUAL(node.threads, 0_u32);
     BC_REQUIRE_EQUAL(node.delay_inbound, true);
-    BC_REQUIRE_EQUAL(node.memory_priority, true);
     BC_REQUIRE_EQUAL(node.thread_priority, true);
     BC_REQUIRE_EQUAL(node.provide_blocks, true);
     BC_REQUIRE_EQUAL(node.require_blocks, true);
@@ -78,7 +77,6 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BC_REQUIRE(node.currency_window() == steady_clock::duration(minutes(1440)));
     BC_REQUIRE(node.thread_priority_() == network::processing_priority::high);
-    BC_REQUIRE(node.memory_priority_() == network::memory_priority::highest);
 }
 
 BC_AUTO_TEST_CASE(settings__node__mainnet_context__expected)

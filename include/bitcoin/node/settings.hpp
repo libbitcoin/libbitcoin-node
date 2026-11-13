@@ -40,7 +40,6 @@ public:
     uint32_t threads;
     bool delay_inbound;
     bool thread_priority;
-    bool memory_priority;
     bool provide_blocks;
     bool require_blocks;
     bool provide_witness;
@@ -86,7 +85,6 @@ public:
     virtual network::steady_clock::duration compact_timeout() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
     virtual network::processing_priority thread_priority_() const NOEXCEPT;
-    virtual network::memory_priority memory_priority_() const NOEXCEPT;
 };
 
 } // namespace node
