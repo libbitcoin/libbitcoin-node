@@ -58,6 +58,10 @@ typedef std::shared_ptr<database::associations> map_ptr;
 typedef std::function<void(const code&, const map_ptr&,
     const job::ptr&)> map_handler;
 
+/// Mining types.
+typedef std::function<void(const code&, size_t,
+    const database::tx_links&)> template_handler;
+
 /// Event desubscriber.
 typedef network::desubscriber<object_key, event_value> event_subscriber;
 typedef event_subscriber::handler event_notifier;

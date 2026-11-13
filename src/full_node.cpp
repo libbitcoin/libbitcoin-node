@@ -195,6 +195,11 @@ void full_node::submit_compact(const system::chain::transactions_cptr& txs,
     chaser_transaction_.submit_compact(txs, links, link, std::move(handler));
 }
 
+void full_node::build_template(template_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.build_template(std::move(handler));
+}
+
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT
 {
     chaser_download_.get_hashes(std::move(handler));

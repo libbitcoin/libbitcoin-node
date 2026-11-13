@@ -193,6 +193,19 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
+    using built = std::tuple<code, size_t, database::tx_links>;
+    built build_template()
+    {
+        std::promise<built> promise{};
+        node_.build_template([&](const code& ec, size_t height,
+            const database::tx_links& links) NOEXCEPT
+        {
+            promise.set_value({ ec, height, links });
+        });
+
+        return promise.get_future().get();
+    }
+
     bool suspended()
     {
         using namespace std::chrono;
@@ -648,6 +661,65 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_relative_lock__relativ
     const auto result = submit(package({ first, second }));
     BC_REQUIRE_EQUAL(result.first, system::error::relative_time_locked);
     BC_REQUIRE(!query_.is_tx(first->hash(false)));
+}
+
+// build_template
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__relay_disabled__pooling_disabled, chaser_transaction_setup_fixture)
+{
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(links.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__empty_pool__empty_at_next_height, chaser_transaction_pooling_setup_fixture)
+{
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(height, 1u);
+    BC_REQUIRE(links.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__parent_and_child__parent_first, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    const auto result = submit(package({ first, second }));
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 2u);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(first->hash(false)));
+    BC_REQUIRE_EQUAL(links.back(), query_.to_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__conflict__higher_fee_only, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(sub1(parent_value));
+    const auto first_result = submit(package({ first }));
+    const auto second_result = submit(package({ second }));
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 1u);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__child_of_losing_rival__excluded, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto child = spend(first->hash(false), parent_value);
+    const auto second = spend(sub1(parent_value));
+    const auto first_result = submit(package({ first, child }));
+    const auto second_result = submit(package({ second }));
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 1u);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(second->hash(false)));
 }
 
 // do_bump

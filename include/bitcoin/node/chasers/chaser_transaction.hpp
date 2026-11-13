@@ -51,6 +51,9 @@ public:
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
+    /// Build a template of pooled txs, parents first, and its height.
+    virtual void build_template(template_handler&& handler) NOEXCEPT;
+
 protected:
     using chaser::broadcast;
 
@@ -62,6 +65,7 @@ protected:
         const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
         const submit_handler& handler) NOEXCEPT;
+    virtual void do_build_template(const template_handler& handler) NOEXCEPT;
 
     /// Recompute the pool context, closing the pool if not current, and map
     /// scan starts: built once current, extended by block until pooling, and
@@ -80,6 +84,7 @@ protected:
 
 private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
+    system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
 
     code validate(size_t& index, const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored) NOEXCEPT;

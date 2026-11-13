@@ -254,6 +254,14 @@ void chaser_transaction::submit_compact(const transactions_cptr& txs,
     POST(do_submit_compact, txs, links, link, std::move(handler));
 }
 
+void chaser_transaction::build_template(template_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_build_template, std::move(handler));
+}
+
 // private
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     const submit_handler& handler) NOEXCEPT
@@ -418,6 +426,33 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     handler(error::success, {});
 }
 
+// private
+void chaser_transaction::do_build_template(
+    const template_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped, {}, {});
+        return;
+    }
+
+    if (!pooling_)
+    {
+        handler(error::pooling_disabled, {}, {});
+        return;
+    }
+
+    const auto& settings = node_settings().pool;
+    database::tx_links links{};
+    const auto ec = archive().get_pool_template(links, block_limit(),
+        settings.maximum_chunk_depth, settings.bytes_per_sigop,
+        settings.maximum_outcomes);
+
+    handler(ec, pool_.height, links);
+}
+
 // utility
 // ----------------------------------------------------------------------------
 
@@ -526,6 +561,25 @@ size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
     return limit<size_t>(floored_divide(rate, size));
 }
 
+// A block less its header, largest tx count and declared coinbase weight.
+pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
+{
+    constexpr auto count = variable_size(max_block_size / min_transaction_size);
+    constexpr auto bytes = chain::header::serialized_size() + count;
+    constexpr auto fixed = light_weight_factor * bytes;
+    const auto& settings = node_settings().pool;
+    const auto reserved = ceilinged_add(fixed, settings.coinbase_weight);
+    const auto weight = floored_subtract(max_block_weight, reserved);
+    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
+    const auto sigops = bip141 ? max_fast_sigops : max_block_sigops;
+    return
+    {
+        {},
+        possible_narrow_cast<uint32_t>(weight / light_weight_factor),
+        possible_narrow_cast<uint32_t>(sigops)
+    };
+}
+
 // validation
 // ----------------------------------------------------------------------------
 
@@ -576,24 +630,10 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
         return error::insufficient_fee;
     }
 
-    // A contested component fits a block less its header, count and coinbase.
-    constexpr auto count = variable_size(max_block_size / min_transaction_size);
-    constexpr auto bytes = chain::header::serialized_size() + count;
-    constexpr auto fixed = light_weight_factor * bytes;
-    const auto reserved = ceilinged_add(fixed, settings.coinbase_weight);
-    const auto weight = floored_subtract(max_block_weight, reserved);
-    const auto sigops = bip141 ? max_fast_sigops : max_block_sigops;
-    const system::pool::algorithm::totals_t limit
-    {
-        {},
-        possible_narrow_cast<uint32_t>(weight / light_weight_factor),
-        possible_narrow_cast<uint32_t>(sigops)
-    };
-
     bool covered{};
     if (const auto ec = archive().get_pool_coverage(covered, txs, stored,
         database::context::from(pool_), rate, settings.bytes_per_sigop,
-        limit, settings.maximum_outcomes))
+        block_limit(), settings.maximum_outcomes))
     {
         index = zero;
         return ec == database::error::pool_limit ? ec : fault(ec);

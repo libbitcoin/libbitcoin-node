@@ -211,6 +211,7 @@ BC_AUTO_TEST_CASE(settings__pool__default__expected)
     BC_REQUIRE_EQUAL(pool.maximum_outcomes, 1'024_u32);
     BC_REQUIRE_EQUAL(pool.bytes_per_sigop, 20_u32);
     BC_REQUIRE_EQUAL(pool.coinbase_weight, 2'000_u32);
+    BC_REQUIRE_EQUAL(pool.maximum_chunk_depth, 25_u32);
 }
 
 BC_AUTO_TEST_SUITE_END()

@@ -44,6 +44,7 @@ public:
         uint32_t maximum_outcomes;
         uint32_t bytes_per_sigop;
         uint32_t coinbase_weight;
+        uint32_t maximum_chunk_depth;
 
         /// Helpers.
         virtual uint64_t minimum_fee_rate_() const NOEXCEPT;
