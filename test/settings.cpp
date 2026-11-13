@@ -44,8 +44,6 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.use_gpu, true);
     BC_REQUIRE_EQUAL(node.cpu_batch_verify, false);
     BC_REQUIRE_EQUAL(node.cpu_batch_silent, false);
-    BC_REQUIRE_EQUAL(node.minimum_fee_rate, 0.000001);
-    BC_REQUIRE_EQUAL(node.minimum_fee_rate_(), 100_u64);
     BC_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
     BC_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
     BC_REQUIRE_EQUAL(node.batch_silent, 1'000'000_u64);
@@ -201,6 +199,15 @@ BC_AUTO_TEST_CASE(settings__batch_silent___cpu_unconfigured__false)
     node.batch_silent = 0;
     node.cpu_batch_silent = true;
     BC_REQUIRE(!node.batch_silent_());
+}
+
+// [pool]
+
+BC_AUTO_TEST_CASE(settings__pool__default__expected)
+{
+    const node::settings::transaction_pool pool{};
+    BC_REQUIRE_EQUAL(pool.minimum_fee_rate, 0.000001);
+    BC_REQUIRE_EQUAL(pool.minimum_fee_rate_(), 100_u64);
 }
 
 BC_AUTO_TEST_SUITE_END()

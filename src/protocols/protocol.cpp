@@ -73,7 +73,7 @@ bool protocol::is_current_time(uint32_t timestamp) const NOEXCEPT
 
 uint64_t protocol::minimum_fee_rate() const NOEXCEPT
 {
-    return is_current_chain(true) ? node_settings().minimum_fee_rate_() :
+    return is_current_chain(true) ? node_settings().pool.minimum_fee_rate_() :
         system_settings().max_money();
 }
 

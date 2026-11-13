@@ -27,8 +27,22 @@ using namespace bc::network;
 namespace libbitcoin {
 namespace node {
 
+settings::transaction_pool::transaction_pool() NOEXCEPT
+  : minimum_fee_rate{ 0.000001 }
+{
+}
+
+// The configured rate is btc/vkb, as reported to clients (see relayfee).
+uint64_t settings::transaction_pool::minimum_fee_rate_() const NOEXCEPT
+{
+    // Ceilinged, as a configured minimum is not rounded down.
+    return to_ceilinged_integer<uint64_t>(minimum_fee_rate *
+        chain::satoshi_per_bitcoin);
+}
+
 settings::settings() NOEXCEPT
   : network{ chain::selection::none },
+    pool{},
     threads{ 0 },
     delay_inbound{ true },
     thread_priority{ true },
@@ -43,7 +57,6 @@ settings::settings() NOEXCEPT
     cpu_batch_verify{ false },
     cpu_batch_silent{ false },
     allowed_deviation{ 1.5 },
-    minimum_fee_rate{ 0.000001 },
     batch_verify{ 1'000'000 },
     batch_silent{ 1'000'000 },
     current_connections{ 10 },
@@ -101,14 +114,6 @@ size_t settings::maximum_height_() const NOEXCEPT
 size_t settings::maximum_concurrency_() const NOEXCEPT
 {
     return to_bool(maximum_concurrency) ? maximum_concurrency : max_size_t;
-}
-
-// The configured rate is btc/vkb, as reported to clients (see relayfee).
-uint64_t settings::minimum_fee_rate_() const NOEXCEPT
-{
-    // Ceilinged, as a configured minimum is not rounded down.
-    return to_ceilinged_integer<uint64_t>(minimum_fee_rate *
-        chain::satoshi_per_bitcoin);
 }
 
 uint64_t settings::services_provided() const NOEXCEPT

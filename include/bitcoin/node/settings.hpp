@@ -33,8 +33,24 @@ public:
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 
+    /// [pool] settings.
+    struct BCN_API transaction_pool
+    {
+        DEFAULT_COPY_MOVE_DESTRUCT(transaction_pool);
+        transaction_pool() NOEXCEPT;
+
+        /// Properties.
+        double minimum_fee_rate;
+
+        /// Helpers.
+        virtual uint64_t minimum_fee_rate_() const NOEXCEPT;
+    };
+
     /// The network of the defaults.
     system::chain::selection network;
+
+    /// The transaction pool.
+    transaction_pool pool;
 
     /// Properties.
     uint32_t threads;
@@ -51,7 +67,6 @@ public:
     bool cpu_batch_verify;
     bool cpu_batch_silent;
     float allowed_deviation;
-    double minimum_fee_rate;
     uint64_t batch_verify;
     uint64_t batch_silent;
     uint16_t current_connections;
@@ -70,7 +85,6 @@ public:
     virtual size_t threads_() const NOEXCEPT;
     virtual size_t maximum_height_() const NOEXCEPT;
     virtual size_t maximum_concurrency_() const NOEXCEPT;
-    virtual uint64_t minimum_fee_rate_() const NOEXCEPT;
     virtual uint64_t services_provided() const NOEXCEPT;
     virtual uint64_t services_required() const NOEXCEPT;
     virtual bool use_gpu_() const NOEXCEPT;

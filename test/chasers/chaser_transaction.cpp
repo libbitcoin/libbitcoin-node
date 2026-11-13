@@ -318,7 +318,7 @@ struct chaser_transaction_fee_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            config.node.minimum_fee_rate = 0.0000152587890625;
+            config.node.pool.minimum_fee_rate = 0.0000152587890625;
         })
     {
     }

@@ -563,7 +563,7 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
     }
 
     // Compared in satoshis per virtual kilobyte.
-    const auto rate = node_settings().minimum_fee_rate_();
+    const auto rate = node_settings().pool.minimum_fee_rate_();
     if (ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size))
     {
         index = zero;
