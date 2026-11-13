@@ -95,7 +95,7 @@ size_t protocol::inbound_channel_count() const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void protocol::estimate(size_t target, estimator::mode mode,
+void protocol::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
     session_->estimate(target, mode, std::move(handler));

@@ -55,7 +55,6 @@ public:
     uint64_t batch_verify;
     uint64_t batch_silent;
     uint16_t current_connections;
-    uint16_t fee_estimate_horizon;
     uint32_t maximum_height;
     uint32_t maximum_concurrency;
     uint32_t silent_start_height;
@@ -71,11 +70,9 @@ public:
     virtual size_t threads_() const NOEXCEPT;
     virtual size_t maximum_height_() const NOEXCEPT;
     virtual size_t maximum_concurrency_() const NOEXCEPT;
-    virtual size_t fee_estimate_horizon_() const NOEXCEPT;
     virtual uint64_t minimum_fee_rate_() const NOEXCEPT;
     virtual uint64_t services_provided() const NOEXCEPT;
     virtual uint64_t services_required() const NOEXCEPT;
-    virtual bool fee_estimate_enabled() const NOEXCEPT;
     virtual bool use_gpu_() const NOEXCEPT;
     virtual bool batch_verify_enabled() const NOEXCEPT;
     virtual bool batch_silent_enabled() const NOEXCEPT;

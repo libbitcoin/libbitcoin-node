@@ -270,60 +270,6 @@ BC_AUTO_TEST_CASE(error_t__code__confirm1__true_expected_message)
     BC_REQUIRE_EQUAL(ec.message(), "confirm1");
 }
 
-BC_AUTO_TEST_CASE(error_t__code__estimates_initialize__true_expected_message)
-{
-    constexpr auto value = error::estimates_initialize;
-    const auto ec = code(value);
-    BC_REQUIRE(ec);
-    BC_REQUIRE(ec == value);
-    BC_REQUIRE_EQUAL(ec.message(), "estimates_initialize");
-}
-
-BC_AUTO_TEST_CASE(error_t__code__estimates_push1__true_expected_message)
-{
-    constexpr auto value = error::estimates_push1;
-    const auto ec = code(value);
-    BC_REQUIRE(ec);
-    BC_REQUIRE(ec == value);
-    BC_REQUIRE_EQUAL(ec.message(), "estimates_push1");
-}
-
-BC_AUTO_TEST_CASE(error_t__code__estimates_push2__true_expected_message)
-{
-    constexpr auto value = error::estimates_push2;
-    const auto ec = code(value);
-    BC_REQUIRE(ec);
-    BC_REQUIRE(ec == value);
-    BC_REQUIRE_EQUAL(ec.message(), "estimates_push2");
-}
-
-BC_AUTO_TEST_CASE(error_t__code__estimates_pop1__true_expected_message)
-{
-    constexpr auto value = error::estimates_pop1;
-    const auto ec = code(value);
-    BC_REQUIRE(ec);
-    BC_REQUIRE(ec == value);
-    BC_REQUIRE_EQUAL(ec.message(), "estimates_pop1");
-}
-
-BC_AUTO_TEST_CASE(error_t__code__estimates_pop2__true_expected_message)
-{
-    constexpr auto value = error::estimates_pop2;
-    const auto ec = code(value);
-    BC_REQUIRE(ec);
-    BC_REQUIRE(ec == value);
-    BC_REQUIRE_EQUAL(ec.message(), "estimates_pop2");
-}
-
-BC_AUTO_TEST_CASE(error_t__code__estimates_pool__true_expected_message)
-{
-    constexpr auto value = error::estimates_pool;
-    const auto ec = code(value);
-    BC_REQUIRE(ec);
-    BC_REQUIRE(ec == value);
-    BC_REQUIRE_EQUAL(ec.message(), "estimates_pool");
-}
-
 // batch
 
 BC_AUTO_TEST_CASE(error_t__code__batch1__true_expected_message)

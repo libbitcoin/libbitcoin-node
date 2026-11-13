@@ -20,7 +20,6 @@
 
 #include <filesystem>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/estimator.hpp>
 
 using namespace bc::system;
 using namespace bc::network;
@@ -48,7 +47,6 @@ settings::settings() NOEXCEPT
     batch_verify{ 1'000'000 },
     batch_silent{ 1'000'000 },
     current_connections{ 10 },
-    fee_estimate_horizon{ 0 },
     ////snapshot_bytes{ 200'000'000'000 },
     ////snapshot_valid{ 250'000 },
     ////snapshot_confirm{ 500'000 },
@@ -113,11 +111,6 @@ uint64_t settings::minimum_fee_rate_() const NOEXCEPT
         chain::satoshi_per_bitcoin);
 }
 
-size_t settings::fee_estimate_horizon_() const NOEXCEPT
-{
-    return std::min<size_t>(fee_estimate_horizon, estimator::maximum_horizon);
-}
-
 uint64_t settings::services_provided() const NOEXCEPT
 {
     using namespace network::messages::peer;
@@ -151,11 +144,6 @@ uint64_t settings::services_required() const NOEXCEPT
         services = bit_or<uint64_t>(services, service::node_witness);
 
     return services;
-}
-
-bool settings::fee_estimate_enabled() const NOEXCEPT
-{
-    return to_bool(fee_estimate_horizon_());
 }
 
 bool settings::use_gpu_() const NOEXCEPT
