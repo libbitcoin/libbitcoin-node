@@ -94,6 +94,12 @@ protected:
     /// Reset store disk full condition.
     virtual code reload(const store::event_handler& handler) NOEXCEPT;
 
+    /// Mining.
+    /// -----------------------------------------------------------------------
+
+    /// Build a template of pooled txs, parents first, and its height.
+    virtual void request_template(template_handler&& handler) NOEXCEPT;
+
     /// Events.
     /// -----------------------------------------------------------------------
 

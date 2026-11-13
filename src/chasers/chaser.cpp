@@ -70,6 +70,11 @@ void chaser::resume() NOEXCEPT
     node_.resume();
 }
 
+void chaser::request_template(template_handler&& handler) NOEXCEPT
+{
+    node_.build_template(std::move(handler));
+}
+
 code chaser::prune(const store::event_handler& handler) NOEXCEPT
 {
     return node_.prune(handler);

@@ -200,6 +200,11 @@ void full_node::build_template(template_handler&& handler) NOEXCEPT
     chaser_transaction_.build_template(std::move(handler));
 }
 
+void full_node::get_template(template_handler&& handler) NOEXCEPT
+{
+    chaser_template_.get_template(std::move(handler));
+}
+
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT
 {
     chaser_download_.get_hashes(std::move(handler));

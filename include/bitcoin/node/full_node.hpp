@@ -92,6 +92,9 @@ public:
     /// Build a template of pooled txs, parents first, and its height.
     virtual void build_template(template_handler&& handler) NOEXCEPT;
 
+    /// The latest template of pooled txs, parents first, and its height.
+    virtual void get_template(template_handler&& handler) NOEXCEPT;
+
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,

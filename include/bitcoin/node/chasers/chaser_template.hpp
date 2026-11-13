@@ -38,10 +38,27 @@ public:
 
     code start() NOEXCEPT override;
 
+    /// The latest template of pooled txs, parents first, and its height.
+    virtual void get_template(template_handler&& handler) NOEXCEPT;
+
 protected:
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
-    virtual void do_transaction(transaction_t value) NOEXCEPT;
+    virtual void do_update() NOEXCEPT;
+    virtual void do_get_template(const template_handler& handler) NOEXCEPT;
+
+private:
+    void build() NOEXCEPT;
+    void handle_build(const code& ec, size_t height,
+        const database::tx_links& links) NOEXCEPT;
+    void do_build(const code& ec, size_t height,
+        const database::tx_links& links) NOEXCEPT;
+
+    // These are protected by strand.
+    database::tx_links links_{};
+    size_t height_{};
+    bool building_{};
+    bool stale_{};
 };
 
 } // namespace node
