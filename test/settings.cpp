@@ -51,7 +51,7 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.batch_verify, 1'000'000_u64);
     BC_REQUIRE_EQUAL(node.batch_silent, 1'000'000_u64);
     BC_REQUIRE_EQUAL(node.current_connections, 10_u16);
-    BC_REQUIRE_EQUAL(node.fee_estimate_horizon, 1008u);
+    BC_REQUIRE_EQUAL(node.fee_estimate_horizon, 0u);
     BC_REQUIRE_EQUAL(node.maximum_height, 0_u32);
     BC_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
     BC_REQUIRE_EQUAL(node.silent_start_height, 0xffffffff_u32);
@@ -68,8 +68,8 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.threads_(), cores());
     BC_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
     BC_REQUIRE_EQUAL(node.maximum_concurrency_(), 50'000_size);
-    BC_REQUIRE_EQUAL(node.fee_estimate_horizon_(), 1008_size);
-    BC_REQUIRE(node.fee_estimate_enabled());
+    BC_REQUIRE_EQUAL(node.fee_estimate_horizon_(), 0_size);
+    BC_REQUIRE(!node.fee_estimate_enabled());
     BC_REQUIRE_EQUAL(node.use_gpu_(), system::batched::accelerated());
     BC_REQUIRE(node.batch_verify_enabled());
     BC_REQUIRE(node.batch_silent_enabled());
