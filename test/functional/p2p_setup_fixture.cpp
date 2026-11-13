@@ -100,12 +100,14 @@ p2p_setup_fixture::p2p_setup_fixture(const initializer& setup,
     // Block until the node is running.
     ec = running.get_future().get();
     BC_REQUIRE_MESSAGE(!ec, ec.message());
-    REQUIRE_SUCCESS(socket_, connect, node_.binding());
+    connect();
 }
 
 p2p_setup_fixture::~p2p_setup_fixture()
 {
-    socket_.close();
+    for (auto& peer: sockets_)
+        peer.close();
+
     node_.close();
     const auto ec = store_.close([](auto, auto) {});
     BC_WARN_MESSAGE(!ec, ec.message());
@@ -123,19 +125,19 @@ void p2p_setup_fixture::send(const std::string& command,
 
     std::copy(payload.begin(), payload.end(),
         std::next(frame.begin(), heading::size()));
-    test::write(socket_, network::io::buffer(frame));
+    test::write(socket(), network::io::buffer(frame));
 }
 
 std::pair<std::string, data_chunk> p2p_setup_fixture::receive()
 {
     data_array<heading::size()> head_data{};
-    test::read(socket_, network::io::buffer(head_data));
+    test::read(socket(), network::io::buffer(head_data));
     const auto head = heading::deserialize(head_data);
     BC_REQUIRE(head);
 
     data_chunk payload(head->payload_size);
     if (!payload.empty())
-        test::read(socket_, network::io::buffer(payload));
+        test::read(socket(), network::io::buffer(payload));
 
     return { head->command, std::move(payload) };
 }
@@ -191,20 +193,38 @@ bool p2p_setup_fixture::dropped(const std::string& command)
     {
         code ec{};
         data_array<heading::size()> head_data{};
-        network::io::read(socket_, network::io::buffer(head_data), ec);
+        network::io::read(socket(), network::io::buffer(head_data), ec);
         if (ec)
             return true;
 
         const auto head = heading::deserialize(head_data);
         BC_REQUIRE(head);
         data_chunk payload(head->payload_size);
-        network::io::read(socket_, network::io::buffer(payload), ec);
+        network::io::read(socket(), network::io::buffer(payload), ec);
         if (ec)
             return true;
 
         if (head->command == command)
             return false;
     }
+}
+
+size_t p2p_setup_fixture::connect()
+{
+    auto& peer = sockets_.emplace_back(io_);
+    REQUIRE_SUCCESS(peer, connect, node_.binding());
+    active_ = sub1(sockets_.size());
+    return active_;
+}
+
+void p2p_setup_fixture::select(size_t peer)
+{
+    active_ = peer;
+}
+
+network::io::socket& p2p_setup_fixture::socket()
+{
+    return sockets_.at(active_);
 }
 
 bool p2p_setup_fixture::handshake(uint64_t services, uint32_t value,

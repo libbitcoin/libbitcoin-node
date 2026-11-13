@@ -103,6 +103,12 @@ struct p2p_setup_fixture
     /// The node's version message (set by handshake).
     network::messages::peer::version::cptr node_version{};
 
+    /// Connect another peer to the node, made the active peer.
+    size_t connect();
+
+    /// Make the peer at the index the active peer (the first is zero).
+    void select(size_t peer);
+
     /// Subscribe to chaser events, returning the subscription key.
     object_key subscribe();
 
@@ -147,8 +153,11 @@ protected:
     bound_node node_;
 
 private:
+    network::io::socket& socket();
+
     network::io::context io_{};
-    network::io::socket socket_{ io_ };
+    std::deque<network::io::socket> sockets_{};
+    size_t active_{};
     std::shared_ptr<subscription> subscription_
     {
         std::make_shared<subscription>()

@@ -282,6 +282,47 @@ struct chaser_transaction_setup_fixture
         }
     }
 
+    // Announce the tx, true if the node requests it, then send it.
+    bool relay(const chain::transaction::cptr& tx)
+    {
+        const auto hash = tx->hash(false);
+        const auto version = node_version->value;
+        send(peer::inventory{ { { type_id::transaction, hash } } }, version);
+        if (receive(peer::get_data::command).empty())
+            return false;
+
+        send(peer::transaction{ tx }, version);
+        return true;
+    }
+
+    // The tx hashes announced to the active peer, to the count.
+    hashes announced(size_t count)
+    {
+        hashes out{};
+        const auto version = node_version->value;
+        while (out.size() < count)
+        {
+            const auto payload = receive(peer::inventory::command);
+            const auto message = peer::inventory::deserialize(version, payload);
+            BC_REQUIRE(message);
+            for (const auto& item: message->items)
+                out.push_back(item.hash);
+        }
+
+        return out;
+    }
+
+    // The hash of the tx served to the active peer upon request.
+    hash_digest served(const hash_digest& hash)
+    {
+        const auto version = node_version->value;
+        send(peer::get_data{ { { type_id::transaction, hash } } }, version);
+        const auto payload = receive(peer::transaction::command);
+        const auto message = peer::transaction::deserialize(version, payload);
+        BC_REQUIRE(message);
+        return message->transaction_ptr->hash(false);
+    }
+
     // Wait (bounded) for the command, pinging until it is received.
     data_chunk await_before_pong(const std::string& command)
     {
@@ -295,6 +336,20 @@ struct chaser_transaction_setup_fixture
         }
 
         return {};
+    }
+};
+
+struct chaser_transaction_distribution_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_distribution_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.network.inbound.connections = 2;
+            config.node.currency_window_minutes = 0;
+        })
+    {
     }
 };
 
@@ -1127,6 +1182,96 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficien
 }
 
 // protocol_transaction_out
+
+// distribution (tx in, acceptance, tx out)
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__peer_tx__accepted_announced_and_served, chaser_transaction_distribution_setup_fixture)
+{
+    const auto tx = spend(parent_value);
+    const auto hash = tx->hash(false);
+    const hashes expected{ hash };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto sink = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(zero);
+    BC_REQUIRE(relay(tx));
+    BC_REQUIRE(archived(hash));
+    BC_REQUIRE(pooled(query_.to_tx(hash)));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(sink);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+    BC_REQUIRE_EQUAL(served(hash), hash);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__peer_chain__announced_in_order, chaser_transaction_distribution_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    const auto third = spend(second->hash(false), parent_value);
+    const hashes expected{ first->hash(false), second->hash(false), third->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto sink = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(zero);
+    BC_REQUIRE(relay(first));
+    BC_REQUIRE(archived(first->hash(false)));
+    BC_REQUIRE(relay(second));
+    BC_REQUIRE(archived(second->hash(false)));
+    BC_REQUIRE(relay(third));
+    BC_REQUIRE(archived(third->hash(false)));
+
+    select(sink);
+    BC_REQUIRE_EQUAL(announced(3), expected);
+    BC_REQUIRE_EQUAL(served(third->hash(false)), third->hash(false));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__peer_conflict__both_accepted_and_announced, chaser_transaction_distribution_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(sub1(parent_value));
+    const hashes expected{ first->hash(false), second->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto sink = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(zero);
+    BC_REQUIRE(relay(first));
+    BC_REQUIRE(archived(first->hash(false)));
+    BC_REQUIRE(relay(second));
+    BC_REQUIRE(archived(second->hash(false)));
+
+    select(sink);
+    BC_REQUIRE_EQUAL(announced(2), expected);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__submitted_tx__announced_to_every_peer, chaser_transaction_distribution_setup_fixture)
+{
+    const auto tx = spend(parent_value);
+    const hashes expected{ tx->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    const auto other = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+
+    select(zero);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+
+    select(other);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+}
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__fee_filter, chaser_transaction_fee_setup_fixture)
 {
