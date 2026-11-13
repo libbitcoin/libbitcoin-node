@@ -53,7 +53,6 @@ public:
     bool cpu_batch_silent;
     float allowed_deviation;
     double minimum_fee_rate;
-    double minimum_bump_rate;
     uint64_t batch_verify;
     uint64_t batch_silent;
     uint16_t current_connections;
