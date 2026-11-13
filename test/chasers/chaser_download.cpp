@@ -594,6 +594,29 @@ BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pruned__asso
     BC_REQUIRE(associated(block1.hash()));
 }
 
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__associated__not_archived, p2p_compact_candidate_setup_fixture)
+{
+    BC_REQUIRE(handshake(peer_services));
+
+    // The unassociated candidates are requested on handshake.
+    const auto& block = block1();
+    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
+    BC_REQUIRE(request);
+    BC_REQUIRE(request->items.front().hash == block.hash());
+
+    // The requested block is first associated by its compact block.
+    send(compact_block{ block.header_ptr(), 42, {}, { { 0, block.transactions_ptr()->front() } } }, node_version->value);
+    BC_REQUIRE(associated(block.hash()));
+
+    // The requested copy is not archived, the pong orders it.
+    const auto records = query_.tx_records();
+    send(peer::block::command, block.to_data(true));
+    send(ping{ 1 }, node_version->value);
+    receive(pong::command);
+
+    BC_REQUIRE_EQUAL(query_.tx_records(), records);
+}
+
 BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__report__not_stopped, chaser_download_candidate_setup_fixture)
 {
     BC_REQUIRE(handshake(peer_services));
@@ -633,6 +656,36 @@ BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__stall_with_work__sto
     BC_REQUIRE_EQUAL(map->size(), two);
     BC_REQUIRE(map->exists(p2p_compact_setup_fixture::block1().hash()));
     BC_REQUIRE(map->exists(p2p_compact_setup_fixture::block2().hash()));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__stall_after_associated__not_stopped, p2p_compact_candidate_setup_fixture)
+{
+    BC_REQUIRE(handshake(peer_services));
+
+    // Both unassociated candidates are requested on handshake.
+    const auto& block = block1();
+    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
+    BC_REQUIRE(request);
+    BC_REQUIRE_EQUAL(request->items.size(), two);
+
+    // The requested block is associated by its compact block, then received.
+    send(compact_block{ block.header_ptr(), 42, {}, { { 0, block.transactions_ptr()->front() } } }, node_version->value);
+    BC_REQUIRE(associated(block.hash()));
+
+    send(peer::block::command, block.to_data(true));
+    send(ping{ 1 }, node_version->value);
+    receive(pong::command);
+    subscribe();
+
+    // The request is cleared, so the stall finds one block and does not divide.
+    node_.notify({}, chases::stall{ 42 });
+    chases::stall stall{};
+    BC_REQUIRE(p2p_setup_fixture::await(stall));
+    send(ping{ 2 }, node_version->value);
+
+    const auto message = pong::deserialize(node_version->value, receive(pong::command));
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->nonce, 2u);
 }
 
 BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_chase__download_then_split__stopped, chaser_download_candidate_setup_fixture)

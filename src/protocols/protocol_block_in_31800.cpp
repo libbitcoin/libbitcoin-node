@@ -294,6 +294,20 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
+    // Another channel may have completed the block.
+    if (query.is_associated(link))
+    {
+        count(block.serialized_size(true));
+        map_->erase(it);
+        if (is_idle())
+        {
+            job_.reset();
+            get_hashes(BIND(handle_get_hashes, _1, _2, _3));
+        }
+
+        return true;
+    }
+
     // Identify block.
     // ........................................................................
 
