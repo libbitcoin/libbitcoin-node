@@ -82,6 +82,7 @@ private:
         system::hashes&& start_hashes) const NOEXCEPT;
 
     // These are protected by strand.
+    bool translating_{};
     bool archiving_{};
     size_t top_{};
     size_t index_{};

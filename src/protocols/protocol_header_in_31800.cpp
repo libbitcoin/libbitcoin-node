@@ -396,8 +396,10 @@ void protocol_header_in_31800::complete() NOEXCEPT
     BC_ASSERT(stranded());
 
     // There are no header announcements at 31800, so translate from inv.
-    if (!subscribed && is_current_chain(true))
+    // A bip130 peer also reverts to inv (e.g. above eight blocks announced).
+    if (!translating_ && is_current_chain(true))
     {
+        translating_ = true;
         subscribed = true;
         SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
         LOGP("Subscribed to block announcements at [" << opposite() << "].");
@@ -423,7 +425,7 @@ bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
     {
         if (!query.is_block(item.hash))
         {
-            // This is inefficient but simple and limited to protocol 31800.
+            // This is inefficient but simple.
             // Since subscribed is set, the response headers will be cached.
             SEND(create_get_headers(), handle_send, _1);
             return true;

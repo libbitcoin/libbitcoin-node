@@ -687,6 +687,49 @@ BC_FIXTURE_TEST_CASE(functional_p2p__inventory_31800__unknown_block__get_headers
     BC_REQUIRE(proven->start_hashes.front() == genesis.hash());
 }
 
+// inv (in, 70012)
+// ----------------------------------------------------------------------------
+
+// A bip130 peer also announces by inv (e.g. above eight blocks announced).
+BC_FIXTURE_TEST_CASE(functional_p2p__inventory_70012__unknown_block__get_headers, p2p_compact_setup_fixture)
+{
+    BC_REQUIRE(handshake(network_node, level::bip130));
+    receive(get_headers::command);
+    send(headers{}, level::bip130);
+    receive(send_headers::command);
+
+    send(inventory{ { { inventory_item::type_id::block, header1()->hash() } } }, level::bip130);
+    send(ping{ 42 }, level::bip130);
+
+    BC_REQUIRE(received(get_headers::command, pong::command));
+}
+
+BC_FIXTURE_TEST_CASE(functional_p2p__inventory_70012__completed_twice__requested_once, p2p_compact_setup_fixture)
+{
+    BC_REQUIRE(handshake(network_node, level::bip130));
+    receive(get_headers::command);
+    send(headers{}, level::bip130);
+    send(headers{}, level::bip130);
+
+    send(inventory{ { { inventory_item::type_id::block, header1()->hash() } } }, level::bip130);
+    send(ping{ 42 }, level::bip130);
+
+    BC_REQUIRE(received(get_headers::command, pong::command));
+    BC_REQUIRE(!received(get_headers::command, pong::command));
+}
+
+BC_AUTO_TEST_CASE(functional_p2p__inventory_70012__not_current__not_requested)
+{
+    BC_REQUIRE(handshake(network_node, level::bip130));
+    receive(get_headers::command);
+    send(headers{}, level::bip130);
+
+    send(inventory{ { { inventory_item::type_id::block, header1()->hash() } } }, level::bip130);
+    send(ping{ 42 }, level::bip130);
+
+    BC_REQUIRE(!received(get_headers::command, pong::command));
+}
+
 // sendheaders (in, 70012)
 // ----------------------------------------------------------------------------
 
