@@ -120,6 +120,33 @@ static bool stored_header(node::query& query) NOEXCEPT
     return query.set(parent()) && query.set(header1, context1, work1, false);
 }
 
+// Block 1 of a coinbase and a spend of the parent.
+static const chain::block& reorganized_block() NOEXCEPT
+{
+    const system::settings bitcoin{ chain::selection::mainnet };
+    const auto& genesis = bitcoin.genesis_block.header();
+    const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
+    const chain::transaction coinbase{ 1u, chain::inputs{ null },
+        chain::outputs{ { 42u, chain::script{} } }, 0u };
+    const chain::header header{ 1u, genesis.hash(), null_hash,
+        add1(genesis.timestamp()), genesis.bits(), 0u };
+    static const chain::block instance{ header,
+        { coinbase, *spend(parent_value) } };
+    return instance;
+}
+
+// Block 1 archived and confirmed, then popped from the confirmed chain.
+static bool stored_reorganized(node::query& query) NOEXCEPT
+{
+    const auto& block = reorganized_block();
+    if (!query.set(parent()) ||
+        !query.set(block, database::context{ 0, 1, 0 }, {}, false, true))
+        return false;
+
+    return query.push_confirmed(query.to_header(block.hash()), true) &&
+        query.pop_confirmed();
+}
+
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // A session to observe wire broadcasts.
@@ -339,6 +366,19 @@ struct chaser_transaction_header_setup_fixture
     }
 };
 
+struct chaser_transaction_reorganized_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_reorganized_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+        }, stored_reorganized)
+    {
+    }
+};
+
 struct chaser_transaction_memory_pool_setup_fixture
   : chaser_transaction_setup_fixture
 {
@@ -553,32 +593,21 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__suspe
 
 // do_reorganized
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pooled, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pooled, chaser_transaction_reorganized_setup_fixture)
 {
-    const system::settings bitcoin{ chain::selection::mainnet };
-    const auto& genesis = bitcoin.genesis_block;
-    const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
-    const chain::transaction coinbase{ 1u, chain::inputs{ null }, chain::outputs{ { 42u, chain::script{} } }, 0u };
-    const auto tx = spend(parent_value);
-    const chain::header header{ 1u, genesis.hash(), null_hash, genesis.header().timestamp() + 1u, genesis.header().bits(), 0u };
-    const chain::block block{ header, { coinbase, *tx } };
-    BC_REQUIRE(query_.set(block, database::context{ 0, 1, 0 }, {}, false, true));
-
+    const auto& block = reorganized_block();
+    const auto& txs = *block.transactions_ptr();
     const auto link = query_.to_header(block.hash());
-    BC_REQUIRE(query_.push_candidate(link));
-    BC_REQUIRE(query_.push_confirmed(link, true));
-    BC_REQUIRE(query_.pop_confirmed());
-
-    const auto stored = query_.to_tx(tx->hash(false));
+    const auto stored = query_.to_tx(txs.at(1)->hash(false));
     BC_REQUIRE(!query_.is_pooled(stored));
 
     node_.notify(node::error::success, chases::reorganized{ link });
     BC_REQUIRE(pooled(stored));
-    BC_REQUIRE(!query_.is_pooled(query_.to_tx(coinbase.hash(false))));
+    BC_REQUIRE(!query_.is_pooled(query_.to_tx(txs.front()->hash(false))));
 
     database::table::pool::record record{};
     BC_REQUIRE(store_.pool.get(store_.pool.first(stored), record));
-    BC_REQUIRE_EQUAL(record.time, header.timestamp());
+    BC_REQUIRE_EQUAL(record.time, block.header().timestamp());
 }
 
 // submit_compact
