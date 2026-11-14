@@ -94,7 +94,7 @@ protected:
     virtual void connect(const network::config::endpoint& endpoint,
         network::net::channel_notifier&& handler) NOEXCEPT;
 
-    /// Get current fee estimate.
+    /// Lowest rate (per virtual kilobyte) confirmed by the target block.
     void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 

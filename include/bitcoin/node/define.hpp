@@ -36,13 +36,25 @@ typedef std::error_code code;
 /// Estimate types.
 enum class estimate_mode
 {
+    /// The pool as it is, with no arrivals.
     basic,
+
+    /// Arrivals weighted by recency, each block half of the one above it.
     geometric,
+
+    /// Arrivals at their mean over the economical window.
     economical,
+
+    /// Arrivals at their peak over the conservative window.
     conservative,
+
     unknown
 };
 constexpr size_t maximum_estimate_horizon = 1008;
+
+/// Blocks of arrivals (two hours and one day at ten minutes per block).
+constexpr size_t economical_estimate_window = 12;
+constexpr size_t conservative_estimate_window = 144;
 typedef std::function<void(const code&, uint64_t)> estimate_handler;
 
 /// Organization types.

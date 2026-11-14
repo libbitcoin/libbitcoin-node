@@ -482,10 +482,10 @@ time_t full_node::start_time() const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void full_node::estimate(size_t, estimate_mode,
+void full_node::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
-    handler(error::estimate_disabled, {});
+    chaser_transaction_.estimate(target, mode, std::move(handler));
 }
 
 void full_node::performance(object_key key, uint64_t speed,

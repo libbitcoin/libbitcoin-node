@@ -176,7 +176,7 @@ public:
     /// Methods.
     /// -----------------------------------------------------------------------
 
-    /// Get current fee estimate.
+    /// Lowest rate (per virtual kilobyte) confirmed by the target block.
     void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 

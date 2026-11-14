@@ -86,6 +86,11 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
             POST(do_reorganized, to_payload<chase::reorganized>(value).link);
             break;
         }
+        case chase::pruned:
+        {
+            POST(do_pruned, to_payload<chase::pruned>(value).link);
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -105,7 +110,9 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
 void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
+    const auto opened = pooling_;
     pooling_ = false;
+    projected_ = false;
     if (closed() || !is_current_chain(true))
         return;
 
@@ -134,6 +141,10 @@ void chaser_transaction::do_bump() NOEXCEPT
         pool_ = chain_state{ *state, system_settings() }.context();
         query.set_pooling();
         pooling_ = true;
+
+        // Rows that arrived while the pool was closed are not in it.
+        if (!opened)
+            floor_ = std::max(floor_, pool_.height);
     }
 
     // Scan starts are mapped after the latch, as pooled rows are unordered.
@@ -232,6 +243,24 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
     }
 }
 
+// Rows confirmed by the pruned block are not retained by the prune.
+void chaser_transaction::do_pruned(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    size_t height{};
+    if (!archive().get_height(height, link))
+    {
+        fault(error::transaction9);
+        return;
+    }
+
+    projected_ = false;
+    floor_ = std::max(floor_, add1(height));
+}
+
 // methods
 // ----------------------------------------------------------------------------
 
@@ -260,6 +289,15 @@ void chaser_transaction::build_template(template_handler&& handler) NOEXCEPT
         return;
 
     POST(do_build_template, std::move(handler));
+}
+
+void chaser_transaction::estimate(size_t target, estimate_mode mode,
+    estimate_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_estimate, target, mode, std::move(handler));
 }
 
 // private
@@ -300,6 +338,8 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         handler(error::success, {});
         return;
     }
+
+    projected_ = false;
 
     // Parents precede children, so a parent is archived before it is resolved.
     const auto time = network::unix_time();
@@ -377,6 +417,8 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    projected_ = false;
+
     using link_t = database::tx_link::integer;
     const auto filler = [&](link_t& fk, size_t index) NOEXCEPT
     {
@@ -444,13 +486,98 @@ void chaser_transaction::do_build_template(
         return;
     }
 
+    // The template is the first block of the projection.
     const auto& settings = node_settings().pool;
     database::tx_links links{};
-    const auto ec = archive().get_pool_template(links, block_limit(),
-        settings.maximum_chunk_depth, settings.bytes_per_sigop,
+    const auto ec = archive().get_pool_template(links, projection_,
+        block_limit(), settings.maximum_chunk_depth, settings.bytes_per_sigop,
         settings.maximum_outcomes);
 
+    projected_ = !ec;
+    arrived_ = false;
     handler(ec, pool_.height, links);
+}
+
+// private
+void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
+    const estimate_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped, {});
+        return;
+    }
+
+    if (!network_settings().enable_relay)
+    {
+        handler(error::estimate_disabled, {});
+        return;
+    }
+
+    if (!pooling_)
+    {
+        handler(error::estimate_premature, {});
+        return;
+    }
+
+    if (mode == estimate_mode::unknown || target >= maximum_estimate_horizon)
+    {
+        handler(error::estimate_false, {});
+        return;
+    }
+
+    if (!projected_)
+    {
+        projection_ = {};
+        arrived_ = false;
+    }
+
+    const auto& query = archive();
+    const auto& settings = node_settings().pool;
+    const auto count = add1(target);
+    const auto limit = block_limit();
+    if (const auto ec = query.get_pool_projection(projection_, count, limit,
+        settings.maximum_chunk_depth, settings.bytes_per_sigop,
+        settings.maximum_outcomes))
+    {
+        projected_ = false;
+        handler(fault(ec), {});
+        return;
+    }
+
+    // Arrivals are whole from the floor to the height of the open interval.
+    projected_ = true;
+    if (!arrived_ && mode != estimate_mode::basic)
+    {
+        const auto whole = floored_subtract(pool_.height, floor_);
+        const auto heights = std::min(whole, conservative_estimate_window);
+        if (const auto ec = query.get_pool_arrivals(arrivals_, pool_.height,
+            heights, settings.bytes_per_sigop))
+        {
+            handler(fault(ec), {});
+            return;
+        }
+
+        arrived_ = true;
+    }
+
+    const auto arrivals = [&](uint64_t rate) NOEXCEPT
+    {
+        return arriving(rate, mode);
+    };
+
+    using algorithm = pool::algorithm;
+    const auto space = limit.size;
+    const auto rate = algorithm::estimate(projection_, count, space, arrivals);
+    if (rate == max_uint64)
+    {
+        handler(error::estimate_false, {});
+        return;
+    }
+
+    handler(error::success, std::max(rate, settings.minimum_fee_rate_()));
 }
 
 // utility
@@ -546,6 +673,51 @@ code chaser_transaction::unconfirmable(const database::header_link& link,
     notify(error::success, chases::unchecked{ link });
     fire(events::block_unconfirmable, height);
     return ec;
+}
+
+// The size arriving in a block at or above the rate.
+uint64_t chaser_transaction::arriving(uint64_t rate,
+    estimate_mode mode) const NOEXCEPT
+{
+    using algorithm = pool::algorithm;
+    uint64_t size{};
+
+    switch (mode)
+    {
+        case estimate_mode::geometric:
+        {
+            for (const auto& takes: std::views::reverse(arrivals_))
+            {
+                const auto above = algorithm::above(takes, rate);
+                size = to_half(ceilinged_add(size, above));
+            }
+
+            return size;
+        }
+        case estimate_mode::economical:
+        {
+            const auto window = economical_estimate_window;
+            const auto count = std::min(arrivals_.size(), window);
+            for (size_t age{}; age < count; ++age)
+            {
+                const auto above = algorithm::above(arrivals_.at(age), rate);
+                size = ceilinged_add(size, above);
+            }
+
+            return is_zero(count) ? size : floored_divide(size, count);
+        }
+        case estimate_mode::conservative:
+        {
+            for (const auto& takes: arrivals_)
+                size = std::max(size, algorithm::above(takes, rate));
+
+            return size;
+        }
+        default:
+        {
+            return size;
+        }
+    }
 }
 
 // The fee and size are recomputed here, as they are for the package rate and
