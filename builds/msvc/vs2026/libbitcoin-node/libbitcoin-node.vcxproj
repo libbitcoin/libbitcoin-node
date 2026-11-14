@@ -119,7 +119,6 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_download.cpp" />
-    <ClCompile Include="..\..\..\..\src\chasers\chaser_estimate.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_header.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_snapshot.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_storage.cpp" />
@@ -132,7 +131,6 @@
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\define.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
-    <ClCompile Include="..\..\..\..\src\estimator.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_31800.cpp" />
@@ -177,7 +175,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_download.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_estimate.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_snapshot.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_storage.hpp" />
@@ -188,7 +185,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\estimator.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\preprocessor.hpp" />

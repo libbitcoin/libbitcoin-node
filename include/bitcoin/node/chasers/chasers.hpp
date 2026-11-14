@@ -22,7 +22,6 @@
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/chasers/chaser_download.hpp>
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
-#include <bitcoin/node/chasers/chaser_estimate.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
 #include <bitcoin/node/chasers/chaser_snapshot.hpp>
 #include <bitcoin/node/chasers/chaser_storage.hpp>

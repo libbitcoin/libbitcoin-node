@@ -22,7 +22,6 @@
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/estimator.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
@@ -172,7 +171,7 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Get current fee estimate.
-    void estimate(size_t target, estimator::mode mode,
+    void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 
     /// Handle performance, base returns false (implied terminate).
@@ -213,7 +212,6 @@ private:
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
     chaser_template chaser_template_;
-    chaser_estimate chaser_estimate_;
     chaser_snapshot chaser_snapshot_;
     chaser_storage chaser_storage_;
     event_subscriber event_subscriber_{};

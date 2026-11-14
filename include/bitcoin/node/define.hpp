@@ -34,6 +34,15 @@ namespace node {
 typedef std::error_code code;
 
 /// Estimate types.
+enum class estimate_mode
+{
+    basic,
+    geometric,
+    economical,
+    conservative,
+    unknown
+};
+constexpr size_t maximum_estimate_horizon = 1008;
 typedef std::function<void(const code&, uint64_t)> estimate_handler;
 
 /// Organization types.

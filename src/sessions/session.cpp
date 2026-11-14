@@ -125,7 +125,7 @@ void session::unsubscribe_chase(object_key key) NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void session::estimate(size_t target, estimator::mode mode,
+void session::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
     node_.estimate(target, mode, std::move(handler));

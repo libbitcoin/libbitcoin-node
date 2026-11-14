@@ -56,7 +56,6 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/configuration.cpp \
     ${srcdir}/../../src/define.cpp \
     ${srcdir}/../../src/error.cpp \
-    ${srcdir}/../../src/estimator.cpp \
     ${srcdir}/../../src/full_node.cpp \
     ${srcdir}/../../src/rolling_bloom_filter.cpp \
     ${srcdir}/../../src/settings.cpp \
@@ -64,7 +63,6 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/chasers/chaser.cpp \
     ${srcdir}/../../src/chasers/chaser_confirm.cpp \
     ${srcdir}/../../src/chasers/chaser_download.cpp \
-    ${srcdir}/../../src/chasers/chaser_estimate.cpp \
     ${srcdir}/../../src/chasers/chaser_header.cpp \
     ${srcdir}/../../src/chasers/chaser_snapshot.cpp \
     ${srcdir}/../../src/chasers/chaser_storage.cpp \
@@ -138,7 +136,6 @@ include_bitcoin_node_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/configuration.hpp \
     ${srcdir}/../../include/bitcoin/node/define.hpp \
     ${srcdir}/../../include/bitcoin/node/error.hpp \
-    ${srcdir}/../../include/bitcoin/node/estimator.hpp \
     ${srcdir}/../../include/bitcoin/node/events.hpp \
     ${srcdir}/../../include/bitcoin/node/full_node.hpp \
     ${srcdir}/../../include/bitcoin/node/preprocessor.hpp \
@@ -161,7 +158,6 @@ include_bitcoin_node_chasers_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_confirm.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_download.hpp \
-    ${srcdir}/../../include/bitcoin/node/chasers/chaser_estimate.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_header.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_snapshot.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_storage.hpp \
@@ -243,7 +239,6 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/channel_peer.cpp \
     ${srcdir}/../../test/configuration.cpp \
     ${srcdir}/../../test/error.cpp \
-    ${srcdir}/../../test/estimator.cpp \
     ${srcdir}/../../test/full_node.cpp \
     ${srcdir}/../../test/main.cpp \
     ${srcdir}/../../test/rolling_bloom_filter.cpp \
@@ -252,7 +247,6 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/chasers/chaser.cpp \
     ${srcdir}/../../test/chasers/chaser_confirm.cpp \
     ${srcdir}/../../test/chasers/chaser_download.cpp \
-    ${srcdir}/../../test/chasers/chaser_estimate.cpp \
     ${srcdir}/../../test/chasers/chaser_header.cpp \
     ${srcdir}/../../test/chasers/chaser_template.cpp \
     ${srcdir}/../../test/chasers/chaser_transaction.cpp \

@@ -35,8 +35,7 @@
 // block_memory   : block_arena
 // settings       : define
 // configuration  : settings
-// estimator      : define
-// /chasers       : configuration estimator        [forward: full_node]
+// /chasers       : configuration                  [forward: full_node]
 // /channels      : configuration
 // /protocols     : /channels /chasers             [sessions/session.hpp]
 // /sessions      : /protocols                     [forward: full_node]

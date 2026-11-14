@@ -21,7 +21,6 @@
 
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/estimator.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -104,7 +103,7 @@ public:
         network::net::channel_notifier&& handler) NOEXCEPT;
 
     /// Get current fee estimate.
-    void estimate(size_t target, estimator::mode mode,
+    void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 
     /// Handle performance, base returns false (implied terminate).

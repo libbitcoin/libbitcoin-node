@@ -273,7 +273,7 @@ BC_AUTO_TEST_CASE(protocol__organize__block1_header_not_milestone__height_one)
 BC_AUTO_TEST_CASE(protocol__estimate__default__disabled)
 {
     std::promise<code> result{};
-    accessor.estimate(1, estimator::mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
+    accessor.estimate(1, estimate_mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
     {
         result.set_value(ec);
     });

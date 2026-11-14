@@ -150,11 +150,11 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A current block has been organized.
-    /// Issued by 'confirm' and handled by 'protocol_header/block_out/estimator'.
+    /// Issued by 'confirm' and handled by 'protocol_header/block_out'.
     block,
 
     /// The store has been pruned (once, following the first current block).
-    /// Issued by 'snapshot' and handled by 'estimate'.
+    /// Issued by 'snapshot' and handled by none.
     pruned,
 
     /// The confirmed chain is no longer current.

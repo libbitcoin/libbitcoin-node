@@ -467,7 +467,7 @@ BC_AUTO_TEST_CASE(full_node__submit__relay_disabled__pooling_disabled)
 BC_AUTO_TEST_CASE(full_node__estimate__disabled__estimate_disabled)
 {
     std::promise<code> promise{};
-    node_.estimate(1, estimator::mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
+    node_.estimate(1, estimate_mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
     {
         promise.set_value(ec);
     });
