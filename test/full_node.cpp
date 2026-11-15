@@ -464,8 +464,11 @@ BC_AUTO_TEST_CASE(full_node__submit__relay_disabled__pooling_disabled)
     BC_REQUIRE_EQUAL(promise.get_future().get(), error::pooling_disabled);
 }
 
-BC_AUTO_TEST_CASE(full_node__estimate__disabled__estimate_disabled)
+BC_AUTO_TEST_CASE(full_node__estimate__relay_disabled__estimate_disabled)
 {
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+
     std::promise<code> promise{};
     node_.estimate(1, estimate_mode::basic, [&](const code& ec, uint64_t) NOEXCEPT
     {

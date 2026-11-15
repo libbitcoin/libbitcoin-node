@@ -193,6 +193,95 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
+    using built = std::tuple<code, size_t, database::tx_links>;
+    built build_template()
+    {
+        std::promise<built> promise{};
+        node_.build_template([&](const code& ec, size_t height,
+            const database::tx_links& links) NOEXCEPT
+        {
+            promise.set_value({ ec, height, links });
+        });
+
+        return promise.get_future().get();
+    }
+
+    using estimated = std::pair<code, uint64_t>;
+    estimated estimate(size_t target,
+        node::estimate_mode mode=node::estimate_mode::basic)
+    {
+        std::promise<estimated> promise{};
+        node_.estimate(target, mode, [&](const code& ec, uint64_t rate) NOEXCEPT
+        {
+            promise.set_value({ ec, rate });
+        });
+
+        return promise.get_future().get();
+    }
+
+    // Confirm a block of only a coinbase above genesis.
+    database::header_link confirm()
+    {
+        const system::settings bitcoin{ chain::selection::mainnet };
+        const auto& genesis = bitcoin.genesis_block;
+        const auto time = add1(genesis.header().timestamp());
+        const auto bits = genesis.header().bits();
+        const chain::transaction coinbase
+        {
+            1u,
+            chain::inputs{ { chain::point{}, chain::script{}, max_uint32 } },
+            chain::outputs{ { 42u, chain::script{} } },
+            0u
+        };
+        const chain::header header
+        {
+            1u, genesis.hash(), null_hash, time, bits, 0u
+        };
+        const chain::block block{ header, { coinbase } };
+        if (!query_.set(block, database::context{ 0, 1, 0 }, {}, false, true))
+            return {};
+
+        const auto link = query_.to_header(block.hash());
+        if (!query_.push_candidate(link) || !query_.push_confirmed(link, true))
+            return {};
+
+        node_.notify(node::error::success, chases::organized{ link });
+        return link;
+    }
+
+    // True once the pool context is of the height.
+    bool bumped(size_t height)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (std::get<1>(build_template()) == height)
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+
+    // True once the estimate is the rate.
+    bool estimated_at(size_t target, node::estimate_mode mode, uint64_t rate)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            const auto result = estimate(target, mode);
+            if (!result.first && result.second == rate)
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+
     bool suspended()
     {
         using namespace std::chrono;
@@ -269,6 +358,47 @@ struct chaser_transaction_setup_fixture
         }
     }
 
+    // Announce the tx, true if the node requests it, then send it.
+    bool relay(const chain::transaction::cptr& tx)
+    {
+        const auto hash = tx->hash(false);
+        const auto version = node_version->value;
+        send(peer::inventory{ { { type_id::transaction, hash } } }, version);
+        if (receive(peer::get_data::command).empty())
+            return false;
+
+        send(peer::transaction{ tx }, version);
+        return true;
+    }
+
+    // The tx hashes announced to the active peer, to the count.
+    hashes announced(size_t count)
+    {
+        hashes out{};
+        const auto version = node_version->value;
+        while (out.size() < count)
+        {
+            const auto payload = receive(peer::inventory::command);
+            const auto message = peer::inventory::deserialize(version, payload);
+            BC_REQUIRE(message);
+            for (const auto& item: message->items)
+                out.push_back(item.hash);
+        }
+
+        return out;
+    }
+
+    // The hash of the tx served to the active peer upon request.
+    hash_digest served(const hash_digest& hash)
+    {
+        const auto version = node_version->value;
+        send(peer::get_data{ { { type_id::transaction, hash } } }, version);
+        const auto payload = receive(peer::transaction::command);
+        const auto message = peer::transaction::deserialize(version, payload);
+        BC_REQUIRE(message);
+        return message->transaction_ptr->hash(false);
+    }
+
     // Wait (bounded) for the command, pinging until it is received.
     data_chunk await_before_pong(const std::string& command)
     {
@@ -282,6 +412,20 @@ struct chaser_transaction_setup_fixture
         }
 
         return {};
+    }
+};
+
+struct chaser_transaction_distribution_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_distribution_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.network.inbound.connections = 2;
+            config.node.currency_window_minutes = 0;
+        })
+    {
     }
 };
 
@@ -318,7 +462,50 @@ struct chaser_transaction_fee_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            config.node.minimum_fee_rate = 0.0000152587890625;
+            config.node.pool.minimum_fee_rate = 0.0000152587890625;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_limit_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_limit_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.maximum_outcomes = 1;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_reserve_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_reserve_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 4'000'000;
+        })
+    {
+    }
+};
+
+// A block holds one test tx (61 of its 80 virtual bytes).
+struct chaser_transaction_single_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_single_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 3'999'348;
         })
     {
     }
@@ -535,10 +722,51 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__valid_twice__duplicate_transact
     BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::duplicate_transaction);
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__double_spend, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__success_archived, chaser_transaction_pooling_setup_fixture)
 {
-    BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::success);
-    BC_REQUIRE_EQUAL(submit(package({ spend(sub1(parent_value)) })).first, system::error::double_spend);
+    const auto first = spend(parent_value);
+    const auto second = spend(sub1(parent_value));
+    const auto first_result = submit(package({ first }));
+    const auto second_result = submit(package({ second }));
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(first->hash(false)));
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_no_added_fee__insufficient_fee, chaser_transaction_fee_setup_fixture)
+{
+    const auto first = submit(package({ spend(parent_value - 1'000) }));
+    const auto second = submit(package({ spend(parent_value - 999) }));
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, node::error::insufficient_fee);
+    BC_REQUIRE_EQUAL(second.second, zero);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_added_fee__success_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto second = spend(parent_value - 2'000);
+    const auto first_result = submit(package({ spend(parent_value - 1'000) }));
+    const auto second_result = submit(package({ second }));
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_outcomes_over_limit__pool_limit, chaser_transaction_limit_setup_fixture)
+{
+    const auto first = submit(package({ spend(parent_value) }));
+    const auto second = submit(package({ spend(sub1(parent_value)) }));
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_over_block__pool_limit, chaser_transaction_reserve_setup_fixture)
+{
+    const auto first = submit(package({ spend(parent_value - 1'000) }));
+    const auto second = submit(package({ spend(parent_value - 2'000) }));
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__parent_and_child__success_archived, chaser_transaction_pooling_setup_fixture)
@@ -579,6 +807,236 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_relative_lock__relativ
     const auto result = submit(package({ first, second }));
     BC_REQUIRE_EQUAL(result.first, system::error::relative_time_locked);
     BC_REQUIRE(!query_.is_tx(first->hash(false)));
+}
+
+// build_template
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__relay_disabled__pooling_disabled, chaser_transaction_setup_fixture)
+{
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(links.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__empty_pool__empty_at_next_height, chaser_transaction_pooling_setup_fixture)
+{
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(height, 1u);
+    BC_REQUIRE(links.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__parent_and_child__parent_first, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    const auto result = submit(package({ first, second }));
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 2u);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(first->hash(false)));
+    BC_REQUIRE_EQUAL(links.back(), query_.to_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__conflict__higher_fee_only, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(sub1(parent_value));
+    const auto first_result = submit(package({ first }));
+    const auto second_result = submit(package({ second }));
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 1u);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__child_of_losing_rival__excluded, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto child = spend(first->hash(false), parent_value);
+    const auto second = spend(sub1(parent_value));
+    const auto first_result = submit(package({ first, child }));
+    const auto second_result = submit(package({ second }));
+    const auto [ec, height, links] = build_template();
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 1u);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(second->hash(false)));
+}
+
+// estimate
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__relay_disabled__estimate_disabled, chaser_transaction_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(estimate(0).first, node::error::estimate_disabled);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__not_current__estimate_premature, chaser_transaction_relay_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(estimate(0).first, node::error::estimate_premature);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__unknown_mode__estimate_false, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(estimate(0, node::estimate_mode::unknown).first, node::error::estimate_false);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__target_at_horizon__estimate_false, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(estimate(node::maximum_estimate_horizon).first, node::error::estimate_false);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__no_block_space__estimate_false, chaser_transaction_reserve_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(estimate(0).first, node::error::estimate_false);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__empty_pool__zero, chaser_transaction_pooling_setup_fixture)
+{
+    const auto [ec, rate] = estimate(0);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__empty_pool_minimum_fee_rate__minimum_fee_rate, chaser_transaction_fee_setup_fixture)
+{
+    const auto [ec, rate] = estimate(0);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 1'526u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__full_block__above_lowest_take, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto [ec, rate] = estimate(0);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 16'394u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__open_block__zero, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto [ec, rate] = estimate(1);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__after_template__continued, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto [built_ec, height, links] = build_template();
+    const auto next = estimate(0);
+    const auto after = estimate(1);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(built_ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 1u);
+    BC_REQUIRE_EQUAL(next.first, node::error::success);
+    BC_REQUIRE_EQUAL(next.second, 16'394u);
+    BC_REQUIRE_EQUAL(after.first, node::error::success);
+    BC_REQUIRE_EQUAL(after.second, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__pool_written__projected_again, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto first_result = submit(package({ first }));
+    const auto before = estimate(0);
+    const auto second_result = submit(package({ second }));
+    const auto after = estimate(0);
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(before.first, node::error::success);
+    BC_REQUIRE_EQUAL(before.second, 0u);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(after.first, node::error::success);
+    BC_REQUIRE_EQUAL(after.second, 16'394u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__basic_after_block__no_arrivals, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto confirmed = !confirm().is_terminal();
+    const auto current = bumped(2);
+    const auto [ec, rate] = estimate(1, node::estimate_mode::basic);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(confirmed);
+    BC_REQUIRE(current);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__economical_after_block__arrivals_fill_open_block, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto confirmed = !confirm().is_terminal();
+    const auto current = bumped(2);
+    const auto [ec, rate] = estimate(1, node::estimate_mode::economical);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(confirmed);
+    BC_REQUIRE(current);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 16'394u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__conservative_after_block__arrivals_fill_open_block, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto confirmed = !confirm().is_terminal();
+    const auto current = bumped(2);
+    const auto [ec, rate] = estimate(1, node::estimate_mode::conservative);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(confirmed);
+    BC_REQUIRE(current);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 16'394u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__geometric_after_block__arrivals_fill_open_block, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto confirmed = !confirm().is_terminal();
+    const auto current = bumped(2);
+    const auto [ec, rate] = estimate(1, node::estimate_mode::geometric);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(confirmed);
+    BC_REQUIRE(current);
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(rate, 16'394u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__pruned__arrivals_below_floor__not_counted, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    const auto link = confirm();
+    const auto current = bumped(2);
+    const auto counted = estimate(1, node::estimate_mode::economical);
+    node_.notify(node::error::success, chases::pruned{ link });
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(current);
+    BC_REQUIRE_EQUAL(counted.second, 16'394u);
+    BC_REQUIRE(estimated_at(1, node::estimate_mode::economical, 0));
 }
 
 // do_bump
@@ -986,6 +1444,96 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficien
 }
 
 // protocol_transaction_out
+
+// distribution (tx in, acceptance, tx out)
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__peer_tx__accepted_announced_and_served, chaser_transaction_distribution_setup_fixture)
+{
+    const auto tx = spend(parent_value);
+    const auto hash = tx->hash(false);
+    const hashes expected{ hash };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto sink = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(zero);
+    BC_REQUIRE(relay(tx));
+    BC_REQUIRE(archived(hash));
+    BC_REQUIRE(pooled(query_.to_tx(hash)));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(sink);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+    BC_REQUIRE_EQUAL(served(hash), hash);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__peer_chain__announced_in_order, chaser_transaction_distribution_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    const auto third = spend(second->hash(false), parent_value);
+    const hashes expected{ first->hash(false), second->hash(false), third->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto sink = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(zero);
+    BC_REQUIRE(relay(first));
+    BC_REQUIRE(archived(first->hash(false)));
+    BC_REQUIRE(relay(second));
+    BC_REQUIRE(archived(second->hash(false)));
+    BC_REQUIRE(relay(third));
+    BC_REQUIRE(archived(third->hash(false)));
+
+    select(sink);
+    BC_REQUIRE_EQUAL(announced(3), expected);
+    BC_REQUIRE_EQUAL(served(third->hash(false)), third->hash(false));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__peer_conflict__both_accepted_and_announced, chaser_transaction_distribution_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(sub1(parent_value));
+    const hashes expected{ first->hash(false), second->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto sink = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    select(zero);
+    BC_REQUIRE(relay(first));
+    BC_REQUIRE(archived(first->hash(false)));
+    BC_REQUIRE(relay(second));
+    BC_REQUIRE(archived(second->hash(false)));
+
+    select(sink);
+    BC_REQUIRE_EQUAL(announced(2), expected);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__submitted_tx__announced_to_every_peer, chaser_transaction_distribution_setup_fixture)
+{
+    const auto tx = spend(parent_value);
+    const hashes expected{ tx->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    const auto other = connect();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+
+    select(zero);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+
+    select(other);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+}
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__fee_filter, chaser_transaction_fee_setup_fixture)
 {

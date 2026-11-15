@@ -89,6 +89,12 @@ public:
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
+    /// Build a template of pooled txs, parents first, and its height.
+    virtual void build_template(template_handler&& handler) NOEXCEPT;
+
+    /// The latest template of pooled txs, parents first, and its height.
+    virtual void get_template(template_handler&& handler) NOEXCEPT;
+
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,
@@ -170,7 +176,7 @@ public:
     /// Methods.
     /// -----------------------------------------------------------------------
 
-    /// Get current fee estimate.
+    /// Lowest rate (per virtual kilobyte) confirmed by the target block.
     void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 

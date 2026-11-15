@@ -195,6 +195,16 @@ void full_node::submit_compact(const system::chain::transactions_cptr& txs,
     chaser_transaction_.submit_compact(txs, links, link, std::move(handler));
 }
 
+void full_node::build_template(template_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.build_template(std::move(handler));
+}
+
+void full_node::get_template(template_handler&& handler) NOEXCEPT
+{
+    chaser_template_.get_template(std::move(handler));
+}
+
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT
 {
     chaser_download_.get_hashes(std::move(handler));
@@ -472,10 +482,10 @@ time_t full_node::start_time() const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void full_node::estimate(size_t, estimate_mode,
+void full_node::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
-    handler(error::estimate_disabled, {});
+    chaser_transaction_.estimate(target, mode, std::move(handler));
 }
 
 void full_node::performance(object_key key, uint64_t speed,

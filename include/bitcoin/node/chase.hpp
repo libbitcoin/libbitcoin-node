@@ -154,7 +154,7 @@ enum class chase
     block,
 
     /// The store has been pruned (once, following the first current block).
-    /// Issued by 'snapshot' and handled by none.
+    /// Issued by 'snapshot' and handled by 'transaction'.
     pruned,
 
     /// The confirmed chain is no longer current.

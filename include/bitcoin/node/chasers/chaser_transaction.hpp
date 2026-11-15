@@ -51,6 +51,13 @@ public:
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
+    /// Build a template of pooled txs, parents first, and its height.
+    virtual void build_template(template_handler&& handler) NOEXCEPT;
+
+    /// Lowest rate (per virtual kilobyte) confirmed by the target block.
+    virtual void estimate(size_t target, estimate_mode mode,
+        estimate_handler&& handler) NOEXCEPT;
+
 protected:
     using chaser::broadcast;
 
@@ -62,6 +69,9 @@ protected:
         const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
         const submit_handler& handler) NOEXCEPT;
+    virtual void do_build_template(const template_handler& handler) NOEXCEPT;
+    virtual void do_estimate(size_t target, estimate_mode mode,
+        const estimate_handler& handler) NOEXCEPT;
 
     /// Recompute the pool context, closing the pool if not current, and map
     /// scan starts: built once current, extended by block until pooling, and
@@ -70,6 +80,9 @@ protected:
 
     /// Pool the unpooled txs of a reorganized block.
     virtual void do_reorganized(header_t link) NOEXCEPT;
+
+    /// Raise the arrivals floor above the pruned block.
+    virtual void do_pruned(header_t link) NOEXCEPT;
 
     /// Map scan starts from the confirmed top (scan threadpool).
     virtual void do_scan(const database::header_link& top, size_t bound,
@@ -80,6 +93,7 @@ protected:
 
 private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
+    system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
 
     code validate(size_t& index, const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored) NOEXCEPT;
@@ -94,6 +108,7 @@ private:
         const code& ec) NOEXCEPT;
     void broadcast(const system::chain::transaction& tx) const NOEXCEPT;
     void start_scan(bool remap) NOEXCEPT;
+    uint64_t arriving(uint64_t rate, estimate_mode mode) const NOEXCEPT;
 
     // These are thread safe.
     network::threadpool scan_threadpool_;
@@ -101,8 +116,13 @@ private:
 
     // These are protected by strand.
     system::chain::context pool_{};
+    query::pool_projection projection_{};
+    query::pool_arrivals arrivals_{};
+    size_t floor_{};
     bool pooling_{};
     bool scanning_{};
+    bool projected_{};
+    bool arrived_{};
 };
 
 } // namespace node

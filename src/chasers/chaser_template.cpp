@@ -40,11 +40,21 @@ chaser_template::chaser_template(full_node& node) NOEXCEPT
 // start
 // ----------------------------------------------------------------------------
 
-// TODO: initialize template state.
 code chaser_template::start() NOEXCEPT
 {
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
+}
+
+// methods
+// ----------------------------------------------------------------------------
+
+void chaser_template::get_template(template_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_get_template, std::move(handler));
 }
 
 // event handlers
@@ -60,12 +70,13 @@ bool chaser_template::handle_chase(const code&, event_value value) NOEXCEPT
     if (suspended())
         return true;
 
-    // TODO: also handle confirmed/unconfirmed.
     switch (to_chase(value))
     {
         case chase::transaction:
+        case chase::organized:
+        case chase::reorganized:
         {
-            POST(do_transaction, to_payload<chase::transaction>(value).link);
+            POST(do_update);
             break;
         }
         case chase::stop:
@@ -81,10 +92,70 @@ bool chaser_template::handle_chase(const code&, event_value value) NOEXCEPT
     return true;
 }
 
-// TODO: handle transaction graph change (may issue 'candidate').
-void chaser_template::do_transaction(transaction_t) NOEXCEPT
+// Pool changes during a build coalesce into one following build.
+void chaser_template::do_update() NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (building_)
+    {
+        stale_ = true;
+        return;
+    }
+
+    build();
+}
+
+void chaser_template::do_get_template(const template_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    handler(error::success, height_, links_);
+}
+
+// build
+// ----------------------------------------------------------------------------
+
+// private
+void chaser_template::build() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    building_ = true;
+    stale_ = false;
+    request_template(BIND(handle_build, _1, _2, _3));
+}
+
+// private
+void chaser_template::handle_build(const code& ec, size_t height,
+    const database::tx_links& links) NOEXCEPT
+{
+    POST(do_build, ec, height, links);
+}
+
+// private
+void chaser_template::do_build(const code& ec, size_t height,
+    const database::tx_links& links) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    building_ = false;
+    if (closed() ||
+        ec == network::error::service_stopped ||
+        ec == error::pooling_disabled)
+        return;
+
+    if (ec)
+    {
+        fault(ec);
+        return;
+    }
+
+    links_ = links;
+    height_ = height;
+    notify(error::success, chases::template_{ height });
+
+    if (stale_)
+        build();
 }
 
 BC_POP_WARNING()

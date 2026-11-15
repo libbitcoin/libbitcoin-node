@@ -86,6 +86,11 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
             POST(do_reorganized, to_payload<chase::reorganized>(value).link);
             break;
         }
+        case chase::pruned:
+        {
+            POST(do_pruned, to_payload<chase::pruned>(value).link);
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -105,7 +110,9 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
 void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
+    const auto opened = pooling_;
     pooling_ = false;
+    projected_ = false;
     if (closed() || !is_current_chain(true))
         return;
 
@@ -134,6 +141,10 @@ void chaser_transaction::do_bump() NOEXCEPT
         pool_ = chain_state{ *state, system_settings() }.context();
         query.set_pooling();
         pooling_ = true;
+
+        // Rows that arrived while the pool was closed are not in it.
+        if (!opened)
+            floor_ = std::max(floor_, pool_.height);
     }
 
     // Scan starts are mapped after the latch, as pooled rows are unordered.
@@ -232,6 +243,24 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
     }
 }
 
+// Rows confirmed by the pruned block are not retained by the prune.
+void chaser_transaction::do_pruned(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    size_t height{};
+    if (!archive().get_height(height, link))
+    {
+        fault(error::transaction9);
+        return;
+    }
+
+    projected_ = false;
+    floor_ = std::max(floor_, add1(height));
+}
+
 // methods
 // ----------------------------------------------------------------------------
 
@@ -252,6 +281,23 @@ void chaser_transaction::submit_compact(const transactions_cptr& txs,
         return;
 
     POST(do_submit_compact, txs, links, link, std::move(handler));
+}
+
+void chaser_transaction::build_template(template_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_build_template, std::move(handler));
+}
+
+void chaser_transaction::estimate(size_t target, estimate_mode mode,
+    estimate_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_estimate, target, mode, std::move(handler));
 }
 
 // private
@@ -292,6 +338,8 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         handler(error::success, {});
         return;
     }
+
+    projected_ = false;
 
     // Parents precede children, so a parent is archived before it is resolved.
     const auto time = network::unix_time();
@@ -369,6 +417,8 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    projected_ = false;
+
     using link_t = database::tx_link::integer;
     const auto filler = [&](link_t& fk, size_t index) NOEXCEPT
     {
@@ -416,6 +466,118 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     notify(error::success, chases::checked{ ctx.height });
     fire(events::block_archived, ctx.height);
     handler(error::success, {});
+}
+
+// private
+void chaser_transaction::do_build_template(
+    const template_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped, {}, {});
+        return;
+    }
+
+    if (!pooling_)
+    {
+        handler(error::pooling_disabled, {}, {});
+        return;
+    }
+
+    // The template is the first block of the projection.
+    const auto& settings = node_settings().pool;
+    database::tx_links links{};
+    const auto ec = archive().get_pool_template(links, projection_,
+        block_limit(), settings.maximum_chunk_depth, settings.bytes_per_sigop,
+        settings.maximum_outcomes);
+
+    projected_ = !ec;
+    arrived_ = false;
+    handler(ec, pool_.height, links);
+}
+
+// private
+void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
+    const estimate_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped, {});
+        return;
+    }
+
+    if (!network_settings().enable_relay)
+    {
+        handler(error::estimate_disabled, {});
+        return;
+    }
+
+    if (!pooling_)
+    {
+        handler(error::estimate_premature, {});
+        return;
+    }
+
+    if (mode == estimate_mode::unknown || target >= maximum_estimate_horizon)
+    {
+        handler(error::estimate_false, {});
+        return;
+    }
+
+    if (!projected_)
+    {
+        projection_ = {};
+        arrived_ = false;
+    }
+
+    const auto& query = archive();
+    const auto& settings = node_settings().pool;
+    const auto count = add1(target);
+    const auto limit = block_limit();
+    if (const auto ec = query.get_pool_projection(projection_, count, limit,
+        settings.maximum_chunk_depth, settings.bytes_per_sigop,
+        settings.maximum_outcomes))
+    {
+        projected_ = false;
+        handler(fault(ec), {});
+        return;
+    }
+
+    // Arrivals are whole from the floor to the height of the open interval.
+    projected_ = true;
+    if (!arrived_ && mode != estimate_mode::basic)
+    {
+        const auto whole = floored_subtract(pool_.height, floor_);
+        const auto heights = std::min(whole, conservative_estimate_window);
+        if (const auto ec = query.get_pool_arrivals(arrivals_, pool_.height,
+            heights, settings.bytes_per_sigop))
+        {
+            handler(fault(ec), {});
+            return;
+        }
+
+        arrived_ = true;
+    }
+
+    const auto arrivals = [&](uint64_t rate) NOEXCEPT
+    {
+        return arriving(rate, mode);
+    };
+
+    using algorithm = pool::algorithm;
+    const auto space = limit.size;
+    const auto rate = algorithm::estimate(projection_, count, space, arrivals);
+    if (rate == max_uint64)
+    {
+        handler(error::estimate_false, {});
+        return;
+    }
+
+    handler(error::success, std::max(rate, settings.minimum_fee_rate_()));
 }
 
 // utility
@@ -513,6 +675,51 @@ code chaser_transaction::unconfirmable(const database::header_link& link,
     return ec;
 }
 
+// The size arriving in a block at or above the rate.
+uint64_t chaser_transaction::arriving(uint64_t rate,
+    estimate_mode mode) const NOEXCEPT
+{
+    using algorithm = pool::algorithm;
+    uint64_t size{};
+
+    switch (mode)
+    {
+        case estimate_mode::geometric:
+        {
+            for (const auto& takes: std::views::reverse(arrivals_))
+            {
+                const auto above = algorithm::above(takes, rate);
+                size = to_half(ceilinged_add(size, above));
+            }
+
+            return size;
+        }
+        case estimate_mode::economical:
+        {
+            const auto window = economical_estimate_window;
+            const auto count = std::min(arrivals_.size(), window);
+            for (size_t age{}; age < count; ++age)
+            {
+                const auto above = algorithm::above(arrivals_.at(age), rate);
+                size = ceilinged_add(size, above);
+            }
+
+            return is_zero(count) ? size : floored_divide(size, count);
+        }
+        case estimate_mode::conservative:
+        {
+            for (const auto& takes: arrivals_)
+                size = std::max(size, algorithm::above(takes, rate));
+
+            return size;
+        }
+        default:
+        {
+            return size;
+        }
+    }
+}
+
 // The fee and size are recomputed here, as they are for the package rate and
 // for block fees, so the rate could instead be cached on the transaction.
 size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
@@ -524,6 +731,25 @@ size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
     // Satoshis per virtual kilobyte, as configured and as advertised (bip133).
     const auto rate = ceilinged_multiply(tx.fee(), 1'000_u64);
     return limit<size_t>(floored_divide(rate, size));
+}
+
+// A block less its header, largest tx count and declared coinbase weight.
+pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
+{
+    constexpr auto count = variable_size(max_block_size / min_transaction_size);
+    constexpr auto bytes = chain::header::serialized_size() + count;
+    constexpr auto fixed = light_weight_factor * bytes;
+    const auto& settings = node_settings().pool;
+    const auto reserved = ceilinged_add(fixed, settings.coinbase_weight);
+    const auto weight = floored_subtract(max_block_weight, reserved);
+    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
+    const auto sigops = bip141 ? max_fast_sigops : max_block_sigops;
+    return
+    {
+        {},
+        possible_narrow_cast<uint32_t>(weight / light_weight_factor),
+        possible_narrow_cast<uint32_t>(sigops)
+    };
 }
 
 // validation
@@ -547,6 +773,11 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
     if (const auto ec = block::populate(txs, pool_, false))
         return ec;
 
+    const auto& settings = node_settings().pool;
+    const auto bip16 = pool_.is_enabled(flags::bip16_rule);
+    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
+    const auto bytes_per_sigop = settings.bytes_per_sigop;
+
     uint64_t fee{}, size{};
     for (index = zero; index < txs.size(); ++index)
     {
@@ -557,14 +788,30 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
         if (const auto ec = accept(tx))
             return ec;
 
+        const auto sigops = tx.signature_operations(bip16, bip141);
+        const auto cost = ceilinged_multiply<uint64_t>(sigops, bytes_per_sigop);
         fee = ceilinged_add(fee, tx.fee());
-        size = ceilinged_add(size, possible_wide_cast<uint64_t>(
-            tx.virtual_size()));
+        size = ceilinged_add(size, greater(tx.virtual_size(), cost));
     }
 
     // Compared in satoshis per virtual kilobyte.
-    const auto rate = node_settings().minimum_fee_rate_();
+    const auto rate = settings.minimum_fee_rate_();
     if (ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size))
+    {
+        index = zero;
+        return error::insufficient_fee;
+    }
+
+    bool covered{};
+    if (const auto ec = archive().get_pool_coverage(covered, txs, stored,
+        database::context::from(pool_), rate, settings.bytes_per_sigop,
+        block_limit(), settings.maximum_outcomes))
+    {
+        index = zero;
+        return ec == database::error::pool_limit ? ec : fault(ec);
+    }
+
+    if (!covered)
     {
         index = zero;
         return error::insufficient_fee;
@@ -596,7 +843,9 @@ code chaser_transaction::accept(const chain::transaction& tx) NOEXCEPT
     if (!ec) ec = tx.accept(pool_);
     if (!ec) ec = tx.accept_guard(pool_);
     if (!ec) ec = tx.confirm_guard(pool_);
-    return ec;
+
+    // An unconfirmed conflict is admitted by coverage.
+    return ec == system::error::double_spend ? error::success : ec;
 }
 
 // A block tx is under proof of work, so it is not subject to policy (fee

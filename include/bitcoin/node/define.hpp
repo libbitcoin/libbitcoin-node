@@ -36,13 +36,25 @@ typedef std::error_code code;
 /// Estimate types.
 enum class estimate_mode
 {
+    /// The pool as it is, with no arrivals.
     basic,
+
+    /// Arrivals weighted by recency, each block half of the one above it.
     geometric,
+
+    /// Arrivals at their mean over the economical window.
     economical,
+
+    /// Arrivals at their peak over the conservative window.
     conservative,
+
     unknown
 };
 constexpr size_t maximum_estimate_horizon = 1008;
+
+/// Blocks of arrivals (two hours and one day at ten minutes per block).
+constexpr size_t economical_estimate_window = 12;
+constexpr size_t conservative_estimate_window = 144;
 typedef std::function<void(const code&, uint64_t)> estimate_handler;
 
 /// Organization types.
@@ -57,6 +69,10 @@ typedef network::race_all<const code&> job;
 typedef std::shared_ptr<database::associations> map_ptr;
 typedef std::function<void(const code&, const map_ptr&,
     const job::ptr&)> map_handler;
+
+/// Mining types.
+typedef std::function<void(const code&, size_t,
+    const database::tx_links&)> template_handler;
 
 /// Event desubscriber.
 typedef network::desubscriber<object_key, event_value> event_subscriber;
