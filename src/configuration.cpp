@@ -52,6 +52,8 @@ code configuration::initialize() NOEXCEPT
     if (filter && node.limited_blocks)
         return error::filter_pruned;
 
+    system::batched::accelerate(node.use_gpu);
+
     // Batch tables are unused when their batching cannot run.
     const auto gpu = node.use_gpu && system::batched::compiled() &&
         system::cuda_device();
