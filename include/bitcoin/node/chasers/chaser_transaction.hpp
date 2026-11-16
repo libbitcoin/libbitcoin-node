@@ -78,7 +78,10 @@ protected:
     /// remapped when a block archived before the latch is organized.
     virtual void do_bump() NOEXCEPT;
 
-    /// Pool the unpooled txs of a reorganized block.
+    /// Apply the organized block to the pool index, then bump.
+    virtual void do_organized(header_t link) NOEXCEPT;
+
+    /// Apply the reorganized block to the pool index and pool its unpooled txs.
     virtual void do_reorganized(header_t link) NOEXCEPT;
 
     /// Raise the arrivals floor above the pruned block.

@@ -116,6 +116,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { transaction7, "transaction7" },
     { transaction8, "transaction8" },
     { transaction9, "transaction9" },
+    { transaction10, "transaction10" },
     { batch1, "batch1" },
     { batch2, "batch2" },
     { batch3, "batch3" },

@@ -78,7 +78,7 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
     {
         case chase::organized:
         {
-            POST(do_bump);
+            POST(do_organized, to_payload<chase::organized>(value).link);
             break;
         }
         case chase::reorganized:
@@ -199,16 +199,43 @@ void chaser_transaction::do_scanned(bool mapped) NOEXCEPT
     do_bump();
 }
 
+// Index transitions are applied in the order confirmed, and once the store is
+// pooling whether or not the pool is open.
+void chaser_transaction::do_organized(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    auto& query = archive();
+    if (query.is_pooling() && !query.set_pool_block(link, true))
+    {
+        fault(error::transaction10);
+        return;
+    }
+
+    do_bump();
+}
+
 // Pooled in block order under the block context, excluding any confirmed (by
 // another block).
 void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    auto& query = archive();
+    if (query.is_pooling() && !query.set_pool_block(link, false))
+    {
+        fault(error::transaction10);
+        return;
+    }
+
     do_bump();
     if (!pooling_)
         return;
 
-    auto& query = archive();
     chain::context ctx{};
     const auto txs = query.to_transactions(link);
     if (txs.empty() || !query.get_context(ctx, link))

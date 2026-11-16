@@ -219,8 +219,8 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
-    // Confirm a block of only a coinbase above genesis.
-    database::header_link confirm()
+    // Confirm a block of a coinbase, and the tx if any, above genesis.
+    database::header_link confirm(const chain::transaction::cptr& tx={})
     {
         const system::settings bitcoin{ chain::selection::mainnet };
         const auto& genesis = bitcoin.genesis_block;
@@ -237,7 +237,11 @@ struct chaser_transaction_setup_fixture
         {
             1u, genesis.hash(), null_hash, time, bits, 0u
         };
-        const chain::block block{ header, { coinbase } };
+        chain::transactions txs{ coinbase };
+        if (tx)
+            txs.push_back(*tx);
+
+        const chain::block block{ header, txs };
         if (!query_.set(block, database::context{ 0, 1, 0 }, {}, false, true))
             return {};
 
@@ -319,6 +323,30 @@ struct chaser_transaction_setup_fixture
         while (steady_clock::now() < deadline)
         {
             if (query_.is_pooled(link))
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+
+    // The pool cell of the tx (absent if it has no row).
+    uint32_t cell(const database::tx_link& link)
+    {
+        const auto row = store_.pool.first(link);
+        return row.is_terminal() ? pool::algorithm::absent :
+            store_.pool_cells.at(row.value);
+    }
+
+    // True once the pool cell of the tx is the value.
+    bool celled(const database::tx_link& link, uint32_t value)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (cell(link) == value)
                 return true;
 
             std::this_thread::sleep_for(milliseconds(10));
@@ -1049,7 +1077,43 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__suspe
     BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::pooling_disabled);
 }
 
+// do_organized
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__pooled_block_tx__boundary, chaser_transaction_single_setup_fixture)
+{
+    const auto tx = spend(parent_value - 1'000);
+    const auto result = submit(package({ tx }));
+    const auto link = query_.to_tx(tx->hash(false));
+    const auto before = cell(link);
+    const auto confirmed = !confirm(tx).is_terminal();
+    const auto bounded = celled(link, pool::algorithm::boundary);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(pool::algorithm::is_present(before));
+    BC_REQUIRE(confirmed);
+    BC_REQUIRE(bounded);
+}
+
 // do_reorganized
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__pooled_block_tx__present, chaser_transaction_single_setup_fixture)
+{
+    const auto tx = spend(parent_value - 1'000);
+    const auto result = submit(package({ tx }));
+    const auto link = query_.to_tx(tx->hash(false));
+    const auto before = cell(link);
+    const auto block = confirm(tx);
+    const auto bounded = celled(link, pool::algorithm::boundary);
+    const auto popped = query_.pop_confirmed();
+    node_.notify(node::error::success, chases::reorganized{ block });
+
+    const auto restored = celled(link, before);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(pool::algorithm::is_present(before));
+    BC_REQUIRE(!block.is_terminal());
+    BC_REQUIRE(bounded);
+    BC_REQUIRE(popped);
+    BC_REQUIRE(restored);
+}
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pooled, chaser_transaction_reorganized_setup_fixture)
 {
