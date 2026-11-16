@@ -88,6 +88,9 @@ protected:
     /// Apply the organized block to the pool index, then bump.
     virtual void do_organized(header_t link) NOEXCEPT;
 
+    /// Announce the current block as settled in the pool.
+    virtual void do_block(header_t link) NOEXCEPT;
+
     /// Apply the reorganized block to the pool index and pool its unpooled txs.
     virtual void do_reorganized(header_t link) NOEXCEPT;
 

@@ -117,6 +117,11 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
             POST(do_organized, to_payload<chase::organized>(value).link);
             break;
         }
+        case chase::block:
+        {
+            POST(do_block, to_payload<chase::block>(value).link);
+            break;
+        }
         case chase::reorganized:
         {
             POST(do_reorganized, to_payload<chase::reorganized>(value).link);
@@ -256,6 +261,17 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
     }
 
     do_bump();
+}
+
+// The block was organized before it was announced, so its transition has
+// been applied, and its prevout cache is no longer required by the pool.
+void chaser_transaction::do_block(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    notify(error::success, chases::block_settled{ link });
 }
 
 // Pooled in block order under the block context, excluding any confirmed (by

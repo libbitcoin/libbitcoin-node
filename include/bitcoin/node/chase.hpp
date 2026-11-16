@@ -150,10 +150,15 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A current block has been organized.
-    /// Issued by 'confirm' and handled by 'protocol_header/block_out'.
+    /// Issued by 'confirm' and handled by 'transaction',
+    /// 'protocol_header/block_out'.
     block,
 
-    /// The store has been pruned (once, following the first current block).
+    /// A current block has been settled in the pool.
+    /// Issued by 'transaction' and handled by 'snapshot'.
+    block_settled,
+
+    /// The store has been pruned (once, following the first settled block).
     /// Issued by 'snapshot' and handled by 'transaction'.
     pruned,
 
@@ -329,6 +334,12 @@ struct block
     header_t link;
 };
 
+struct block_settled
+{
+    static constexpr chase id{ chase::block_settled };
+    header_t link;
+};
+
 struct pruned
 {
     static constexpr chase id{ chase::pruned };
@@ -398,6 +409,7 @@ using event_value = std::variant
     chases::confirmable,
     chases::unconfirmable,
     chases::block,
+    chases::block_settled,
     chases::pruned,
     chases::stale,
     chases::organized,

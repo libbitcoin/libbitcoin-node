@@ -112,12 +112,12 @@ bool chaser_snapshot::handle_chase(const code&, event_value value) NOEXCEPT
         ////    POST(do_confirm, std::get<header_t>(value));
         ////    break;
         ////}
-        case chase::block:
+        case chase::block_settled:
         {
             if (pruned_.load(std::memory_order_relaxed))
                 break;
 
-            POST(do_prune, to_payload<chase::block>(value).link);
+            POST(do_prune, to_payload<chase::block_settled>(value).link);
             break;
         }
         case chase::snap:
