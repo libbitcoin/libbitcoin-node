@@ -421,6 +421,8 @@ struct validate_setup_fixture
         if (configurer)
             configurer(config);
 
+        system::batched::accelerate(config.node.use_gpu);
+
         // The store envelope is derived from the configured chain.
         config.database.initialize(config.bitcoin, config.node.limited_blocks,
             config.node.silent_start_height);

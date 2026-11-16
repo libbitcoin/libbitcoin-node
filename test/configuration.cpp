@@ -139,7 +139,9 @@ BC_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables_si
     instance.database.silent.size = 42;
     instance.database.prevalid.size = 42;
     instance.database.presilent.size = 42;
-    BC_REQUIRE(!instance.initialize());
+    const auto ec = instance.initialize();
+    system::batched::accelerate(true);
+    BC_REQUIRE(!ec);
     BC_REQUIRE_EQUAL(instance.database.ecdsa.size, 42u);
     BC_REQUIRE_EQUAL(instance.database.schnorr.size, 42u);
     BC_REQUIRE_EQUAL(instance.database.silent.size, 42u);
@@ -161,13 +163,26 @@ BC_AUTO_TEST_CASE(configuration__initialize__no_batching_without_gpu__tables_zer
     instance.database.silent.size = 42;
     instance.database.prevalid.size = 42;
     instance.database.presilent.size = 42;
-    BC_REQUIRE(!instance.initialize());
+    const auto ec = instance.initialize();
+    system::batched::accelerate(true);
+    BC_REQUIRE(!ec);
     BC_REQUIRE_EQUAL(instance.database.ecdsa.size, 0u);
     BC_REQUIRE_EQUAL(instance.database.schnorr.size, 0u);
     BC_REQUIRE_EQUAL(instance.database.silent.size, 0u);
     BC_REQUIRE_EQUAL(instance.database.prevalid.size, 0u);
     BC_REQUIRE_EQUAL(instance.database.presilent.size, 0u);
     BC_REQUIRE_EQUAL(instance.database.gpu_scan_minimum, max_uint32);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__without_gpu__not_accelerated)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.use_gpu = false;
+    const auto ec = instance.initialize();
+    const auto accelerated = system::batched::accelerated();
+    system::batched::accelerate(true);
+    BC_REQUIRE(!ec);
+    BC_REQUIRE(!accelerated);
 }
 
 BC_AUTO_TEST_SUITE_END()
