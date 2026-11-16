@@ -57,6 +57,7 @@ void chaser_transaction::stopping(const code& ec) NOEXCEPT
     chaser::stopping(ec);
 }
 
+// The strand is no longer running when the chaser is stopped.
 void chaser_transaction::stop() NOEXCEPT
 {
     if (!scan_threadpool_.join())
@@ -64,6 +65,41 @@ void chaser_transaction::stop() NOEXCEPT
         BC_ASSERT_MSG(false, "failed to join threadpool");
         std::abort();
     }
+
+    subscriber_.stop_default(network::error::service_stopped);
+}
+
+// pool subscription
+// ----------------------------------------------------------------------------
+
+void chaser_transaction::subscribe_pool(pool_notifier&& handler) NOEXCEPT
+{
+    POST(do_subscribe_pool, std::move(handler));
+}
+
+void chaser_transaction::do_subscribe_pool(
+    const pool_notifier& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    subscriber_.subscribe(pool_notifier{ handler });
+}
+
+chaser_transaction::time_point chaser_transaction::now() NOEXCEPT
+{
+    return std::chrono::steady_clock::now();
+}
+
+// A scan of the frontier form is one pass, of the table's rows.
+void chaser_transaction::report(pool_scan scan,
+    const time_point& start) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (subscriber_.empty())
+        return;
+
+    const auto time = now() - start;
+    const auto rows = archive().pool_records();
+    subscriber_.notify(error::success, { scan, { rows, one, time } });
 }
 
 // event handlers
@@ -208,7 +244,12 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
         return;
 
     auto& query = archive();
-    if (query.is_pooling() && !query.set_pool_block(link, true))
+    const auto start = now();
+    const auto applied = !query.is_pooling() ||
+        query.set_pool_block(link, true);
+
+    report(pool_scan::block_in, start);
+    if (!applied)
     {
         fault(error::transaction10);
         return;
@@ -226,7 +267,12 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         return;
 
     auto& query = archive();
-    if (query.is_pooling() && !query.set_pool_block(link, false))
+    const auto start = now();
+    const auto applied = !query.is_pooling() ||
+        query.set_pool_block(link, false);
+
+    report(pool_scan::block_out, start);
+    if (!applied)
     {
         fault(error::transaction10);
         return;
@@ -259,7 +305,10 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         }
 
         // Block txs are already silent indexed.
-        if (!query.set_pooled(fk, *tx, ctx, ctx.timestamp))
+        const auto admit = now();
+        const auto pooled = query.set_pooled(fk, *tx, ctx, ctx.timestamp);
+        report(pool_scan::admission, admit);
+        if (!pooled)
         {
             fault(error::transaction2);
             return;
@@ -388,7 +437,10 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
         if (!pooled)
         {
-            if (!query.set_pooled(link, tx, pool_, time))
+            const auto admit = now();
+            const auto admitted = query.set_pooled(link, tx, pool_, time);
+            report(pool_scan::admission, admit);
+            if (!admitted)
             {
                 handler(fault(error::transaction2), index);
                 return;
@@ -516,10 +568,12 @@ void chaser_transaction::do_build_template(
     // The template is the first block of the projection.
     const auto& settings = node_settings().pool;
     database::tx_links links{};
+    const auto start = now();
     const auto ec = archive().get_pool_template(links, projection_,
         block_limit(), settings.maximum_chunk_depth, settings.bytes_per_sigop,
         settings.maximum_outcomes);
 
+    report(pool_scan::template_, start);
     projected_ = !ec;
     arrived_ = false;
     handler(ec, pool_.height, links);
@@ -565,12 +619,16 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
     const auto& settings = node_settings().pool;
     const auto count = add1(target);
     const auto limit = block_limit();
-    if (const auto ec = query.get_pool_projection(projection_, count, limit,
-        settings.maximum_chunk_depth, settings.bytes_per_sigop,
-        settings.maximum_outcomes))
+    const auto start = now();
+    const auto projection = query.get_pool_projection(projection_, count,
+        limit, settings.maximum_chunk_depth, settings.bytes_per_sigop,
+        settings.maximum_outcomes);
+
+    report(pool_scan::projection, start);
+    if (projection)
     {
         projected_ = false;
-        handler(fault(ec), {});
+        handler(fault(projection), {});
         return;
     }
 
@@ -637,7 +695,10 @@ code chaser_transaction::fill(database::tx_link& out,
         if (const auto ec = validate(tx, ctx))
             return ec;
 
-        if (!query.set_pooled(out, tx, ctx, ctx.timestamp))
+        const auto admit = now();
+        const auto admitted = query.set_pooled(out, tx, ctx, ctx.timestamp);
+        report(pool_scan::admission, admit);
+        if (!admitted)
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
@@ -661,7 +722,10 @@ code chaser_transaction::fill(database::tx_link& out,
     const auto coinbase = tx.is_coinbase();
     if (!pooled && !coinbase)
     {
-        if (!query.set_pooled(out, tx, ctx, ctx.timestamp))
+        const auto admit = now();
+        const auto admitted = query.set_pooled(out, tx, ctx, ctx.timestamp);
+        report(pool_scan::admission, admit);
+        if (!admitted)
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
@@ -830,12 +894,17 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
     }
 
     bool covered{};
-    if (const auto ec = archive().get_pool_coverage(covered, txs, stored,
+    const auto start = now();
+    const auto coverage = archive().get_pool_coverage(covered, txs, stored,
         database::context::from(pool_), rate, settings.bytes_per_sigop,
-        block_limit(), settings.maximum_outcomes))
+        block_limit(), settings.maximum_outcomes);
+
+    report(pool_scan::coverage, start);
+    if (coverage)
     {
         index = zero;
-        return ec == database::error::pool_limit ? ec : fault(ec);
+        const auto limited = coverage == database::error::pool_limit;
+        return limited ? coverage : fault(coverage);
     }
 
     if (!covered)

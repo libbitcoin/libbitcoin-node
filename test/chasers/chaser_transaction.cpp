@@ -331,6 +331,41 @@ struct chaser_transaction_setup_fixture
         return false;
     }
 
+    // The first count of pool scans reported from the act, empty if fewer.
+    using pool_events = std::vector<node::pool_event>;
+    pool_events reported(size_t count, const std::function<void()>& act)
+    {
+        struct state
+        {
+            std::promise<void> done{};
+            pool_events events{};
+        };
+
+        // The state is shared, as the subscription may outlive the call.
+        const auto shared = std::make_shared<state>();
+        auto done = shared->done.get_future();
+        node_.subscribe_pool([=](const code& ec,
+            const node::pool_event& event) NOEXCEPT
+        {
+            if (ec)
+                return false;
+
+            shared->events.push_back(event);
+            if (shared->events.size() < count)
+                return true;
+
+            shared->done.set_value();
+            return false;
+        });
+
+        act();
+        using namespace std::chrono;
+        if (done.wait_for(seconds(10)) != std::future_status::ready)
+            return {};
+
+        return shared->events;
+    }
+
     // The pool cell of the tx (absent if it has no row).
     uint32_t cell(const database::tx_link& link)
     {
@@ -1075,6 +1110,33 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__suspe
     node_.notify(node::error::success, chases::organized{ node::header_t{ 42 } });
     BC_REQUIRE(suspended());
     BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::pooling_disabled);
+}
+
+// subscribe_pool
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__submit__coverage_then_admission, chaser_transaction_single_setup_fixture)
+{
+    const auto events = reported(2, [&]()
+    {
+        submit(package({ spend(parent_value - 1'000) }));
+    });
+
+    BC_REQUIRE_EQUAL(events.size(), 2u);
+    BC_REQUIRE(events.front().scan == node::pool_scan::coverage);
+    BC_REQUIRE(events.back().scan == node::pool_scan::admission);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__build_template__template_reported, chaser_transaction_single_setup_fixture)
+{
+    const auto events = reported(1, [&]()
+    {
+        build_template();
+    });
+
+    BC_REQUIRE_EQUAL(events.size(), 1u);
+    BC_REQUIRE(events.front().scan == node::pool_scan::template_);
+    BC_REQUIRE_EQUAL(events.front().report.passes, 1u);
+    BC_REQUIRE(!events.front().report.device);
 }
 
 // do_organized

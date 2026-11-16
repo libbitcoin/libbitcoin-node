@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
 
+#include <chrono>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -58,6 +59,9 @@ public:
     virtual void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 
+    /// Subscribe to pool scans (notified on the strand).
+    virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
+
 protected:
     using chaser::broadcast;
 
@@ -77,6 +81,9 @@ protected:
     /// scan starts: built once current, extended by block until pooling, and
     /// remapped when a block archived before the latch is organized.
     virtual void do_bump() NOEXCEPT;
+
+    /// Retain the pool subscription.
+    virtual void do_subscribe_pool(const pool_notifier& handler) NOEXCEPT;
 
     /// Apply the organized block to the pool index, then bump.
     virtual void do_organized(header_t link) NOEXCEPT;
@@ -113,11 +120,17 @@ private:
     void start_scan(bool remap) NOEXCEPT;
     uint64_t arriving(uint64_t rate, estimate_mode mode) const NOEXCEPT;
 
+    /// Notify pool subscribers of the scan, timed from its start.
+    using time_point = std::chrono::steady_clock::time_point;
+    static time_point now() NOEXCEPT;
+    void report(pool_scan scan, const time_point& start) NOEXCEPT;
+
     // These are thread safe.
     network::threadpool scan_threadpool_;
     stopper stopping_{};
 
     // These are protected by strand.
+    pool_subscriber subscriber_{};
     system::chain::context pool_{};
     query::pool_projection projection_{};
     query::pool_arrivals arrivals_{};
