@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 
+#include <unordered_set>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -460,7 +461,8 @@ void chaser_transaction::estimate(size_t target, estimate_mode mode,
 // the last prefix to clear, and clears when its own rate and its coverage do.
 // It is then connected and admitted, and the next tx starts another. An
 // announced set is a batch, not a package, so a tx of it that is not accepted
-// is passed over as if stored.
+// is passed over as if stored. Prevouts are populated from the whole set, so
+// a tx spending one of it not held (stored or accepted before it) is not.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     bool announced, const submit_handler& handler) NOEXCEPT
 {
@@ -508,13 +510,32 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     auto running = false;
     code failure{};
 
+    std::unordered_set<hash_digest> held{};
+    for (size_t index{}; index < txs->size(); ++index)
+        if (stored.at(index))
+            held.insert(txs->at(index)->get_hash(false));
+
+    const auto spends_held = [&](const chain::transaction& tx) NOEXCEPT
+    {
+        return std::ranges::all_of(*tx.inputs_ptr(), [&](const auto& in)
+            NOEXCEPT
+        {
+            return in->metadata.parent_tx != max_uint32 ||
+                held.contains(in->point().hash());
+        });
+    };
+
     for (size_t index{}; index < txs->size(); ++index)
     {
         if (stored.at(index))
             continue;
 
         const auto& tx = *txs->at(index);
-        if (const auto ec = accept(tx))
+        auto ec = accept(tx);
+        if (!ec && !spends_held(tx))
+            ec = system::error::missing_previous_output;
+
+        if (ec)
         {
             if (!announced)
             {
@@ -532,9 +553,10 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             continue;
         }
 
-        if (const auto ec = query.get_pool_candidate(graph, tx, ctx))
+        held.insert(tx.get_hash(false));
+        if (const auto candidate = query.get_pool_candidate(graph, tx, ctx))
         {
-            handler(fault(ec), index);
+            handler(fault(candidate), index);
             return;
         }
 
@@ -583,9 +605,9 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             if (stored.at(at))
                 continue;
 
-            if (const auto ec = txs->at(at)->connect(pool_))
+            if (const auto connected = txs->at(at)->connect(pool_))
             {
-                handler(ec, at);
+                handler(connected, at);
                 return;
             }
         }
@@ -601,9 +623,9 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             if (stored.at(at))
                 continue;
 
-            if (const auto ec = admit(*txs->at(at), time))
+            if (const auto admitted = admit(*txs->at(at), time))
             {
-                handler(ec, at);
+                handler(admitted, at);
                 return;
             }
 

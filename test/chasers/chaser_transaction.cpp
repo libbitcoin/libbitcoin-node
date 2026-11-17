@@ -1824,6 +1824,42 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__rivals__both_archive
     BC_REQUIRE(query_.is_tx(first->hash(false)));
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__child_of_orphan__neither_archived, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto orphan = spend(missing_hash, parent_value);
+    const auto child = spend(orphan->hash(false), parent_value);
+    const auto valid = spend(parent_value);
+    send(peer::inventory{ { { type_id::transaction, orphan->hash(false) }, { type_id::transaction, child->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ orphan }, node_version->value);
+    send(peer::transaction{ child }, node_version->value);
+    send(peer::inventory{ { { type_id::transaction, valid->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ valid }, node_version->value);
+    BC_REQUIRE(archived(valid->hash(false)));
+    BC_REQUIRE(!query_.is_tx(orphan->hash(false)));
+    BC_REQUIRE(!query_.is_tx(child->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__child_before_parent__parent_archived, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto parent = spend(parent_value);
+    const auto child = spend(parent->hash(false), parent_value);
+    send(peer::inventory{ { { type_id::transaction, child->hash(false) }, { type_id::transaction, parent->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ child }, node_version->value);
+    send(peer::transaction{ parent }, node_version->value);
+    BC_REQUIRE(archived(parent->hash(false)));
+    BC_REQUIRE(!query_.is_tx(child->hash(false)));
+}
+
 // protocol_transaction_out
 
 // distribution (tx in, acceptance, tx out)
