@@ -173,6 +173,12 @@ void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
     session_->submit(txs, test, std::move(handler));
 }
 
+void protocol::submit_announced(const system::chain::transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    session_->submit_announced(txs, std::move(handler));
+}
+
 void protocol::submit_compact(const system::chain::transactions_cptr& txs,
     const database::tx_links& links, const database::header_link& link,
     submit_handler&& handler) NOEXCEPT

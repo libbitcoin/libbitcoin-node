@@ -416,7 +416,16 @@ void chaser_transaction::submit(const transactions_cptr& txs, bool test,
     if (closed())
         return;
 
-    POST(do_submit, txs, test, std::move(handler));
+    POST(do_submit, txs, test, false, std::move(handler));
+}
+
+void chaser_transaction::submit_announced(const transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_submit, txs, false, true, std::move(handler));
 }
 
 void chaser_transaction::submit_compact(const transactions_cptr& txs,
@@ -449,9 +458,11 @@ void chaser_transaction::estimate(size_t target, estimate_mode mode,
 // private
 // A set is tested prefix by prefix. The running set is its unstored txs since
 // the last prefix to clear, and clears when its own rate and its coverage do.
-// It is then connected and admitted, and the next tx starts another.
+// It is then connected and admitted, and the next tx starts another. An
+// announced set is a batch, not a package, so a tx of it that is not accepted
+// is passed over as if stored.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
-    const submit_handler& handler) NOEXCEPT
+    bool announced, const submit_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -475,7 +486,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             return !tx->is_coinbase() && query.is_tx(tx->get_hash(false));
         });
 
-    if (const auto ec = check(*txs, stored))
+    if (const auto ec = check(*txs, stored, announced))
     {
         handler(ec, {});
         return;
@@ -493,8 +504,9 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     // In a test the cleared txs are not pooled, so remain given candidates.
     query::pool_graph graph{};
     uint64_t fee{}, charge{}, bytes{}, sigops{};
-    size_t given{}, first{};
+    size_t given{}, first{}, passed{};
     auto running = false;
+    code failure{};
 
     for (size_t index{}; index < txs->size(); ++index)
     {
@@ -504,8 +516,20 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         const auto& tx = *txs->at(index);
         if (const auto ec = accept(tx))
         {
-            handler(ec, index);
-            return;
+            if (!announced)
+            {
+                handler(ec, index);
+                return;
+            }
+
+            if (!failure)
+            {
+                failure = ec;
+                passed = index;
+            }
+
+            stored.at(index) = true;
+            continue;
         }
 
         if (const auto ec = query.get_pool_candidate(graph, tx, ctx))
@@ -591,7 +615,9 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     }
 
     // A set that ends uncleared fails at the first tx of the uncleared set.
-    if (running)
+    if (failure)
+        handler(failure, passed);
+    else if (running)
         handler(error::insufficient_fee, first);
     else
         handler(error::success, {});
@@ -985,8 +1011,10 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
 // validation
 // ----------------------------------------------------------------------------
 
+// A tx of an announced set that precedes its parent is not accepted, and
+// its txs that spend one point are rivals.
 code chaser_transaction::check(const transaction_cptrs& txs,
-    const std::vector<bool>& stored) NOEXCEPT
+    const std::vector<bool>& stored, bool announced) NOEXCEPT
 {
     if (txs.empty())
         return error::empty_package;
@@ -994,10 +1022,10 @@ code chaser_transaction::check(const transaction_cptrs& txs,
     if (std::ranges::all_of(stored, std::identity{}))
         return error::duplicate_transaction;
 
-    if (block::is_forward_reference(txs, false))
+    if (!announced && block::is_forward_reference(txs, false))
         return system::error::forward_reference;
 
-    if (block::is_internal_double_spend(txs, false))
+    if (!announced && block::is_internal_double_spend(txs, false))
         return system::error::block_internal_double_spend;
 
     return block::populate(txs, pool_, false);

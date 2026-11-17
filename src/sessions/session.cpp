@@ -69,6 +69,12 @@ void session::submit(const transactions_cptr& txs, bool test,
     node_.submit(txs, test, std::move(handler));
 }
 
+void session::submit_announced(const transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    node_.submit_announced(txs, std::move(handler));
+}
+
 void session::submit_compact(const transactions_cptr& txs,
     const database::tx_links& links, const database::header_link& link,
     submit_handler&& handler) NOEXCEPT

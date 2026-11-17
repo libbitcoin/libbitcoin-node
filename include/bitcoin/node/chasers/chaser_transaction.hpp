@@ -41,10 +41,16 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
     void stop() NOEXCEPT override;
 
-    /// Validate and archive a submitted package, accepted as a whole.
-    /// The package is only validated when test, so nothing is archived.
+    /// Validate and archive a submitted set, admitted prefix by prefix until
+    /// one tx fails. The set is only validated when test, nothing archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
+
+    /// Validate and archive an announced set, admitted prefix by prefix, a tx
+    /// that is not accepted passed over (the first such failure reported).
+    virtual void submit_announced(
+        const system::chain::transactions_cptr& txs,
+        submit_handler&& handler) NOEXCEPT;
 
     /// Validate, archive and associate the txs of an identified compact block,
     /// in block order, the txs filling the terminal links.
@@ -68,7 +74,7 @@ protected:
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_submit(const system::chain::transactions_cptr& txs,
-        bool test, const submit_handler& handler) NOEXCEPT;
+        bool test, bool announced, const submit_handler& handler) NOEXCEPT;
     virtual void do_submit_compact(
         const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
@@ -110,7 +116,7 @@ private:
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
 
     code check(const system::chain::transaction_cptrs& txs,
-        const std::vector<bool>& stored) NOEXCEPT;
+        const std::vector<bool>& stored, bool announced) NOEXCEPT;
     code accept(const system::chain::transaction& tx) NOEXCEPT;
     code admit(const system::chain::transaction& tx, uint32_t time) NOEXCEPT;
     code validate(const system::chain::transaction& tx,

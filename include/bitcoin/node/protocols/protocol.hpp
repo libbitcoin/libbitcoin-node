@@ -127,10 +127,16 @@ protected:
     /// Work a proven header branch must reach (candidate or configured).
     virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
 
-    /// Validate and archive a submitted package, accepted as a whole.
-    /// The package is only validated when test, so nothing is archived.
+    /// Validate and archive a submitted set, admitted prefix by prefix until
+    /// one tx fails. The set is only validated when test, nothing archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
+
+    /// Validate and archive an announced set, admitted prefix by prefix, a tx
+    /// that is not accepted passed over (the first such failure reported).
+    virtual void submit_announced(
+        const system::chain::transactions_cptr& txs,
+        submit_handler&& handler) NOEXCEPT;
 
     /// Validate, archive and associate the txs of an identified compact block,
     /// in block order, the txs filling the terminal links.

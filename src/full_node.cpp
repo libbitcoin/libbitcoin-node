@@ -188,6 +188,13 @@ void full_node::submit(const system::chain::transactions_cptr& txs, bool test,
     chaser_transaction_.submit(txs, test, std::move(handler));
 }
 
+void full_node::submit_announced(
+    const system::chain::transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.submit_announced(txs, std::move(handler));
+}
+
 void full_node::submit_compact(const system::chain::transactions_cptr& txs,
     const database::tx_links& links, const database::header_link& link,
     submit_handler&& handler) NOEXCEPT
