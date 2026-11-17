@@ -132,7 +132,8 @@ private:
 
     /// Sweep the index by the pool context if due, false on store failure.
     bool sweep() NOEXCEPT;
-    uint64_t arriving(uint64_t rate, estimate_mode mode) const NOEXCEPT;
+    static uint64_t arriving(const query::pool_arrivals& arrivals,
+        uint64_t rate, estimate_mode mode) NOEXCEPT;
 
     /// Notify pool subscribers of the scan, timed from its start.
     using time_point = std::chrono::steady_clock::time_point;
@@ -146,14 +147,10 @@ private:
     // These are protected by strand.
     pool_subscriber subscriber_{};
     system::chain::context pool_{};
-    query::pool_projection projection_{};
-    query::pool_arrivals arrivals_{};
     size_t floor_{};
     bool pooling_{};
     bool due_{ true };
     bool scanning_{};
-    bool projected_{};
-    bool arrived_{};
 };
 
 } // namespace node

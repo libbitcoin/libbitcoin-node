@@ -153,7 +153,6 @@ void chaser_transaction::do_bump() NOEXCEPT
     BC_ASSERT(stranded());
     const auto opened = pooling_;
     pooling_ = false;
-    projected_ = false;
     if (closed() || !is_current_chain(true))
         return;
 
@@ -405,7 +404,6 @@ void chaser_transaction::do_pruned(header_t link) NOEXCEPT
         return;
     }
 
-    projected_ = false;
     floor_ = std::max(floor_, add1(height));
 }
 
@@ -634,8 +632,6 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
-    projected_ = false;
-
     using link_t = database::tx_link::integer;
     const auto filler = [&](link_t& fk, size_t index) NOEXCEPT
     {
@@ -709,17 +705,16 @@ void chaser_transaction::do_build_template(
         return;
     }
 
-    // The template is the first block of the projection.
+    // The template is the first block of a projection.
     const auto& settings = node_settings().pool;
+    query::pool_projection projection{};
     database::tx_links links{};
     const auto start = now();
-    const auto ec = archive().get_pool_template(links, projection_,
+    const auto ec = archive().get_pool_template(links, projection,
         block_limit(), settings.maximum_chunk_depth, settings.bytes_per_sigop,
         settings.maximum_outcomes);
 
     report(pool_scan::template_, start);
-    projected_ = !ec;
-    arrived_ = false;
     handler(ec, pool_.height, links);
 }
 
@@ -753,53 +748,45 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
         return;
     }
 
-    if (!projected_)
-    {
-        projection_ = {};
-        arrived_ = false;
-    }
-
     const auto& query = archive();
     const auto& settings = node_settings().pool;
     const auto count = add1(target);
     const auto limit = block_limit();
+    query::pool_projection projection{};
     const auto start = now();
-    const auto projection = query.get_pool_projection(projection_, count,
+    const auto projected = query.get_pool_projection(projection, count,
         limit, settings.maximum_chunk_depth, settings.bytes_per_sigop,
         settings.maximum_outcomes);
 
     report(pool_scan::projection, start);
-    if (projection)
+    if (projected)
     {
-        projected_ = false;
-        handler(fault(projection), {});
+        handler(fault(projected), {});
         return;
     }
 
     // Arrivals are whole from the floor to the height of the open interval.
-    projected_ = true;
-    if (!arrived_ && mode != estimate_mode::basic)
+    query::pool_arrivals arrivals{};
+    if (mode != estimate_mode::basic)
     {
         const auto whole = floored_subtract(pool_.height, floor_);
         const auto heights = std::min(whole, conservative_estimate_window);
-        if (const auto ec = query.get_pool_arrivals(arrivals_, pool_.height,
+        if (const auto ec = query.get_pool_arrivals(arrivals, pool_.height,
             heights, settings.bytes_per_sigop))
         {
             handler(fault(ec), {});
             return;
         }
-
-        arrived_ = true;
     }
 
-    const auto arrivals = [&](uint64_t rate) NOEXCEPT
+    const auto arrive = [&](uint64_t rate) NOEXCEPT
     {
-        return arriving(rate, mode);
+        return arriving(arrivals, rate, mode);
     };
 
     using algorithm = pool::algorithm;
     const auto space = limit.size;
-    const auto rate = algorithm::estimate(projection_, count, space, arrivals);
+    const auto rate = algorithm::estimate(projection, count, space, arrive);
     if (rate == max_uint64)
     {
         handler(error::estimate_false, {});
@@ -919,8 +906,8 @@ code chaser_transaction::unconfirmable(const database::header_link& link,
 }
 
 // The size arriving in a block at or above the rate.
-uint64_t chaser_transaction::arriving(uint64_t rate,
-    estimate_mode mode) const NOEXCEPT
+uint64_t chaser_transaction::arriving(const query::pool_arrivals& arrivals,
+    uint64_t rate, estimate_mode mode) NOEXCEPT
 {
     using algorithm = pool::algorithm;
     uint64_t size{};
@@ -929,7 +916,7 @@ uint64_t chaser_transaction::arriving(uint64_t rate,
     {
         case estimate_mode::geometric:
         {
-            for (const auto& takes: std::views::reverse(arrivals_))
+            for (const auto& takes: std::views::reverse(arrivals))
             {
                 const auto above = algorithm::above(takes, rate);
                 size = to_half(ceilinged_add(size, above));
@@ -940,10 +927,10 @@ uint64_t chaser_transaction::arriving(uint64_t rate,
         case estimate_mode::economical:
         {
             const auto window = economical_estimate_window;
-            const auto count = std::min(arrivals_.size(), window);
+            const auto count = std::min(arrivals.size(), window);
             for (size_t age{}; age < count; ++age)
             {
-                const auto above = algorithm::above(arrivals_.at(age), rate);
+                const auto above = algorithm::above(arrivals.at(age), rate);
                 size = ceilinged_add(size, above);
             }
 
@@ -951,7 +938,7 @@ uint64_t chaser_transaction::arriving(uint64_t rate,
         }
         case estimate_mode::conservative:
         {
-            for (const auto& takes: arrivals_)
+            for (const auto& takes: arrivals)
                 size = std::max(size, algorithm::above(takes, rate));
 
             return size;
@@ -1039,7 +1026,6 @@ code chaser_transaction::admit(const chain::transaction& tx,
             return fault(error::transaction6);
     }
 
-    projected_ = false;
     fire(events::tx_archived, to_rate(tx));
     notify(error::success, chases::transaction{ link });
     broadcast(tx);
