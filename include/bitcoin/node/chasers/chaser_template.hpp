@@ -27,7 +27,7 @@ namespace node {
 
 class full_node;
 
-/// Construct template blocks upon modification of the transaction DAG.
+/// Construct template blocks upon request.
 class BCN_API chaser_template
   : public chaser
 {
@@ -38,27 +38,20 @@ public:
 
     code start() NOEXCEPT override;
 
-    /// The latest template of pooled txs, parents first, and its height.
+    /// A template of pooled txs built upon the request, parents first, and
+    /// its height.
     virtual void get_template(template_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
-
-    virtual void do_update() NOEXCEPT;
     virtual void do_get_template(const template_handler& handler) NOEXCEPT;
 
 private:
-    void build() NOEXCEPT;
     void handle_build(const code& ec, size_t height,
-        const database::tx_links& links) NOEXCEPT;
+        const database::tx_links& links,
+        const template_handler& handler) NOEXCEPT;
     void do_build(const code& ec, size_t height,
-        const database::tx_links& links) NOEXCEPT;
-
-    // These are protected by strand.
-    database::tx_links links_{};
-    size_t height_{};
-    bool building_{};
-    bool stale_{};
+        const database::tx_links& links,
+        const template_handler& handler) NOEXCEPT;
 };
 
 } // namespace node

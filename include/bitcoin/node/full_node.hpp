@@ -101,7 +101,8 @@ public:
     /// Subscribe to pool scans (notified on the transaction strand).
     virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
 
-    /// The latest template of pooled txs, parents first, and its height.
+    /// A template of pooled txs built upon the request, parents first, and
+    /// its height.
     virtual void get_template(template_handler&& handler) NOEXCEPT;
 
     /// Manage download queue.

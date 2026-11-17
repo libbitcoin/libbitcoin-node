@@ -178,10 +178,10 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A transaction has been added to the pool.
-    /// Issued by 'transaction' and handled by 'template'.
+    /// Issued by 'transaction' and handled by 'protocol_transaction_out'.
     transaction,
 
-    /// A candidate block (template) has been created.
+    /// A candidate block (template) has been created, upon request.
     /// Issued by 'template' and handled by [miners].
     template_,
 
