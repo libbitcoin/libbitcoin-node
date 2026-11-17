@@ -1716,13 +1716,112 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficien
 
     const auto low = spend(parent_value);
     const auto high = spend(parent_value - 1'000);
-    send(peer::inventory{ { { type_id::transaction, low->hash(false) }, { type_id::transaction, high->hash(false) } } }, peer::level::bip37);
+    send(peer::inventory{ { { type_id::transaction, low->hash(false) } } }, peer::level::bip37);
     BC_REQUIRE(!receive(peer::get_data::command).empty());
 
     send(peer::transaction{ low }, peer::level::bip37);
+    send(peer::inventory{ { { type_id::transaction, high->hash(false) } } }, peer::level::bip37);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
     send(peer::transaction{ high }, peer::level::bip37);
     BC_REQUIRE(archived(high->hash(false)));
     BC_REQUIRE(!query_.is_tx(low->hash(false)));
+}
+
+// sets
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__unpaid_parent_paying_child__both_archived, chaser_transaction_fee_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto parent = spend(parent_value);
+    const auto child = spend(parent->hash(false), parent_value - 1'000);
+    send(peer::inventory{ { { type_id::transaction, parent->hash(false) }, { type_id::transaction, child->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ parent }, node_version->value);
+    send(peer::transaction{ child }, node_version->value);
+    BC_REQUIRE(archived(child->hash(false)));
+    BC_REQUIRE(query_.is_tx(parent->hash(false)));
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__unpaid_parent_child_not_found__not_archived_not_stopped, chaser_transaction_fee_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto parent = spend(parent_value);
+    const auto child = spend(parent->hash(false), parent_value - 1'000);
+    send(peer::inventory{ { { type_id::transaction, parent->hash(false) }, { type_id::transaction, child->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ parent }, node_version->value);
+    send(peer::not_found{ { { type_id::transaction, child->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(!query_.is_tx(parent->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__one_not_found__other_archived, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto tx = spend(parent_value);
+    send(peer::inventory{ { { type_id::transaction, tx->hash(false) }, { type_id::transaction, one_hash } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ tx }, node_version->value);
+    send(peer::not_found{ { { type_id::transaction, one_hash } } }, node_version->value);
+    BC_REQUIRE(archived(tx->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__tx_of_later_announcement__earlier_archived_as_it_stands, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    send(peer::inventory{ { { type_id::transaction, first->hash(false) }, { type_id::transaction, one_hash } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::inventory{ { { type_id::transaction, second->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ first }, node_version->value);
+    send(peer::transaction{ second }, node_version->value);
+    BC_REQUIRE(archived(second->hash(false)));
+    BC_REQUIRE(query_.is_tx(first->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__late_tx__archived_alone, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto late = spend(parent_value);
+    const auto other = spend(missing_hash, parent_value);
+    send(peer::inventory{ { { type_id::transaction, late->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::inventory{ { { type_id::transaction, other->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ other }, node_version->value);
+    send(peer::transaction{ late }, node_version->value);
+    BC_REQUIRE(archived(late->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__announcement__rivals__both_archived, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto first = spend(parent_value);
+    const auto rival = spend(parent_value - 1'000);
+    send(peer::inventory{ { { type_id::transaction, first->hash(false) }, { type_id::transaction, rival->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ first }, node_version->value);
+    send(peer::transaction{ rival }, node_version->value);
+    BC_REQUIRE(archived(rival->hash(false)));
+    BC_REQUIRE(query_.is_tx(first->hash(false)));
 }
 
 // protocol_transaction_out

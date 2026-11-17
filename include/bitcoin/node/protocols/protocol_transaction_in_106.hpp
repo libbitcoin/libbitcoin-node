@@ -19,7 +19,8 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
 
-#include <unordered_set>
+#include <deque>
+#include <unordered_map>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 
@@ -46,8 +47,8 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    /// Clear the request record, false if the tx was not requested.
-    bool erase_requested(const system::hash_digest& hash) NOEXCEPT;
+    /// Record the requested tx as not found, false if it was not requested.
+    bool set_not_found(const system::hash_digest& hash) NOEXCEPT;
 
     /// The inventory type of tx announcements accepted from the peer.
     virtual type_id inventory_type() const NOEXCEPT;
@@ -69,23 +70,48 @@ protected:
     /// Accept incoming transaction message.
     virtual bool handle_receive_transaction(const code& ec,
         const network::messages::peer::transaction::cptr& message) NOEXCEPT;
-    virtual void handle_submit(const code& ec, size_t index,
+    /// Whole if every tx requested of the announcement was in the set.
+    virtual void handle_submit(const code& ec, size_t index, bool whole,
         const gate_t::ptr& gate) NOEXCEPT;
-    virtual void do_handle_submit(const code& ec,
+    virtual void do_handle_submit(const code& ec, bool whole,
         const gate_t::ptr& gate) NOEXCEPT;
 
 private:
-    /// Squash duplicates and provide constant time retrieval.
-    using hashmap = std::unordered_set<system::hash_digest>;
+    /// The txs requested of one announcement, in its order, as they arrive.
+    struct announcement
+    {
+        system::hashes hashes{};
+        system::chain::transaction_cptrs txs{};
+        size_t open{};
+        size_t weight{};
+        bool whole{ true };
+    };
+
+    /// The set and slot of a requested tx (the set is late once submitted).
+    struct request
+    {
+        size_t set{};
+        size_t slot{};
+    };
+
+    using requests = std::unordered_map<system::hash_digest, request>;
 
     network::messages::peer::get_data create_get_data(
         const network::messages::peer::inventory& message) NOEXCEPT;
 
+    /// Submit the sets before the set, as the peer answers in order.
+    void advance(size_t set) NOEXCEPT;
+
+    /// Submit the first set as it stands.
+    void flush() NOEXCEPT;
+
     // This is thread safe.
     const type_id tx_type_;
 
-    // This is protected by strand.
-    hashmap requested_{};
+    // These are protected by strand.
+    requests requested_{};
+    std::deque<announcement> sets_{};
+    size_t first_{};
 };
 
 } // namespace node
