@@ -77,8 +77,9 @@ protected:
     virtual void do_estimate(size_t target, estimate_mode mode,
         const estimate_handler& handler) NOEXCEPT;
 
-    /// Recompute the pool context, closing the pool if not current, and map
-    /// scan starts: built once current, extended by block until pooling, and
+    /// Recompute the pool context and sweep the index by it if due, closing
+    /// the pool if not current or the context is not reusable, and map scan
+    /// starts: built once current, extended by block until pooling, and
     /// remapped when a block archived before the latch is organized.
     virtual void do_bump() NOEXCEPT;
 
@@ -121,6 +122,15 @@ private:
         const code& ec) NOEXCEPT;
     void broadcast(const system::chain::transaction& tx) const NOEXCEPT;
     void start_scan(bool remap) NOEXCEPT;
+
+    /// A validation under the context holds at a later block.
+    bool reusable(const system::chain::context& ctx) const NOEXCEPT;
+
+    /// A validation under the context holds under the pool context.
+    bool is_sufficient(const system::chain::context& ctx) const NOEXCEPT;
+
+    /// Sweep the index by the pool context if due, false on store failure.
+    bool sweep() NOEXCEPT;
     uint64_t arriving(uint64_t rate, estimate_mode mode) const NOEXCEPT;
 
     /// Notify pool subscribers of the scan, timed from its start.
@@ -139,6 +149,7 @@ private:
     query::pool_arrivals arrivals_{};
     size_t floor_{};
     bool pooling_{};
+    bool due_{ true };
     bool scanning_{};
     bool projected_{};
     bool arrived_{};

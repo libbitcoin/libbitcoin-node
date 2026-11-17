@@ -127,6 +127,7 @@ enum error_t : uint8_t
     transaction8,
     transaction9,
     transaction10,
+    transaction11,
     batch1,
     batch2,
     batch3,

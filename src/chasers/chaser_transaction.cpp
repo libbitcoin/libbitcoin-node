@@ -179,13 +179,30 @@ void chaser_transaction::do_bump() NOEXCEPT
         }
 
         // The context of the next block, in which a pool tx would confirm.
+        const auto previous = pool_;
         pool_ = chain_state{ *state, system_settings() }.context();
-        query.set_pooling();
-        pooling_ = true;
 
-        // Rows that arrived while the pool was closed are not in it.
-        if (!opened)
-            floor_ = std::max(floor_, pool_.height);
+        // A row holds while no flag changes and neither height nor median
+        // time past falls.
+        due_ = due_ || pool_.flags != previous.flags ||
+            pool_.height < previous.height ||
+            pool_.median_time_past < previous.median_time_past;
+
+        if (!sweep())
+        {
+            fault(error::transaction11);
+            return;
+        }
+
+        if (reusable(pool_))
+        {
+            query.set_pooling();
+            pooling_ = true;
+
+            // Rows that arrived while the pool was closed are not in it.
+            if (!opened)
+                floor_ = std::max(floor_, pool_.height);
+        }
     }
 
     // Scan starts are mapped after the latch, as pooled rows are unordered.
@@ -202,6 +219,38 @@ void chaser_transaction::do_bump() NOEXCEPT
         start_scan(false);
     else if (unmapped && query.to_coinbase(top) < query.get_latch_tx())
         start_scan(true);
+}
+
+bool chaser_transaction::reusable(const chain::context& ctx) const NOEXCEPT
+{
+    const auto evaluated = database::context::from(ctx);
+    return archive().is_sufficient(evaluated, evaluated);
+}
+
+bool chaser_transaction::is_sufficient(
+    const chain::context& ctx) const NOEXCEPT
+{
+    return archive().is_sufficient(database::context::from(pool_),
+        database::context::from(ctx));
+}
+
+// A sweep remains due while it leaves any row unsatisfied, so that the row is
+// restored once the pool context satisfies it.
+bool chaser_transaction::sweep() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+    if (!due_ || !query.is_pooling())
+        return true;
+
+    size_t count{};
+    const auto start = now();
+    const auto applied = query.set_pool_context(count,
+        database::context::from(pool_));
+
+    report(pool_scan::context, start);
+    due_ = !applied || is_nonzero(count);
+    return applied;
 }
 
 void chaser_transaction::start_scan(bool remap) NOEXCEPT
@@ -306,6 +355,9 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         return;
     }
 
+    if (!reusable(ctx))
+        return;
+
     // The coinbase is never pooled.
     for (auto it = std::next(txs.cbegin()); it != txs.cend(); ++it)
     {
@@ -330,9 +382,13 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
             return;
         }
 
+        due_ = due_ || !is_sufficient(ctx);
         notify(error::success, chases::transaction{ fk });
         broadcast(*tx);
     }
+
+    if (!sweep())
+        fault(error::transaction11);
 }
 
 // Rows confirmed by the pruned block are not retained by the prune.
@@ -551,6 +607,12 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     if (deferred && !filler(filled.front(), zero))
         return;
 
+    if (pooling_ && !sweep())
+    {
+        handler(fault(error::transaction11), {});
+        return;
+    }
+
     const auto strong = is_under_checkpoint(ctx.height);
     if (const auto ec = query.set_code(link, filled, strong))
     {
@@ -704,7 +766,7 @@ code chaser_transaction::fill(database::tx_link& out,
     out = to_stored(tx);
     if (!out.is_terminal())
     {
-        if (tx.is_coinbase() || !query.is_pooling() ||
+        if (tx.is_coinbase() || !query.is_pooling() || !reusable(ctx) ||
             query.is_pooled(out) || query.is_confirmed_tx(out))
             return error::success;
 
@@ -721,6 +783,7 @@ code chaser_transaction::fill(database::tx_link& out,
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
             return fault(error::transaction6);
 
+        due_ = due_ || !is_sufficient(ctx);
         notify(error::success, chases::transaction{ out });
         broadcast(tx);
         return error::success;
@@ -738,11 +801,18 @@ code chaser_transaction::fill(database::tx_link& out,
     const auto coinbase = tx.is_coinbase();
     if (!pooled && !coinbase)
     {
-        const auto admit = now();
-        const auto admitted = query.set_pooled(out, tx, ctx, ctx.timestamp);
-        report(pool_scan::admission, admit);
-        if (!admitted)
-            return fault(error::transaction2);
+        if (reusable(ctx))
+        {
+            const auto admit = now();
+            const auto admitted = query.set_pooled(out, tx, ctx,
+                ctx.timestamp);
+
+            report(pool_scan::admission, admit);
+            if (!admitted)
+                return fault(error::transaction2);
+
+            due_ = due_ || !is_sufficient(ctx);
+        }
 
         if (ctx.height >= query.silent_start_height() &&
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))

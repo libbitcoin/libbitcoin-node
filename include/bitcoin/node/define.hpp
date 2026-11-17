@@ -94,6 +94,9 @@ enum class pool_scan : uint8_t
     /// Index transition of a reorganized block.
     block_out,
 
+    /// Index sweep of the pool context.
+    context,
+
     /// Template.
     template_,
 

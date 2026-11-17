@@ -29,6 +29,9 @@ using type_id = peer::inventory_item::type_id;
 static constexpr uint64_t parent_value = 100'000;
 static const hash_digest missing_hash{ 0x42 };
 
+// The flags of the bip9 bit zero deployment.
+static constexpr auto deployed = chain::flags::bip68_rule | chain::flags::bip112_rule | chain::flags::bip113_rule;
+
 // An unconfirmed tx with an anyone-can-spend output.
 static const chain::transaction& parent() NOEXCEPT
 {
@@ -115,7 +118,7 @@ static bool stored_header(node::query& query) NOEXCEPT
     const system::settings bitcoin{ chain::selection::mainnet };
     const auto& genesis = bitcoin.genesis_block.header();
     const auto& header1 = p2p_compact_setup_fixture::block1().header();
-    const database::context context1{ 0, 1, genesis.timestamp() };
+    const database::context context1{ deployed, 1, genesis.timestamp() };
     const auto work1 = genesis.proof() + header1.proof();
     return query.set(parent()) && query.set(header1, context1, work1, false);
 }
@@ -140,7 +143,7 @@ static bool stored_reorganized(node::query& query) NOEXCEPT
 {
     const auto& block = reorganized_block();
     if (!query.set(parent()) ||
-        !query.set(block, database::context{ 0, 1, 0 }, {}, false, true))
+        !query.set(block, database::context{ deployed, 1, 0 }, {}, false, true))
         return false;
 
     return query.push_confirmed(query.to_header(block.hash()), true) &&
@@ -162,9 +165,16 @@ struct chaser_transaction_setup_fixture
 {
     using result = std::pair<code, size_t>;
 
+    // The pool opens only under bip113, so its deployment is always active.
     inline chaser_transaction_setup_fixture(const configurator& configure={},
         const initializer& setup=stored_parent)
-      : p2p_setup_fixture(setup, configure)
+      : p2p_setup_fixture(setup, [=](configuration& config)
+        {
+            using deployment = chain::chain_state::deployment;
+            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
+            if (configure)
+                configure(config);
+        })
     {
     }
 
@@ -598,6 +608,22 @@ struct chaser_transaction_relative_setup_fixture
             config.node.currency_window_minutes = 0;
             constexpr auto always = chain::chain_state::deployment::always_active;
             config.bitcoin.bip9_bit0_deployment.start = always;
+        })
+    {
+    }
+};
+
+// The bip113 deployment of mainnet (not active above genesis).
+struct chaser_transaction_inactive_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_inactive_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            const system::settings bitcoin{ chain::selection::mainnet };
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.bitcoin.bip9_bit0_deployment = bitcoin.bip9_bit0_deployment;
         })
     {
     }
@@ -1137,6 +1163,58 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__build_template__templat
     BC_REQUIRE(events.front().scan == node::pool_scan::template_);
     BC_REQUIRE_EQUAL(events.front().report.passes, 1u);
     BC_REQUIRE(!events.front().report.device);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__reorganized__block_out_then_context, chaser_transaction_single_setup_fixture)
+{
+    const auto block = confirm();
+    const auto raised = bumped(2);
+    const auto popped = query_.pop_confirmed();
+    const auto events = reported(2, [&]()
+    {
+        node_.notify(node::error::success, chases::reorganized{ block });
+    });
+
+    BC_REQUIRE(!block.is_terminal());
+    BC_REQUIRE(raised);
+    BC_REQUIRE(popped);
+    BC_REQUIRE_EQUAL(events.size(), 2u);
+    BC_REQUIRE(events.front().scan == node::pool_scan::block_out);
+    BC_REQUIRE(events.back().scan == node::pool_scan::context);
+}
+
+// do_bump
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__context_without_bip113__pooling_disabled, chaser_transaction_inactive_setup_fixture)
+{
+    const auto result = submit(package({ spend(parent_value - 1'000) }));
+    BC_REQUIRE_EQUAL(result.first, node::error::pooling_disabled);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__row_of_later_height__insufficient_until_regained, chaser_transaction_single_setup_fixture)
+{
+    constexpr auto insufficient = bit_or(pool::algorithm::absent, pool::algorithm::insufficient);
+    const auto block = confirm();
+    const auto raised = bumped(2);
+    const auto tx = spend(parent_value - 1'000);
+    const auto result = submit(package({ tx }));
+    const auto link = query_.to_tx(tx->hash(false));
+    const auto before = cell(link);
+    const auto popped = query_.pop_confirmed();
+    node_.notify(node::error::success, chases::reorganized{ block });
+    const auto marked = celled(link, insufficient);
+    const auto pushed = query_.push_confirmed(block, true);
+    node_.notify(node::error::success, chases::organized{ block });
+    const auto restored = celled(link, pool::algorithm::unlabeled);
+
+    BC_REQUIRE(!block.is_terminal());
+    BC_REQUIRE(raised);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(pool::algorithm::is_present(before));
+    BC_REQUIRE(popped);
+    BC_REQUIRE(marked);
+    BC_REQUIRE(pushed);
+    BC_REQUIRE(restored);
 }
 
 // do_organized

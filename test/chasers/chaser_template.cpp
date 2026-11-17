@@ -82,8 +82,10 @@ struct chaser_template_setup_fixture
     inline chaser_template_setup_fixture()
       : p2p_setup_fixture(stored_parent, [](configuration& config)
         {
+            using deployment = chain::chain_state::deployment;
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
+            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
         })
     {
         subscribe();
