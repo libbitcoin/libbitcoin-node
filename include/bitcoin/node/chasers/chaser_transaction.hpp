@@ -109,9 +109,10 @@ private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
 
-    code validate(size_t& index, const system::chain::transaction_cptrs& txs,
+    code check(const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored) NOEXCEPT;
     code accept(const system::chain::transaction& tx) NOEXCEPT;
+    code admit(const system::chain::transaction& tx, uint32_t time) NOEXCEPT;
     code validate(const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
     database::tx_link to_stored(

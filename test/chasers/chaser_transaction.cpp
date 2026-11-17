@@ -850,12 +850,21 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_outcomes_over_limit__p
     BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_over_block__pool_limit, chaser_transaction_reserve_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_over_block__pool_limit, chaser_transaction_single_setup_fixture)
 {
     const auto first = submit(package({ spend(parent_value - 1'000) }));
     const auto second = submit(package({ spend(parent_value - 2'000) }));
     BC_REQUIRE_EQUAL(first.first, node::error::success);
     BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__over_block__pool_limit_not_archived, chaser_transaction_reserve_setup_fixture)
+{
+    const auto tx = spend(parent_value - 1'000);
+    const auto result = submit(package({ tx }));
+    BC_REQUIRE_EQUAL(result.first, database::error::pool_limit);
+    BC_REQUIRE_EQUAL(result.second, zero);
+    BC_REQUIRE(!query_.is_tx(tx->hash(false)));
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__parent_and_child__success_archived, chaser_transaction_pooling_setup_fixture)
@@ -887,6 +896,75 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__sufficient_fee__success, chaser
 {
     const auto result = submit(package({ spend(parent_value - 1'000) }));
     BC_REQUIRE_EQUAL(result.first, node::error::success);
+}
+
+// prefixes
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__unpaid_parent_paying_child__both_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto parent = spend(parent_value);
+    const auto child = spend(parent->hash(false), parent_value - 1'000);
+    const auto result = submit(package({ parent, child }));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_pooled(query_.to_tx(parent->hash(false))));
+    BC_REQUIRE(query_.is_pooled(query_.to_tx(child->hash(false))));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paid_then_unpaid__first_archived_fails_at_second, chaser_transaction_fee_setup_fixture)
+{
+    const auto paid = spend(parent_value - 1'000);
+    const auto unpaid = spend(paid->hash(false), parent_value - 1'000);
+    const auto result = submit(package({ paid, unpaid }));
+    BC_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
+    BC_REQUIRE_EQUAL(result.second, one);
+    BC_REQUIRE(query_.is_pooled(query_.to_tx(paid->hash(false))));
+    BC_REQUIRE(!query_.is_tx(unpaid->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paying_child_then_unpaid__two_archived_fails_at_third, chaser_transaction_fee_setup_fixture)
+{
+    const auto parent = spend(parent_value);
+    const auto child = spend(parent->hash(false), parent_value - 1'000);
+    const auto unpaid = spend(child->hash(false), parent_value - 1'000);
+    const auto result = submit(package({ parent, child, unpaid }));
+    BC_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
+    BC_REQUIRE_EQUAL(result.second, two);
+    BC_REQUIRE(query_.is_pooled(query_.to_tx(parent->hash(false))));
+    BC_REQUIRE(query_.is_pooled(query_.to_tx(child->hash(false))));
+    BC_REQUIRE(!query_.is_tx(unpaid->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paid_then_paid_child__both_archived_child_of_parent, chaser_transaction_fee_setup_fixture)
+{
+    const auto parent = spend(parent_value - 1'000);
+    const auto child = spend(parent->hash(false), parent_value - 2'000);
+    const auto result = submit(package({ parent, child }));
+    const auto built = build_template();
+    const auto& links = std::get<2>(built);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(links.size(), two);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(parent->hash(false)));
+    BC_REQUIRE_EQUAL(links.back(), query_.to_tx(child->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__test_paid_then_unpaid__fails_at_second_none_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto paid = spend(parent_value - 1'000);
+    const auto unpaid = spend(paid->hash(false), parent_value - 1'000);
+    const auto result = submit(package({ paid, unpaid }), true);
+    BC_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
+    BC_REQUIRE_EQUAL(result.second, one);
+    BC_REQUIRE(!query_.is_tx(paid->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__test_paid_then_paid_child__success_none_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto parent = spend(parent_value - 1'000);
+    const auto child = spend(parent->hash(false), parent_value - 2'000);
+    const auto result = submit(package({ parent, child }), true);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(!query_.is_tx(parent->hash(false)));
+    BC_REQUIRE(!query_.is_tx(child->hash(false)));
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__internal_relative_lock__relative_time_locked, chaser_transaction_relative_setup_fixture)

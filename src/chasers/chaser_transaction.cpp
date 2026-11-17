@@ -449,6 +449,9 @@ void chaser_transaction::estimate(size_t target, estimate_mode mode,
 }
 
 // private
+// A set is tested prefix by prefix. The running set is its unstored txs since
+// the last prefix to clear, and clears when its own rate and its coverage do.
+// It is then connected and admitted, and the next tx starts another.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     const submit_handler& handler) NOEXCEPT
 {
@@ -474,63 +477,126 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             return !tx->is_coinbase() && query.is_tx(tx->get_hash(false));
         });
 
-    size_t index{};
-    if (const auto ec = validate(index, *txs, stored))
+    if (const auto ec = check(*txs, stored))
     {
-        handler(ec, index);
+        handler(ec, {});
         return;
     }
 
-    if (test)
-    {
-        handler(error::success, {});
-        return;
-    }
-
-    projected_ = false;
-
-    // Parents precede children, so a parent is archived before it is resolved.
+    const auto& settings = node_settings().pool;
+    const auto bip16 = pool_.is_enabled(flags::bip16_rule);
+    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
+    const auto bytes_per_sigop = settings.bytes_per_sigop;
+    const auto rate = settings.minimum_fee_rate_();
+    const auto ctx = database::context::from(pool_);
     const auto time = network::unix_time();
-    for (index = zero; index < txs->size(); ++index)
+    const auto limit = block_limit();
+
+    // In a test the cleared txs are not pooled, so remain given candidates.
+    query::pool_graph graph{};
+    uint64_t fee{}, charge{}, bytes{}, sigops{};
+    size_t given{}, first{};
+    auto running = false;
+
+    for (size_t index{}; index < txs->size(); ++index)
     {
         if (stored.at(index))
             continue;
 
-        bool pooled{};
-        database::tx_link link{};
         const auto& tx = *txs->at(index);
+        if (const auto ec = accept(tx))
+        {
+            handler(ec, index);
+            return;
+        }
 
-        // Disk full may leave package partly archived, resolves by resubmit.
-        if (const auto ec = query.set_code(link, pooled, tx))
+        if (const auto ec = query.get_pool_candidate(graph, tx, ctx))
         {
             handler(fault(ec), index);
             return;
         }
 
-        if (!pooled)
-        {
-            const auto admit = now();
-            const auto admitted = query.set_pooled(link, tx, pool_, time);
-            report(pool_scan::admission, admit);
-            if (!admitted)
-            {
-                handler(fault(error::transaction2), index);
-                return;
-            }
+        if (!running)
+            first = index;
 
-            if (query.silent_enabled() && !query.set_silent(link, tx))
+        running = true;
+        const auto ops = tx.signature_operations(bip16, bip141);
+        const auto cost = ceilinged_multiply<uint64_t>(ops, bytes_per_sigop);
+        fee = ceilinged_add(fee, tx.fee());
+        charge = ceilinged_add(charge, greater(tx.virtual_size(), cost));
+        bytes = ceilinged_add<uint64_t>(bytes, tx.virtual_size());
+        sigops = ceilinged_add<uint64_t>(sigops, ops);
+
+        // The running set is bounded by a block.
+        if (bytes > limit.size || sigops > limit.sigops)
+        {
+            handler(database::error::pool_limit, first);
+            return;
+        }
+
+        // Compared in satoshis per virtual kilobyte.
+        if (ceilinged_multiply(fee, 1'000_u64) <
+            ceilinged_multiply(rate, charge))
+            continue;
+
+        bool covered{};
+        const auto start = now();
+        const auto coverage = query.get_pool_coverage(covered, graph, given,
+            rate, bytes_per_sigop, limit, settings.maximum_outcomes);
+
+        report(pool_scan::coverage, start);
+        if (coverage)
+        {
+            const auto limited = coverage == database::error::pool_limit;
+            handler(limited ? coverage : fault(coverage), first);
+            return;
+        }
+
+        if (!covered)
+            continue;
+
+        // Script validation is the most costly, so it follows the guards.
+        for (auto at = first; at <= index; ++at)
+        {
+            if (stored.at(at))
+                continue;
+
+            if (const auto ec = txs->at(at)->connect(pool_))
             {
-                handler(fault(error::transaction6), index);
+                handler(ec, at);
                 return;
             }
         }
 
-        fire(events::tx_archived, to_rate(tx));
-        notify(error::success, chases::transaction{ link });
-        broadcast(tx);
+        // The graph holds accessors, released before the index is written.
+        if (test)
+            given = graph.candidates.size();
+        else
+            graph = {};
+
+        for (auto at = first; !test && at <= index; ++at)
+        {
+            if (stored.at(at))
+                continue;
+
+            if (const auto ec = admit(*txs->at(at), time))
+            {
+                handler(ec, at);
+                return;
+            }
+
+            stored.at(at) = true;
+        }
+
+        running = false;
+        fee = charge = bytes = sigops = zero;
     }
 
-    handler(error::success, {});
+    // A set that ends uncleared fails at the first tx of the uncleared set.
+    if (running)
+        handler(error::insufficient_fee, first);
+    else
+        handler(error::success, {});
 }
 
 // private
@@ -932,7 +998,7 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
 // validation
 // ----------------------------------------------------------------------------
 
-code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
+code chaser_transaction::check(const transaction_cptrs& txs,
     const std::vector<bool>& stored) NOEXCEPT
 {
     if (txs.empty())
@@ -947,64 +1013,36 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
     if (block::is_internal_double_spend(txs, false))
         return system::error::block_internal_double_spend;
 
-    if (const auto ec = block::populate(txs, pool_, false))
-        return ec;
+    return block::populate(txs, pool_, false);
+}
 
-    const auto& settings = node_settings().pool;
-    const auto bip16 = pool_.is_enabled(flags::bip16_rule);
-    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
-    const auto bytes_per_sigop = settings.bytes_per_sigop;
+code chaser_transaction::admit(const chain::transaction& tx,
+    uint32_t time) NOEXCEPT
+{
+    bool pooled{};
+    database::tx_link link{};
+    auto& query = archive();
 
-    uint64_t fee{}, size{};
-    for (index = zero; index < txs.size(); ++index)
+    // Disk full may leave a set partly archived, resolves by resubmit.
+    if (const auto ec = query.set_code(link, pooled, tx))
+        return fault(ec);
+
+    if (!pooled)
     {
-        if (stored.at(index))
-            continue;
+        const auto start = now();
+        const auto admitted = query.set_pooled(link, tx, pool_, time);
+        report(pool_scan::admission, start);
+        if (!admitted)
+            return fault(error::transaction2);
 
-        const auto& tx = *txs.at(index);
-        if (const auto ec = accept(tx))
-            return ec;
-
-        const auto sigops = tx.signature_operations(bip16, bip141);
-        const auto cost = ceilinged_multiply<uint64_t>(sigops, bytes_per_sigop);
-        fee = ceilinged_add(fee, tx.fee());
-        size = ceilinged_add(size, greater(tx.virtual_size(), cost));
+        if (query.silent_enabled() && !query.set_silent(link, tx))
+            return fault(error::transaction6);
     }
 
-    // Compared in satoshis per virtual kilobyte.
-    const auto rate = settings.minimum_fee_rate_();
-    if (ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size))
-    {
-        index = zero;
-        return error::insufficient_fee;
-    }
-
-    bool covered{};
-    const auto start = now();
-    const auto coverage = archive().get_pool_coverage(covered, txs, stored,
-        database::context::from(pool_), rate, settings.bytes_per_sigop,
-        block_limit(), settings.maximum_outcomes);
-
-    report(pool_scan::coverage, start);
-    if (coverage)
-    {
-        index = zero;
-        const auto limited = coverage == database::error::pool_limit;
-        return limited ? coverage : fault(coverage);
-    }
-
-    if (!covered)
-    {
-        index = zero;
-        return error::insufficient_fee;
-    }
-
-    // Script validation is the most costly, so it follows the guards.
-    for (index = zero; index < txs.size(); ++index)
-        if (!stored.at(index))
-            if (const auto ec = txs.at(index)->connect(pool_))
-                return ec;
-
+    projected_ = false;
+    fire(events::tx_archived, to_rate(tx));
+    notify(error::success, chases::transaction{ link });
+    broadcast(tx);
     return error::success;
 }
 
