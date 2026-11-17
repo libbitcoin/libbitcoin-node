@@ -141,10 +141,14 @@ private:
     static uint64_t arriving(const query::pool_arrivals& arrivals,
         uint64_t rate, estimate_mode mode) NOEXCEPT;
 
-    /// Notify pool subscribers of the scan, timed from its start.
+    /// Notify pool subscribers of the scan, timed from its start, and fire
+    /// its event (other than for coverage, which fires only when it clears).
     using time_point = std::chrono::steady_clock::time_point;
     static time_point now() NOEXCEPT;
     void report(pool_scan scan, const time_point& start) NOEXCEPT;
+
+    /// Fire the event with the microseconds since the start.
+    void fire_span(events event, const time_point& start) NOEXCEPT;
 
     // These are thread safe.
     network::threadpool scan_threadpool_;

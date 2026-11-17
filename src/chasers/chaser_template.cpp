@@ -97,6 +97,7 @@ void chaser_template::do_build(const code& ec, size_t height,
         return;
     }
 
+    fire(events::template_issued, links.size());
     notify(error::success, chases::template_{ height });
     handler(error::success, height, links);
 }

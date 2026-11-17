@@ -71,9 +71,9 @@ protected:
     virtual bool handle_receive_transaction(const code& ec,
         const network::messages::peer::transaction::cptr& message) NOEXCEPT;
     /// Whole if every tx requested of the announcement was in the set.
-    virtual void handle_submit(const code& ec, size_t index, bool whole,
-        const gate_t::ptr& gate) NOEXCEPT;
-    virtual void do_handle_submit(const code& ec, bool whole,
+    virtual void handle_submit(const code& ec, size_t index, size_t count,
+        bool whole, const gate_t::ptr& gate) NOEXCEPT;
+    virtual void do_handle_submit(const code& ec, size_t count, bool whole,
         const gate_t::ptr& gate) NOEXCEPT;
 
 private:

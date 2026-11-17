@@ -95,12 +95,45 @@ void chaser_transaction::report(pool_scan scan,
     const time_point& start) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    switch (scan)
+    {
+        case pool_scan::admission:
+            fire_span(events::pool_admit_usecs, start);
+            break;
+        case pool_scan::block_in:
+            fire_span(events::pool_block_in_usecs, start);
+            break;
+        case pool_scan::block_out:
+            fire_span(events::pool_block_out_usecs, start);
+            break;
+        case pool_scan::context:
+            fire_span(events::pool_context_usecs, start);
+            break;
+        case pool_scan::template_:
+            fire_span(events::pool_template_usecs, start);
+            break;
+        case pool_scan::projection:
+            fire_span(events::pool_project_usecs, start);
+            break;
+        default:
+            break;
+    }
+
     if (subscriber_.empty())
         return;
 
     const auto time = now() - start;
     const auto rows = archive().pool_records();
     subscriber_.notify(error::success, { scan, { rows, one, time } });
+}
+
+void chaser_transaction::fire_span(events event,
+    const time_point& start) NOEXCEPT
+{
+    using namespace std::chrono;
+    const auto elapsed = now() - start;
+    const auto count = duration_cast<microseconds>(elapsed).count();
+    fire(event, limit<size_t>(count));
 }
 
 // event handlers
@@ -488,6 +521,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             return !tx->is_coinbase() && query.is_tx(tx->get_hash(false));
         });
 
+    const auto begin = now();
     if (const auto ec = check(*txs, stored, announced))
     {
         handler(ec, {});
@@ -508,6 +542,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     uint64_t fee{}, charge{}, bytes{}, sigops{};
     size_t given{}, first{}, passed{};
     auto running = false;
+    auto cleared = false;
     code failure{};
 
     std::unordered_set<hash_digest> held{};
@@ -599,7 +634,10 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         if (!covered)
             continue;
 
+        fire_span(events::pool_coverage_usecs, start);
+
         // Script validation is the most costly, so it follows the guards.
+        const auto connecting = now();
         for (auto at = first; at <= index; ++at)
         {
             if (stored.at(at))
@@ -611,6 +649,8 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
                 return;
             }
         }
+
+        fire_span(events::pool_connect_usecs, connecting);
 
         // The graph holds accessors, released before the index is written.
         if (test)
@@ -630,11 +670,15 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             }
 
             stored.at(at) = true;
+            cleared = true;
         }
 
         running = false;
         fee = charge = bytes = sigops = zero;
     }
+
+    if (cleared)
+        fire_span(events::pool_submit_usecs, begin);
 
     // A set that ends uncleared fails at the first tx of the uncleared set.
     if (failure)
@@ -658,6 +702,7 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    const auto start = now();
     auto& query = archive();
     if (query.is_associated(link))
     {
@@ -730,6 +775,7 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    fire_span(events::pool_compact_usecs, start);
     notify(error::success, chases::checked{ ctx.height });
     fire(events::block_archived, ctx.height);
     handler(error::success, {});

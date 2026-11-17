@@ -198,8 +198,9 @@ void protocol_transaction_in_106::flush() NOEXCEPT
     if (txs.empty())
         return;
 
+    const auto count = txs.size();
     submit_announced(to_shared(std::move(txs)),
-        BIND(handle_submit, _1, _2, set.whole, gate()));
+        BIND(handle_submit, _1, _2, count, set.whole, gate()));
 }
 
 // protected
@@ -249,7 +250,7 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
     if (at.set == late)
     {
         submit_announced(to_shared(chain::transaction_cptrs{ tx }),
-            BIND(handle_submit, _1, _2, false, gate()));
+            BIND(handle_submit, _1, _2, one, false, gate()));
 
         return true;
     }
@@ -268,14 +269,14 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
 
 // protected
 void protocol_transaction_in_106::handle_submit(const code& ec, size_t,
-    bool whole, const gate_t::ptr& gate) NOEXCEPT
+    size_t count, bool whole, const gate_t::ptr& gate) NOEXCEPT
 {
-    POST(do_handle_submit, ec, whole, gate);
+    POST(do_handle_submit, ec, count, whole, gate);
 }
 
 // protected
-void protocol_transaction_in_106::do_handle_submit(const code& ec, bool,
-    const gate_t::ptr&) NOEXCEPT
+void protocol_transaction_in_106::do_handle_submit(const code& ec,
+    size_t count, bool, const gate_t::ptr&) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -303,6 +304,7 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec, bool,
         (ec != system::error::missing_previous_output))
     {
         LOGR("Tx from [" << opposite() << "] " << ec.message());
+        fire(events::tx_dropped, count);
         stop(ec);
     }
 }
