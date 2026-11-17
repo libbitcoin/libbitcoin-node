@@ -94,6 +94,10 @@ protected:
     virtual void connect(const network::config::endpoint& endpoint,
         network::net::channel_notifier&& handler) NOEXCEPT;
 
+    /// A template of pooled txs built upon the request, parents first, and
+    /// its height.
+    virtual void get_template(template_handler&& handler) NOEXCEPT;
+
     /// Lowest rate (per virtual kilobyte) confirmed by the target block.
     void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;

@@ -95,6 +95,11 @@ size_t protocol::inbound_channel_count() const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
+void protocol::get_template(template_handler&& handler) NOEXCEPT
+{
+    session_->get_template(std::move(handler));
+}
+
 void protocol::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
