@@ -56,6 +56,7 @@ configuration p2p_setup_fixture::configured(const configurator& configure)
 
     // Derived values are computed from the configuration, as at startup.
     config.database.initialize(config.bitcoin, node_settings.limited_blocks,
+        node_settings.provide_filters, node_settings.require_witness,
         node_settings.silent_start_height);
     BC_REQUIRE(!network_settings.initialize());
 

@@ -47,10 +47,18 @@ code configuration::initialize() NOEXCEPT
     if (silent && node.limited_blocks && node.silent_start_height <= bypassed)
         return error::silent_pruned;
 
-    const auto filter = to_bool(database.filter_bk.buckets) &&
-        to_bool(database.filter_tx.buckets);
-    if (filter && node.limited_blocks)
+    if (node.provide_filters && node.limited_blocks)
         return error::filter_pruned;
+
+    // Disabled indexes are created empty.
+    if (!silent)
+        database.scan.buckets = 0;
+
+    if (!node.provide_filters)
+    {
+        database.filter_bk.buckets = 0;
+        database.filter_tx.buckets = 0;
+    }
 
     system::batched::accelerate(node.use_gpu);
 
@@ -83,7 +91,8 @@ code configuration::initialize() NOEXCEPT
     }
 
     bitcoin.initialize();
-    database.initialize(bitcoin, node.limited_blocks, node.silent_start_height);
+    database.initialize(bitcoin, node.limited_blocks, node.provide_filters,
+        node.require_witness, node.silent_start_height);
     return network.initialize();
 }
 

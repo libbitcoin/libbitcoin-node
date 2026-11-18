@@ -66,6 +66,12 @@ void full_node::start(result_handler&& handler) NOEXCEPT
         return;
     }
 
+    if (config_.node.provide_filters && !query_.filter_enabled())
+    {
+        handler(error::filter_unindexed);
+        return;
+    }
+
     // Base (net) invokes do_start().
     net::start(std::move(handler));
 }

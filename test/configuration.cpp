@@ -103,27 +103,88 @@ BC_AUTO_TEST_CASE(configuration__initialize__limited_filter__filter_pruned)
 {
     node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = true;
-    instance.database.filter_bk.buckets = 1;
-    instance.database.filter_tx.buckets = 1;
+    instance.node.provide_filters = true;
     BC_REQUIRE_EQUAL(instance.initialize(), node::error::filter_pruned);
 }
 
-BC_AUTO_TEST_CASE(configuration__initialize__limited_partial_filter__success)
+BC_AUTO_TEST_CASE(configuration__initialize__limited_unfiltered__success)
 {
     node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = true;
-    instance.database.filter_bk.buckets = 1;
-    instance.database.filter_tx.buckets = 0;
+    instance.node.provide_filters = false;
     BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE(!instance.database.envelope.provide_filters);
 }
 
-BC_AUTO_TEST_CASE(configuration__initialize__unlimited_filter__success)
+BC_AUTO_TEST_CASE(configuration__initialize__unlimited_filter__enveloped)
 {
     node::configuration instance(test::node_configuration());
     instance.node.limited_blocks = false;
-    instance.database.filter_bk.buckets = 1;
-    instance.database.filter_tx.buckets = 1;
+    instance.node.provide_filters = true;
     BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE(instance.database.envelope.provide_filters);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__unbucketed_filter__enveloped)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.limited_blocks = false;
+    instance.node.provide_filters = true;
+    instance.database.filter_bk.buckets = 0;
+    instance.database.filter_tx.buckets = 0;
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE(instance.database.envelope.provide_filters);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__unfiltered__filter_buckets_zero)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.provide_filters = false;
+    instance.database.filter_bk.buckets = 42;
+    instance.database.filter_tx.buckets = 42;
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.database.filter_bk.buckets, 0u);
+    BC_REQUIRE_EQUAL(instance.database.filter_tx.buckets, 0u);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__filtered__filter_buckets_unchanged)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.limited_blocks = false;
+    instance.node.provide_filters = true;
+    instance.database.filter_bk.buckets = 42;
+    instance.database.filter_tx.buckets = 42;
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.database.filter_bk.buckets, 42u);
+    BC_REQUIRE_EQUAL(instance.database.filter_tx.buckets, 42u);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__unsilent__scan_buckets_zero)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.silent_start_height = max_uint32;
+    instance.database.scan.buckets = 42;
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.database.scan.buckets, 0u);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__silent__scan_buckets_unchanged)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.limited_blocks = false;
+    instance.node.require_witness = true;
+    instance.node.silent_start_height = 0;
+    instance.database.scan.buckets = 42;
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.database.scan.buckets, 42u);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__witness__enveloped)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.require_witness = true;
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE(instance.database.envelope.require_witness);
 }
 
 BC_AUTO_TEST_CASE(configuration__initialize__cpu_batching_without_gpu__tables_sized)

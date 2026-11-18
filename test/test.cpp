@@ -146,6 +146,7 @@ database::settings database_settings() NOEXCEPT
     bucket(out.filter_tx);
 
     out.envelope.set(out);
+    out.envelope.provide_filters = true;
     return out;
 }
 
