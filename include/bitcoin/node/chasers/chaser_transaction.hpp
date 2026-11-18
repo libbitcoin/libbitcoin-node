@@ -144,6 +144,9 @@ private:
     void broadcast(const system::chain::transaction& tx) const NOEXCEPT;
     void start_scan(bool remap) NOEXCEPT;
 
+    /// The pool index follows blocks (pooling store and relay enabled).
+    bool is_indexing() const NOEXCEPT;
+
     /// A validation under the context holds at a later block.
     bool reusable(const system::chain::context& ctx) const NOEXCEPT;
 

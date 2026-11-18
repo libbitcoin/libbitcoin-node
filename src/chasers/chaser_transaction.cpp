@@ -254,6 +254,11 @@ void chaser_transaction::do_bump() NOEXCEPT
         start_scan(true);
 }
 
+bool chaser_transaction::is_indexing() const NOEXCEPT
+{
+    return network_settings().enable_relay && archive().is_pooling();
+}
+
 bool chaser_transaction::reusable(const chain::context& ctx) const NOEXCEPT
 {
     const auto evaluated = database::context::from(ctx);
@@ -322,8 +327,8 @@ void chaser_transaction::do_scanned(bool mapped) NOEXCEPT
     do_bump();
 }
 
-// Index transitions are applied in the order confirmed, and once the store is
-// pooling whether or not the pool is open.
+// Index transitions are applied in the order confirmed, once the store is
+// pooling and while relay is enabled, whether or not the pool is open.
 void chaser_transaction::do_organized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -332,8 +337,7 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
 
     auto& query = archive();
     const auto start = now();
-    const auto applied = !query.is_pooling() ||
-        query.set_pool_block(link, true);
+    const auto applied = !is_indexing() || query.set_pool_block(link, true);
 
     report(pool_scan::block_in, start);
     if (!applied)
@@ -366,8 +370,7 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
 
     auto& query = archive();
     const auto start = now();
-    const auto applied = !query.is_pooling() ||
-        query.set_pool_block(link, false);
+    const auto applied = !is_indexing() || query.set_pool_block(link, false);
 
     report(pool_scan::block_out, start);
     if (!applied)
@@ -738,6 +741,7 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    // Not pooling, a block absorbs stored txs in its protocol, off the strand.
     if (!pooling_ || is_nonzero(writers_.load()))
     {
         handler(error::pooling_disabled, {});

@@ -112,6 +112,16 @@ static bool stored_parent(node::query& query) NOEXCEPT
     return query.set(parent());
 }
 
+// A tx pooled in a pooling store, as if relay was enabled before.
+static bool pooled_spend(node::query& query) NOEXCEPT
+{
+    database::tx_link link{};
+    const auto tx = spend(parent_value - 1'000);
+    query.set_pooling();
+    return query.set(parent()) && !query.set_code(link, *tx) &&
+        query.set_pooled(link, *tx, database::context{ 0, 1, 0 }, 0);
+}
+
 // Mainnet block 1 archived as a header without txs.
 static bool stored_header(node::query& query) NOEXCEPT
 {
@@ -668,6 +678,19 @@ struct chaser_transaction_closed_header_setup_fixture
         {
             config.network.enable_relay = false;
         }, stored_header)
+    {
+    }
+};
+
+struct chaser_transaction_relay_off_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_relay_off_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = false;
+            config.node.currency_window_minutes = 0;
+        }, pooled_spend)
     {
     }
 };
@@ -1356,6 +1379,26 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__pooled_block_tx__boundary, c
     BC_REQUIRE(pool::algorithm::is_present(before));
     BC_REQUIRE(confirmed);
     BC_REQUIRE(bounded);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__relay_off_pooled_block_tx__index_unchanged, chaser_transaction_relay_off_setup_fixture)
+{
+    const auto tx = spend(parent_value - 1'000);
+    const auto link = query_.to_tx(tx->hash(false));
+    const auto before = cell(link);
+
+    auto confirmed = false;
+    const auto events = reported(1, [&]()
+    {
+        confirmed = !confirm(tx).is_terminal();
+    });
+
+    BC_REQUIRE(query_.is_pooling());
+    BC_REQUIRE(pool::algorithm::is_present(before));
+    BC_REQUIRE(confirmed);
+    BC_REQUIRE_EQUAL(events.size(), 1u);
+    BC_REQUIRE(events.front().scan == node::pool_scan::block_in);
+    BC_REQUIRE_EQUAL(cell(link), before);
 }
 
 // do_reorganized
