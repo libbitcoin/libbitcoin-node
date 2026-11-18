@@ -112,8 +112,6 @@ struct protocol_filter_setup_fixture
       : p2p_setup_fixture(unfiltered, [](configuration& config)
         {
             config.node.provide_filters = true;
-            config.database.filter_bk.buckets = 128;
-            config.database.filter_tx.buckets = 128;
         })
     {
     }

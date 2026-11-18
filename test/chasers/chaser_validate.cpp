@@ -418,6 +418,7 @@ struct validate_setup_fixture
         config.network.inbound.binds.clear();
         config.network.outbound.connections = 0;
         config.network.outbound.seeds.clear();
+        config.node.provide_filters = true;
         if (configurer)
             configurer(config);
 
@@ -425,6 +426,7 @@ struct validate_setup_fixture
 
         // The store envelope is derived from the configured chain.
         config.database.initialize(config.bitcoin, config.node.limited_blocks,
+            config.node.provide_filters, config.node.require_witness,
             config.node.silent_start_height);
 
         return config;
@@ -569,8 +571,7 @@ struct validate_unfiltered_fixture
     validate_unfiltered_fixture()
       : validate_setup_fixture(validate_candidates, [](configuration& config)
         {
-            config.database.filter_bk.buckets = 0;
-            config.database.filter_tx.buckets = 0;
+            config.node.provide_filters = false;
         })
     {
     }
@@ -583,8 +584,7 @@ struct validate_prevalidated_fixture
       : validate_setup_fixture(validate_prevalidated, [](configuration& config)
         {
             config.bitcoin.checkpoints.clear();
-            config.database.filter_bk.buckets = 0;
-            config.database.filter_tx.buckets = 0;
+            config.node.provide_filters = false;
         })
     {
     }

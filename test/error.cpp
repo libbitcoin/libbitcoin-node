@@ -312,4 +312,13 @@ BC_AUTO_TEST_CASE(error_t__code__filter_pruned__true_expected_message)
     BC_REQUIRE_EQUAL(ec.message(), "client filters require unpruned blocks");
 }
 
+BC_AUTO_TEST_CASE(error_t__code__filter_unindexed__true_expected_message)
+{
+    constexpr auto value = error::filter_unindexed;
+    const auto ec = code(value);
+    BC_REQUIRE(ec);
+    BC_REQUIRE(ec == value);
+    BC_REQUIRE_EQUAL(ec.message(), "client filters are not indexed by the store");
+}
+
 BC_AUTO_TEST_SUITE_END()

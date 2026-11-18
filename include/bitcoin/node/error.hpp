@@ -140,7 +140,8 @@ enum error_t : uint8_t
     /// configuration
     silent_unwitnessed,
     silent_pruned,
-    filter_pruned
+    filter_pruned,
+    filter_unindexed
 };
 
 // No current need for error_code equivalence mapping.

@@ -130,7 +130,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // configuration
     { silent_unwitnessed, "silent payments require witness" },
     { silent_pruned, "silent payments start in pruned blocks" },
-    { filter_pruned, "client filters require unpruned blocks" }
+    { filter_pruned, "client filters require unpruned blocks" },
+    { filter_unindexed, "client filters are not indexed by the store" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

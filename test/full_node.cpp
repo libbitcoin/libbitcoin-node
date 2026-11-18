@@ -171,6 +171,19 @@ struct full_node_maximum_height_setup_fixture
     }
 };
 
+struct full_node_unfiltered_setup_fixture
+  : full_node_setup_fixture
+{
+    inline full_node_unfiltered_setup_fixture()
+      : full_node_setup_fixture([](configuration& config)
+        {
+            config.node.provide_filters = true;
+            config.database.envelope.provide_filters = false;
+        })
+    {
+    }
+};
+
 static const system::chain::header orphan
 {
     1u,
@@ -188,6 +201,12 @@ BC_FIXTURE_TEST_SUITE(full_node_tests, full_node_setup_fixture)
 BC_AUTO_TEST_CASE(full_node__start__uninitialized__store_uninitialized)
 {
     BC_REQUIRE_EQUAL(start(), error::store_uninitialized);
+}
+
+BC_FIXTURE_TEST_CASE(full_node__start__unfiltered_provide_filters__filter_unindexed, full_node_unfiltered_setup_fixture)
+{
+    BC_REQUIRE(initialize());
+    BC_REQUIRE_EQUAL(start(), error::filter_unindexed);
 }
 
 BC_AUTO_TEST_CASE(full_node__start__invalid_candidate_top__organize1)
