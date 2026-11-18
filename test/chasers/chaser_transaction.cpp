@@ -404,6 +404,48 @@ struct chaser_transaction_setup_fixture
         return shared->events;
     }
 
+    // The pool_rows values fired by the act, once strand work has settled.
+    std::vector<uint64_t> rows_fired(const std::function<void()>& act)
+    {
+        struct state
+        {
+            std::promise<bool> done{};
+            std::vector<uint64_t> rows{};
+        };
+
+        // The state is shared, as the subscription may outlive the call.
+        // Every unsubscription (sentinel or stop code) completes the wait.
+        const auto shared = std::make_shared<state>();
+        auto done = shared->done.get_future();
+        log_.subscribe_events([=](const code& ec, uint8_t event_,
+            uint64_t value, const auto&) NOEXCEPT
+        {
+            if (ec)
+            {
+                shared->done.set_value(false);
+                return false;
+            }
+
+            if (event_ == events::unknown)
+            {
+                shared->done.set_value(true);
+                return false;
+            }
+
+            if (event_ == events::pool_rows)
+                shared->rows.push_back(value);
+
+            return true;
+        });
+
+        // The template is built on the strand, after work posted by the act.
+        act();
+        build_template();
+        log_.fire(events::unknown);
+        BC_REQUIRE(done.get());
+        return shared->rows;
+    }
+
     // The pool cell of the tx (absent if it has no row).
     uint32_t cell(const database::tx_link& link)
     {
@@ -1399,6 +1441,30 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__relay_off_pooled_block_tx__i
     BC_REQUIRE_EQUAL(events.size(), 1u);
     BC_REQUIRE(events.front().scan == node::pool_scan::block_in);
     BC_REQUIRE_EQUAL(cell(link), before);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__pooled_tx__pool_rows_fired, chaser_transaction_single_setup_fixture)
+{
+    const auto result = submit(package({ spend(parent_value - 1'000) }));
+    const auto rows = rows_fired([&]()
+    {
+        reported(1, [&]() { confirm(); });
+    });
+
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(rows.size(), 1u);
+    BC_REQUIRE_EQUAL(rows.front(), 1u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__relay_off__pool_rows_not_fired, chaser_transaction_relay_off_setup_fixture)
+{
+    const auto rows = rows_fired([&]()
+    {
+        reported(1, [&]() { confirm(); });
+    });
+
+    BC_REQUIRE(query_.is_pooling());
+    BC_REQUIRE(rows.empty());
 }
 
 // do_reorganized

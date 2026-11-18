@@ -68,6 +68,9 @@ enum events : uint8_t
     validate_usecs,      // block validation timespan in microseconds.
     top_usecs,           // candidate header to top timespan in microseconds.
 
+    /// Transaction pool.
+    pool_rows,          // pool table rows at each organized block
+
     /// Pool timespans.
     pool_submit_usecs,   // admitting set timespan in microseconds.
     pool_coverage_usecs, // clearing coverage timespan in microseconds.

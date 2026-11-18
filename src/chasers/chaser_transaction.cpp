@@ -346,6 +346,9 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
         return;
     }
 
+    if (is_indexing())
+        fire(events::pool_rows, query.pool_records());
+
     do_bump();
 }
 
