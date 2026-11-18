@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 
+#include <unordered_set>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -57,6 +58,7 @@ void chaser_transaction::stopping(const code& ec) NOEXCEPT
     chaser::stopping(ec);
 }
 
+// The strand is no longer running when the chaser is stopped.
 void chaser_transaction::stop() NOEXCEPT
 {
     if (!scan_threadpool_.join())
@@ -64,6 +66,74 @@ void chaser_transaction::stop() NOEXCEPT
         BC_ASSERT_MSG(false, "failed to join threadpool");
         std::abort();
     }
+
+    subscriber_.stop_default(network::error::service_stopped);
+}
+
+// pool subscription
+// ----------------------------------------------------------------------------
+
+void chaser_transaction::subscribe_pool(pool_notifier&& handler) NOEXCEPT
+{
+    POST(do_subscribe_pool, std::move(handler));
+}
+
+void chaser_transaction::do_subscribe_pool(
+    const pool_notifier& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    subscriber_.subscribe(pool_notifier{ handler });
+}
+
+chaser_transaction::time_point chaser_transaction::now() NOEXCEPT
+{
+    return std::chrono::steady_clock::now();
+}
+
+// A scan of the frontier form is one pass, of the table's rows.
+void chaser_transaction::report(pool_scan scan,
+    const time_point& start) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    switch (scan)
+    {
+        case pool_scan::admission:
+            fire_span(events::pool_admit_usecs, start);
+            break;
+        case pool_scan::block_in:
+            fire_span(events::pool_block_in_usecs, start);
+            break;
+        case pool_scan::block_out:
+            fire_span(events::pool_block_out_usecs, start);
+            break;
+        case pool_scan::context:
+            fire_span(events::pool_context_usecs, start);
+            break;
+        case pool_scan::template_:
+            fire_span(events::pool_template_usecs, start);
+            break;
+        case pool_scan::projection:
+            fire_span(events::pool_project_usecs, start);
+            break;
+        default:
+            break;
+    }
+
+    if (subscriber_.empty())
+        return;
+
+    const auto time = now() - start;
+    const auto rows = archive().pool_records();
+    subscriber_.notify(error::success, { scan, { rows, one, time } });
+}
+
+void chaser_transaction::fire_span(events event,
+    const time_point& start) NOEXCEPT
+{
+    using namespace std::chrono;
+    const auto elapsed = now() - start;
+    const auto count = duration_cast<microseconds>(elapsed).count();
+    fire(event, limit<size_t>(count));
 }
 
 // event handlers
@@ -78,7 +148,12 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
     {
         case chase::organized:
         {
-            POST(do_bump);
+            POST(do_organized, to_payload<chase::organized>(value).link);
+            break;
+        }
+        case chase::block:
+        {
+            POST(do_block, to_payload<chase::block>(value).link);
             break;
         }
         case chase::reorganized:
@@ -110,9 +185,8 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
 void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto opened = pooling_;
+    const auto opened = pooling_.load();
     pooling_ = false;
-    projected_ = false;
     if (closed() || !is_current_chain(true))
         return;
 
@@ -138,13 +212,30 @@ void chaser_transaction::do_bump() NOEXCEPT
         }
 
         // The context of the next block, in which a pool tx would confirm.
+        const auto previous = pool_;
         pool_ = chain_state{ *state, system_settings() }.context();
-        query.set_pooling();
-        pooling_ = true;
 
-        // Rows that arrived while the pool was closed are not in it.
-        if (!opened)
-            floor_ = std::max(floor_, pool_.height);
+        // A row holds while no flag changes and neither height nor median
+        // time past falls.
+        due_ = due_ || pool_.flags != previous.flags ||
+            pool_.height < previous.height ||
+            pool_.median_time_past < previous.median_time_past;
+
+        if (!sweep())
+        {
+            fault(error::transaction11);
+            return;
+        }
+
+        if (reusable(pool_))
+        {
+            query.set_pooling();
+            pooling_ = true;
+
+            // Rows that arrived while the pool was closed are not in it.
+            if (!opened)
+                floor_ = std::max(floor_, pool_.height);
+        }
     }
 
     // Scan starts are mapped after the latch, as pooled rows are unordered.
@@ -161,6 +252,38 @@ void chaser_transaction::do_bump() NOEXCEPT
         start_scan(false);
     else if (unmapped && query.to_coinbase(top) < query.get_latch_tx())
         start_scan(true);
+}
+
+bool chaser_transaction::reusable(const chain::context& ctx) const NOEXCEPT
+{
+    const auto evaluated = database::context::from(ctx);
+    return archive().is_sufficient(evaluated, evaluated);
+}
+
+bool chaser_transaction::is_sufficient(
+    const chain::context& ctx) const NOEXCEPT
+{
+    return archive().is_sufficient(database::context::from(pool_),
+        database::context::from(ctx));
+}
+
+// A sweep remains due while it leaves any row unsatisfied, so that the row is
+// restored once the pool context satisfies it.
+bool chaser_transaction::sweep() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+    if (!due_ || !query.is_pooling())
+        return true;
+
+    size_t count{};
+    const auto start = now();
+    const auto applied = query.set_pool_context(count,
+        database::context::from(pool_));
+
+    report(pool_scan::context, start);
+    due_ = !applied || is_nonzero(count);
+    return applied;
 }
 
 void chaser_transaction::start_scan(bool remap) NOEXCEPT
@@ -199,16 +322,64 @@ void chaser_transaction::do_scanned(bool mapped) NOEXCEPT
     do_bump();
 }
 
+// Index transitions are applied in the order confirmed, and once the store is
+// pooling whether or not the pool is open.
+void chaser_transaction::do_organized(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    auto& query = archive();
+    const auto start = now();
+    const auto applied = !query.is_pooling() ||
+        query.set_pool_block(link, true);
+
+    report(pool_scan::block_in, start);
+    if (!applied)
+    {
+        fault(error::transaction10);
+        return;
+    }
+
+    do_bump();
+}
+
+// The block was organized before it was announced, so its transition has
+// been applied, and its prevout cache is no longer required by the pool.
+void chaser_transaction::do_block(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    notify(error::success, chases::block_settled{ link });
+}
+
 // Pooled in block order under the block context, excluding any confirmed (by
 // another block).
 void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    auto& query = archive();
+    const auto start = now();
+    const auto applied = !query.is_pooling() ||
+        query.set_pool_block(link, false);
+
+    report(pool_scan::block_out, start);
+    if (!applied)
+    {
+        fault(error::transaction10);
+        return;
+    }
+
     do_bump();
     if (!pooling_)
         return;
 
-    auto& query = archive();
     chain::context ctx{};
     const auto txs = query.to_transactions(link);
     if (txs.empty() || !query.get_context(ctx, link))
@@ -216,6 +387,9 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         fault(error::transaction7);
         return;
     }
+
+    if (!reusable(ctx))
+        return;
 
     // The coinbase is never pooled.
     for (auto it = std::next(txs.cbegin()); it != txs.cend(); ++it)
@@ -232,15 +406,22 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         }
 
         // Block txs are already silent indexed.
-        if (!query.set_pooled(fk, *tx, ctx, ctx.timestamp))
+        const auto admit = now();
+        const auto pooled = query.set_pooled(fk, *tx, ctx, ctx.timestamp);
+        report(pool_scan::admission, admit);
+        if (!pooled)
         {
             fault(error::transaction2);
             return;
         }
 
+        due_ = due_ || !is_sufficient(ctx);
         notify(error::success, chases::transaction{ fk });
         broadcast(*tx);
     }
+
+    if (!sweep())
+        fault(error::transaction11);
 }
 
 // Rows confirmed by the pruned block are not retained by the prune.
@@ -257,7 +438,6 @@ void chaser_transaction::do_pruned(header_t link) NOEXCEPT
         return;
     }
 
-    projected_ = false;
     floor_ = std::max(floor_, add1(height));
 }
 
@@ -270,7 +450,16 @@ void chaser_transaction::submit(const transactions_cptr& txs, bool test,
     if (closed())
         return;
 
-    POST(do_submit, txs, test, std::move(handler));
+    POST(do_submit, txs, test, false, std::move(handler));
+}
+
+void chaser_transaction::submit_announced(const transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_submit, txs, false, true, std::move(handler));
 }
 
 void chaser_transaction::submit_compact(const transactions_cptr& txs,
@@ -281,6 +470,32 @@ void chaser_transaction::submit_compact(const transactions_cptr& txs,
         return;
 
     POST(do_submit_compact, txs, links, link, std::move(handler));
+}
+
+// A compact block is not filled while a block archives off the strand, so a
+// block that finds the pool closed archives alone.
+bool chaser_transaction::archive_block(code& ec,
+    const chain::view::block::cptr& block, const database::header_link& link,
+    bool strong, bool bypass, size_t height, bool prune,
+    network::result_handler&& handler) NOEXCEPT
+{
+    ++writers_;
+    if (pooling_)
+    {
+        --writers_;
+        if (!closed())
+            POST(do_archive_block, block, link, strong, bypass, height,
+                prune, std::move(handler));
+
+        return false;
+    }
+
+    auto& query = archive();
+    ec = query.is_associated(link) ? error::duplicate_block :
+        query.set_code(*block, link, strong, bypass, height, prune);
+
+    --writers_;
+    return true;
 }
 
 void chaser_transaction::build_template(template_handler&& handler) NOEXCEPT
@@ -301,8 +516,14 @@ void chaser_transaction::estimate(size_t target, estimate_mode mode,
 }
 
 // private
+// A set is tested prefix by prefix. The running set is its unstored txs since
+// the last prefix to clear, and clears when its own rate and its coverage do.
+// It is then connected and admitted, and the next tx starts another. An
+// announced set is a batch, not a package, so a tx of it that is not accepted
+// is passed over as if stored. Prevouts are populated from the whole set, so
+// a tx spending one of it not held (stored or accepted before it) is not.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
-    const submit_handler& handler) NOEXCEPT
+    bool announced, const submit_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -323,63 +544,177 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     std::transform(txs->cbegin(), txs->cend(), stored.begin(),
         [&](const auto& tx) NOEXCEPT
         {
-            return !tx->is_coinbase() && query.is_tx(tx->get_hash(false));
+            const auto link = to_stored(*tx);
+            return !tx->is_coinbase() && !link.is_terminal() &&
+                (query.is_pooled(link) || query.is_confirmed_tx(link));
         });
 
-    size_t index{};
-    if (const auto ec = validate(index, *txs, stored))
+    const auto begin = now();
+    if (const auto ec = check(*txs, stored, announced))
     {
-        handler(ec, index);
+        handler(ec, {});
         return;
     }
 
-    if (test)
-    {
-        handler(error::success, {});
-        return;
-    }
-
-    projected_ = false;
-
-    // Parents precede children, so a parent is archived before it is resolved.
+    const auto& settings = node_settings().pool;
+    const auto bip16 = pool_.is_enabled(flags::bip16_rule);
+    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
+    const auto bytes_per_sigop = settings.bytes_per_sigop;
+    const auto rate = settings.minimum_fee_rate_();
+    const auto ctx = database::context::from(pool_);
     const auto time = network::unix_time();
-    for (index = zero; index < txs->size(); ++index)
+    const auto limit = block_limit();
+
+    // In a test the cleared txs are not pooled, so remain given candidates.
+    query::pool_graph graph{};
+    uint64_t fee{}, charge{}, bytes{}, sigops{};
+    size_t given{}, first{}, passed{};
+    auto running = false;
+    auto cleared = false;
+    code failure{};
+
+    std::unordered_set<hash_digest> held{};
+    for (size_t index{}; index < txs->size(); ++index)
+        if (stored.at(index))
+            held.insert(txs->at(index)->get_hash(false));
+
+    const auto spends_held = [&](const chain::transaction& tx) NOEXCEPT
+    {
+        return std::ranges::all_of(*tx.inputs_ptr(), [&](const auto& in)
+            NOEXCEPT
+        {
+            return in->metadata.parent_tx != max_uint32 ||
+                held.contains(in->point().hash());
+        });
+    };
+
+    for (size_t index{}; index < txs->size(); ++index)
     {
         if (stored.at(index))
             continue;
 
-        bool pooled{};
-        database::tx_link link{};
         const auto& tx = *txs->at(index);
+        auto ec = accept(tx);
+        if (!ec && !spends_held(tx))
+            ec = system::error::missing_previous_output;
 
-        // Disk full may leave package partly archived, resolves by resubmit.
-        if (const auto ec = query.set_code(link, pooled, tx))
+        if (ec)
         {
-            handler(fault(ec), index);
+            if (!announced)
+            {
+                handler(ec, index);
+                return;
+            }
+
+            if (!failure)
+            {
+                failure = ec;
+                passed = index;
+            }
+
+            stored.at(index) = true;
+            continue;
+        }
+
+        held.insert(tx.get_hash(false));
+        if (const auto candidate = query.get_pool_candidate(graph, tx, ctx))
+        {
+            handler(fault(candidate), index);
             return;
         }
 
-        if (!pooled)
-        {
-            if (!query.set_pooled(link, tx, pool_, time))
-            {
-                handler(fault(error::transaction2), index);
-                return;
-            }
+        if (!running)
+            first = index;
 
-            if (query.silent_enabled() && !query.set_silent(link, tx))
+        running = true;
+        const auto ops = tx.signature_operations(bip16, bip141);
+        const auto cost = ceilinged_multiply<uint64_t>(ops, bytes_per_sigop);
+        fee = ceilinged_add(fee, tx.fee());
+        charge = ceilinged_add(charge, greater(tx.virtual_size(), cost));
+        bytes = ceilinged_add<uint64_t>(bytes, tx.virtual_size());
+        sigops = ceilinged_add<uint64_t>(sigops, ops);
+
+        // The running set is bounded by a block.
+        if (bytes > limit.size || sigops > limit.sigops)
+        {
+            handler(database::error::pool_limit, first);
+            return;
+        }
+
+        // Compared in satoshis per virtual kilobyte.
+        if (ceilinged_multiply(fee, 1'000_u64) <
+            ceilinged_multiply(rate, charge))
+            continue;
+
+        bool covered{};
+        const auto start = now();
+        const auto coverage = query.get_pool_coverage(covered, graph, given,
+            rate, bytes_per_sigop, limit, settings.maximum_outcomes);
+
+        report(pool_scan::coverage, start);
+        if (coverage)
+        {
+            const auto limited = coverage == database::error::pool_limit;
+            handler(limited ? coverage : fault(coverage), first);
+            return;
+        }
+
+        if (!covered)
+            continue;
+
+        fire_span(events::pool_coverage_usecs, start);
+
+        // Script validation is the most costly, so it follows the guards.
+        const auto connecting = now();
+        for (auto at = first; at <= index; ++at)
+        {
+            if (stored.at(at))
+                continue;
+
+            if (const auto connected = txs->at(at)->connect(pool_))
             {
-                handler(fault(error::transaction6), index);
+                handler(connected, at);
                 return;
             }
         }
 
-        fire(events::tx_archived, to_rate(tx));
-        notify(error::success, chases::transaction{ link });
-        broadcast(tx);
+        fire_span(events::pool_connect_usecs, connecting);
+
+        // The graph holds accessors, released before the index is written.
+        if (test)
+            given = graph.candidates.size();
+        else
+            graph = {};
+
+        for (auto at = first; !test && at <= index; ++at)
+        {
+            if (stored.at(at))
+                continue;
+
+            if (const auto admitted = admit(*txs->at(at), time))
+            {
+                handler(admitted, at);
+                return;
+            }
+
+            stored.at(at) = true;
+            cleared = true;
+        }
+
+        running = false;
+        fee = charge = bytes = sigops = zero;
     }
 
-    handler(error::success, {});
+    if (cleared)
+        fire_span(events::pool_submit_usecs, begin);
+
+    // A set that ends uncleared fails at the first tx of the uncleared set.
+    if (failure)
+        handler(failure, passed);
+    else if (running)
+        handler(error::insufficient_fee, first);
+    else
+        handler(error::success, {});
 }
 
 // private
@@ -395,10 +730,17 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    const auto start = now();
     auto& query = archive();
     if (query.is_associated(link))
     {
         handler(error::duplicate_block, {});
+        return;
+    }
+
+    if (!pooling_ || is_nonzero(writers_.load()))
+    {
+        handler(error::pooling_disabled, {});
         return;
     }
 
@@ -416,8 +758,6 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         handler(error::transaction5, {});
         return;
     }
-
-    projected_ = false;
 
     using link_t = database::tx_link::integer;
     const auto filler = [&](link_t& fk, size_t index) NOEXCEPT
@@ -456,6 +796,12 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     if (deferred && !filler(filled.front(), zero))
         return;
 
+    if (pooling_ && !sweep())
+    {
+        handler(fault(error::transaction11), {});
+        return;
+    }
+
     const auto strong = is_under_checkpoint(ctx.height);
     if (const auto ec = query.set_code(link, filled, strong))
     {
@@ -463,9 +809,34 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    fire_span(events::pool_compact_usecs, start);
     notify(error::success, chases::checked{ ctx.height });
     fire(events::block_archived, ctx.height);
     handler(error::success, {});
+}
+
+// private
+void chaser_transaction::do_archive_block(
+    const chain::view::block::cptr& block, const database::header_link& link,
+    bool strong, bool bypass, size_t height, bool prune,
+    const network::result_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped);
+        return;
+    }
+
+    auto& query = archive();
+    if (query.is_associated(link))
+    {
+        handler(error::duplicate_block);
+        return;
+    }
+
+    handler(query.set_code(*block, link, strong, bypass, height, prune));
 }
 
 // private
@@ -486,15 +857,16 @@ void chaser_transaction::do_build_template(
         return;
     }
 
-    // The template is the first block of the projection.
+    // The template is the first block of a projection.
     const auto& settings = node_settings().pool;
+    query::pool_projection projection{};
     database::tx_links links{};
-    const auto ec = archive().get_pool_template(links, projection_,
+    const auto start = now();
+    const auto ec = archive().get_pool_template(links, projection,
         block_limit(), settings.maximum_chunk_depth, settings.bytes_per_sigop,
         settings.maximum_outcomes);
 
-    projected_ = !ec;
-    arrived_ = false;
+    report(pool_scan::template_, start);
     handler(ec, pool_.height, links);
 }
 
@@ -528,49 +900,45 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
         return;
     }
 
-    if (!projected_)
-    {
-        projection_ = {};
-        arrived_ = false;
-    }
-
     const auto& query = archive();
     const auto& settings = node_settings().pool;
     const auto count = add1(target);
     const auto limit = block_limit();
-    if (const auto ec = query.get_pool_projection(projection_, count, limit,
-        settings.maximum_chunk_depth, settings.bytes_per_sigop,
-        settings.maximum_outcomes))
+    query::pool_projection projection{};
+    const auto start = now();
+    const auto projected = query.get_pool_projection(projection, count,
+        limit, settings.maximum_chunk_depth, settings.bytes_per_sigop,
+        settings.maximum_outcomes);
+
+    report(pool_scan::projection, start);
+    if (projected)
     {
-        projected_ = false;
-        handler(fault(ec), {});
+        handler(fault(projected), {});
         return;
     }
 
     // Arrivals are whole from the floor to the height of the open interval.
-    projected_ = true;
-    if (!arrived_ && mode != estimate_mode::basic)
+    query::pool_arrivals arrivals{};
+    if (mode != estimate_mode::basic)
     {
         const auto whole = floored_subtract(pool_.height, floor_);
         const auto heights = std::min(whole, conservative_estimate_window);
-        if (const auto ec = query.get_pool_arrivals(arrivals_, pool_.height,
+        if (const auto ec = query.get_pool_arrivals(arrivals, pool_.height,
             heights, settings.bytes_per_sigop))
         {
             handler(fault(ec), {});
             return;
         }
-
-        arrived_ = true;
     }
 
-    const auto arrivals = [&](uint64_t rate) NOEXCEPT
+    const auto arrive = [&](uint64_t rate) NOEXCEPT
     {
-        return arriving(rate, mode);
+        return arriving(arrivals, rate, mode);
     };
 
     using algorithm = pool::algorithm;
     const auto space = limit.size;
-    const auto rate = algorithm::estimate(projection_, count, space, arrivals);
+    const auto rate = algorithm::estimate(projection, count, space, arrive);
     if (rate == max_uint64)
     {
         handler(error::estimate_false, {});
@@ -603,20 +971,24 @@ code chaser_transaction::fill(database::tx_link& out,
     out = to_stored(tx);
     if (!out.is_terminal())
     {
-        if (tx.is_coinbase() || !query.is_pooling() ||
+        if (tx.is_coinbase() || !query.is_pooling() || !reusable(ctx) ||
             query.is_pooled(out) || query.is_confirmed_tx(out))
             return error::success;
 
         if (const auto ec = validate(tx, ctx))
             return ec;
 
-        if (!query.set_pooled(out, tx, ctx, ctx.timestamp))
+        const auto admit = now();
+        const auto admitted = query.set_pooled(out, tx, ctx, ctx.timestamp);
+        report(pool_scan::admission, admit);
+        if (!admitted)
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
             return fault(error::transaction6);
 
+        due_ = due_ || !is_sufficient(ctx);
         notify(error::success, chases::transaction{ out });
         broadcast(tx);
         return error::success;
@@ -634,8 +1006,18 @@ code chaser_transaction::fill(database::tx_link& out,
     const auto coinbase = tx.is_coinbase();
     if (!pooled && !coinbase)
     {
-        if (!query.set_pooled(out, tx, ctx, ctx.timestamp))
-            return fault(error::transaction2);
+        if (reusable(ctx))
+        {
+            const auto admit = now();
+            const auto admitted = query.set_pooled(out, tx, ctx,
+                ctx.timestamp);
+
+            report(pool_scan::admission, admit);
+            if (!admitted)
+                return fault(error::transaction2);
+
+            due_ = due_ || !is_sufficient(ctx);
+        }
 
         if (ctx.height >= query.silent_start_height() &&
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
@@ -676,8 +1058,8 @@ code chaser_transaction::unconfirmable(const database::header_link& link,
 }
 
 // The size arriving in a block at or above the rate.
-uint64_t chaser_transaction::arriving(uint64_t rate,
-    estimate_mode mode) const NOEXCEPT
+uint64_t chaser_transaction::arriving(const query::pool_arrivals& arrivals,
+    uint64_t rate, estimate_mode mode) NOEXCEPT
 {
     using algorithm = pool::algorithm;
     uint64_t size{};
@@ -686,7 +1068,7 @@ uint64_t chaser_transaction::arriving(uint64_t rate,
     {
         case estimate_mode::geometric:
         {
-            for (const auto& takes: std::views::reverse(arrivals_))
+            for (const auto& takes: std::views::reverse(arrivals))
             {
                 const auto above = algorithm::above(takes, rate);
                 size = to_half(ceilinged_add(size, above));
@@ -697,10 +1079,10 @@ uint64_t chaser_transaction::arriving(uint64_t rate,
         case estimate_mode::economical:
         {
             const auto window = economical_estimate_window;
-            const auto count = std::min(arrivals_.size(), window);
+            const auto count = std::min(arrivals.size(), window);
             for (size_t age{}; age < count; ++age)
             {
-                const auto above = algorithm::above(arrivals_.at(age), rate);
+                const auto above = algorithm::above(arrivals.at(age), rate);
                 size = ceilinged_add(size, above);
             }
 
@@ -708,7 +1090,7 @@ uint64_t chaser_transaction::arriving(uint64_t rate,
         }
         case estimate_mode::conservative:
         {
-            for (const auto& takes: arrivals_)
+            for (const auto& takes: arrivals)
                 size = std::max(size, algorithm::above(takes, rate));
 
             return size;
@@ -755,8 +1137,10 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
 // validation
 // ----------------------------------------------------------------------------
 
-code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
-    const std::vector<bool>& stored) NOEXCEPT
+// A tx of an announced set that precedes its parent is not accepted, and
+// its txs that spend one point are rivals.
+code chaser_transaction::check(const transaction_cptrs& txs,
+    const std::vector<bool>& stored, bool announced) NOEXCEPT
 {
     if (txs.empty())
         return error::empty_package;
@@ -764,65 +1148,41 @@ code chaser_transaction::validate(size_t& index, const transaction_cptrs& txs,
     if (std::ranges::all_of(stored, std::identity{}))
         return error::duplicate_transaction;
 
-    if (block::is_forward_reference(txs, false))
+    if (!announced && block::is_forward_reference(txs, false))
         return system::error::forward_reference;
 
-    if (block::is_internal_double_spend(txs, false))
+    if (!announced && block::is_internal_double_spend(txs, false))
         return system::error::block_internal_double_spend;
 
-    if (const auto ec = block::populate(txs, pool_, false))
-        return ec;
+    return block::populate(txs, pool_, false);
+}
 
-    const auto& settings = node_settings().pool;
-    const auto bip16 = pool_.is_enabled(flags::bip16_rule);
-    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
-    const auto bytes_per_sigop = settings.bytes_per_sigop;
+code chaser_transaction::admit(const chain::transaction& tx,
+    uint32_t time) NOEXCEPT
+{
+    bool archived{};
+    database::tx_link link{};
+    auto& query = archive();
 
-    uint64_t fee{}, size{};
-    for (index = zero; index < txs.size(); ++index)
+    // Disk full may leave a set partly archived, resolves by resubmit.
+    if (const auto ec = query.set_code(link, archived, tx))
+        return fault(ec);
+
+    if (!query.is_pooled(link))
     {
-        if (stored.at(index))
-            continue;
-
-        const auto& tx = *txs.at(index);
-        if (const auto ec = accept(tx))
-            return ec;
-
-        const auto sigops = tx.signature_operations(bip16, bip141);
-        const auto cost = ceilinged_multiply<uint64_t>(sigops, bytes_per_sigop);
-        fee = ceilinged_add(fee, tx.fee());
-        size = ceilinged_add(size, greater(tx.virtual_size(), cost));
+        const auto start = now();
+        const auto admitted = query.set_pooled(link, tx, pool_, time);
+        report(pool_scan::admission, start);
+        if (!admitted)
+            return fault(error::transaction2);
     }
 
-    // Compared in satoshis per virtual kilobyte.
-    const auto rate = settings.minimum_fee_rate_();
-    if (ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size))
-    {
-        index = zero;
-        return error::insufficient_fee;
-    }
+    if (!archived && query.silent_enabled() && !query.set_silent(link, tx))
+        return fault(error::transaction6);
 
-    bool covered{};
-    if (const auto ec = archive().get_pool_coverage(covered, txs, stored,
-        database::context::from(pool_), rate, settings.bytes_per_sigop,
-        block_limit(), settings.maximum_outcomes))
-    {
-        index = zero;
-        return ec == database::error::pool_limit ? ec : fault(ec);
-    }
-
-    if (!covered)
-    {
-        index = zero;
-        return error::insufficient_fee;
-    }
-
-    // Script validation is the most costly, so it follows the guards.
-    for (index = zero; index < txs.size(); ++index)
-        if (!stored.at(index))
-            if (const auto ec = txs.at(index)->connect(pool_))
-                return ec;
-
+    fire(events::tx_archived, to_rate(tx));
+    notify(error::success, chases::transaction{ link });
+    broadcast(tx);
     return error::success;
 }
 

@@ -27,6 +27,7 @@
 #include <bitcoin/node/preprocessor.hpp>
 #include <bitcoin/node/rolling_bloom_filter.hpp>
 #include <bitcoin/node/settings.hpp>
+#include <bitcoin/node/solo_spans.hpp>
 #include <bitcoin/node/version.hpp>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/channels/channel_peer.hpp>

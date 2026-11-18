@@ -67,6 +67,21 @@ enum events : uint8_t
     silent_secs,         // silent payment scan timespan in seconds.
     validate_usecs,      // block validation timespan in microseconds.
 
+    /// Pool timespans.
+    pool_submit_usecs,   // admitting set timespan in microseconds.
+    pool_coverage_usecs, // clearing coverage timespan in microseconds.
+    pool_connect_usecs,  // clearing scripts timespan in microseconds.
+    pool_admit_usecs,    // tx index write timespan in microseconds.
+    pool_compact_usecs,  // compact block fill timespan in microseconds.
+    pool_block_in_usecs, // organized block index timespan in microseconds.
+    pool_block_out_usecs, // reorganized block index timespan in microseconds.
+    pool_context_usecs,  // context sweep timespan in microseconds.
+    pool_template_usecs, // template timespan in microseconds.
+    pool_project_usecs,  // fee projection timespan in microseconds.
+
+    /// Peers.
+    tx_dropped,          // peer dropped for a tx set (set size)
+
     unknown
 };
 

@@ -50,10 +50,13 @@ hash_digest protocol_transaction_in_70016::tx_identifier(
     return tx.get_hash(true);
 }
 
-bool protocol_transaction_in_70016::is_archived(
+bool protocol_transaction_in_70016::is_known(
     const hash_digest& hash) const NOEXCEPT
 {
-    return !archive().to_witness_tx(hash).is_terminal();
+    const auto& query = archive();
+    const auto link = query.to_witness_tx(hash);
+    return !link.is_terminal() &&
+        (query.is_pooled(link) || query.is_confirmed_tx(link));
 }
 
 BC_POP_WARNING()

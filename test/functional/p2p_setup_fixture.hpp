@@ -260,6 +260,9 @@ struct p2p_compact_setup_fixture
         uint16_t compact_timeout=max_uint16, uint8_t missing_percent=100)
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
+            using deployment = system::chain::chain_state::deployment;
+            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
+            config.network.enable_relay = true;
             config.network.enable_compact = true;
             config.node.currency_window_minutes = 0;
             config.node.compact_timeout_seconds = compact_timeout;

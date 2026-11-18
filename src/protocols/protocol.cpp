@@ -95,6 +95,11 @@ size_t protocol::inbound_channel_count() const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
+void protocol::get_template(template_handler&& handler) NOEXCEPT
+{
+    session_->get_template(std::move(handler));
+}
+
 void protocol::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
@@ -173,11 +178,26 @@ void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
     session_->submit(txs, test, std::move(handler));
 }
 
+void protocol::submit_announced(const system::chain::transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    session_->submit_announced(txs, std::move(handler));
+}
+
 void protocol::submit_compact(const system::chain::transactions_cptr& txs,
     const database::tx_links& links, const database::header_link& link,
     submit_handler&& handler) NOEXCEPT
 {
     session_->submit_compact(txs, links, link, std::move(handler));
+}
+
+bool protocol::archive_block(code& ec,
+    const system::chain::view::block::cptr& block,
+    const database::header_link& link, bool strong, bool bypass, size_t height,
+    bool prune, network::result_handler&& handler) NOEXCEPT
+{
+    return session_->archive_block(ec, block, link, strong, bypass, height,
+        prune, std::move(handler));
 }
 
 void protocol::subscribe_chase(event_notifier&& handler) NOEXCEPT

@@ -78,10 +78,16 @@ public:
     /// Work a proven header branch must reach (candidate or configured).
     virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
 
-    /// Validate and archive a submitted package, accepted as a whole.
-    /// The package is only validated when test, so nothing is archived.
+    /// Validate and archive a submitted set, admitted prefix by prefix until
+    /// one tx fails. The set is only validated when test, nothing archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
+
+    /// Validate and archive an announced set, admitted prefix by prefix, a tx
+    /// that is not accepted passed over (the first such failure reported).
+    virtual void submit_announced(
+        const system::chain::transactions_cptr& txs,
+        submit_handler&& handler) NOEXCEPT;
 
     /// Validate, archive and associate the txs of an identified compact block,
     /// in block order, the txs filling the terminal links.
@@ -89,10 +95,21 @@ public:
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
+    /// Archive and associate the txs of an identified block, on the calling
+    /// thread (true) unless pooling, then on the strand of compact blocks.
+    virtual bool archive_block(code& ec,
+        const system::chain::view::block::cptr& block,
+        const database::header_link& link, bool strong, bool bypass,
+        size_t height, bool prune, result_handler&& handler) NOEXCEPT;
+
     /// Build a template of pooled txs, parents first, and its height.
     virtual void build_template(template_handler&& handler) NOEXCEPT;
 
-    /// The latest template of pooled txs, parents first, and its height.
+    /// Subscribe to pool scans (notified on the transaction strand).
+    virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
+
+    /// A template of pooled txs built upon the request, parents first, and
+    /// its height.
     virtual void get_template(template_handler&& handler) NOEXCEPT;
 
     /// Manage download queue.

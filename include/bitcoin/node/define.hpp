@@ -79,6 +79,42 @@ typedef network::desubscriber<object_key, event_value> event_subscriber;
 typedef event_subscriber::handler event_notifier;
 typedef event_subscriber::completer event_completer;
 
+/// Scans of the pool.
+enum class pool_scan : uint8_t
+{
+    /// Coverage of an incoming set.
+    coverage,
+
+    /// Index write of an admitted tx.
+    admission,
+
+    /// Index transition of an organized block.
+    block_in,
+
+    /// Index transition of a reorganized block.
+    block_out,
+
+    /// Index sweep of the pool context.
+    context,
+
+    /// Template.
+    template_,
+
+    /// Fee projection.
+    projection
+};
+
+/// A scan of the pool and what it did.
+struct pool_event
+{
+    pool_scan scan{};
+    system::pool::report_t report{};
+};
+
+/// Pool unsubscriber.
+typedef network::unsubscriber<pool_event> pool_subscriber;
+typedef pool_subscriber::handler pool_notifier;
+
 // Inventory messages.
 using type_id = network::messages::peer::inventory_item::type_id;
 

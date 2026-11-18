@@ -22,6 +22,7 @@
 #include <atomic>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/solo_spans.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -168,6 +169,7 @@ private:
     // These are thread safe.
     network::io::strand validation_strand_;
     atomic_counter validate_backlog_{};
+    solo_spans validating_{};
     std::atomic_bool disk_recovering_{};
     std::atomic_bool window_archived_{};
     std::atomic_bool maximum_posted_{};

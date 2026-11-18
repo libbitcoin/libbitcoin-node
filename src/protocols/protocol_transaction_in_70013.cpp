@@ -36,22 +36,25 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // bip133: the peer is sent our rate when current and the maximum otherwise, so
 // a tx below the rate, or any tx while suspended, is sent against instruction.
+// A set that is not whole may lack the tx that pays for another of it.
 void protocol_transaction_in_70013::do_handle_submit(const code& ec,
-    const gate_t::ptr& gate) NOEXCEPT
+    size_t count, bool whole, const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    if (ec == error::insufficient_fee || ec == error::pooling_disabled)
+    if ((ec == error::insufficient_fee && whole) ||
+        ec == error::pooling_disabled)
     {
         LOGR("Tx from [" << opposite() << "] " << ec.message());
+        fire(events::tx_dropped, count);
         stop(ec);
         return;
     }
 
-    protocol_transaction_in_70001::do_handle_submit(ec, gate);
+    protocol_transaction_in_70001::do_handle_submit(ec, count, whole, gate);
 }
 
 BC_POP_WARNING()

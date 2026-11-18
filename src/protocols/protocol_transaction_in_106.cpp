@@ -32,6 +32,9 @@ using namespace std::placeholders;
 // The maximum number of txs requested from a peer and not yet received.
 constexpr size_t maximum_backlog = max_inventory;
 
+// The set of a requested tx whose set has been submitted.
+constexpr size_t late = max_size_t;
+
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
@@ -70,10 +73,13 @@ hash_digest protocol_transaction_in_106::tx_identifier(
     return tx.get_hash(false);
 }
 
-bool protocol_transaction_in_106::is_archived(
+bool protocol_transaction_in_106::is_known(
     const hash_digest& hash) const NOEXCEPT
 {
-    return archive().is_tx(hash);
+    const auto& query = archive();
+    const auto link = query.to_tx(hash);
+    return !link.is_terminal() &&
+        (query.is_pooled(link) || query.is_confirmed_tx(link));
 }
 
 // Inbound (inv).
@@ -117,23 +123,36 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
 }
 
 // private
+// The txs requested of the announcement are one set, in its order.
 get_data protocol_transaction_in_106::create_get_data(
     const inventory& message) NOEXCEPT
 {
     // bip144: get_data uses witness type_id but inv does not.
 
     get_data getter{};
+    announcement set{};
+    const auto sequence = first_ + sets_.size();
     getter.items.reserve(message.count(inventory_type()));
     for (const auto& item: message.view(inventory_type()))
     {
         // The peer has the tx, so it is not announced back to it.
         set_announced(item.hash);
 
-        if (!is_archived(item.hash))
-        {
-            getter.items.emplace_back(get_data_type(), item.hash);
-            requested_.insert(item.hash);
-        }
+        // A tx is requested once.
+        const request slot{ sequence, set.hashes.size() };
+        if (is_known(item.hash) ||
+            !requested_.emplace(item.hash, slot).second)
+            continue;
+
+        getter.items.emplace_back(get_data_type(), item.hash);
+        set.hashes.push_back(item.hash);
+    }
+
+    if (!set.hashes.empty())
+    {
+        set.open = set.hashes.size();
+        set.txs.resize(set.open);
+        sets_.push_back(std::move(set));
     }
 
     getter.items.shrink_to_fit();
@@ -143,13 +162,72 @@ get_data protocol_transaction_in_106::create_get_data(
 // accept transaction
 // ----------------------------------------------------------------------------
 
+// private
+void protocol_transaction_in_106::advance(size_t set) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    while (first_ < set)
+        flush();
+}
+
+// private
+// A tx of the set that is yet to arrive is a set of its own when it does.
+void protocol_transaction_in_106::flush() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    auto set = std::move(sets_.front());
+    sets_.pop_front();
+    ++first_;
+
+    chain::transaction_cptrs txs{};
+    for (size_t slot{}; slot < set.txs.size(); ++slot)
+    {
+        if (set.txs.at(slot))
+        {
+            txs.push_back(set.txs.at(slot));
+            continue;
+        }
+
+        const auto it = requested_.find(set.hashes.at(slot));
+        if (it != requested_.end())
+        {
+            it->second.set = late;
+            set.whole = false;
+        }
+    }
+
+    if (txs.empty())
+        return;
+
+    const auto count = txs.size();
+    submit_announced(to_shared(std::move(txs)),
+        BIND(handle_submit, _1, _2, count, set.whole, gate()));
+}
+
 // protected
-bool protocol_transaction_in_106::erase_requested(
+bool protocol_transaction_in_106::set_not_found(
     const hash_digest& hash) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    return !is_zero(requested_.erase(hash));
+    const auto it = requested_.find(hash);
+    if (it == requested_.end())
+        return false;
+
+    const auto at = it->second;
+    requested_.erase(it);
+    if (at.set == late)
+        return true;
+
+    advance(at.set);
+    auto& set = sets_.front();
+    set.whole = false;
+    if (is_zero(--set.open))
+        flush();
+
+    return true;
 }
 
 bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
@@ -161,7 +239,8 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
         return false;
 
     const auto& tx = message->transaction_ptr;
-    if (!erase_requested(tx_identifier(*tx)))
+    const auto it = requested_.find(tx_identifier(*tx));
+    if (it == requested_.end())
     {
         LOGR("Unrequested tx [" << encode_hash(tx_identifier(*tx))
             << "] from [" << opposite() << "].");
@@ -169,22 +248,38 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
         return false;
     }
 
-    submit(to_shared(chain::transaction_cptrs{ tx }), false,
-        BIND(handle_submit, _1, _2, gate()));
+    const auto at = it->second;
+    requested_.erase(it);
+    if (at.set == late)
+    {
+        submit_announced(to_shared(chain::transaction_cptrs{ tx }),
+            BIND(handle_submit, _1, _2, one, false, gate()));
+
+        return true;
+    }
+
+    advance(at.set);
+    auto& set = sets_.front();
+    set.txs.at(at.slot) = tx;
+    set.weight = ceilinged_add(set.weight, tx->weight());
+
+    // A set is submitted when none of it is yet to arrive, or it holds a block.
+    if (is_zero(--set.open) || set.weight >= chain::max_block_weight)
+        flush();
 
     return true;
 }
 
 // protected
 void protocol_transaction_in_106::handle_submit(const code& ec, size_t,
-    const gate_t::ptr& gate) NOEXCEPT
+    size_t count, bool whole, const gate_t::ptr& gate) NOEXCEPT
 {
-    POST(do_handle_submit, ec, gate);
+    POST(do_handle_submit, ec, count, whole, gate);
 }
 
 // protected
 void protocol_transaction_in_106::do_handle_submit(const code& ec,
-    const gate_t::ptr&) NOEXCEPT
+    size_t count, bool, const gate_t::ptr&) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -212,6 +307,7 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec,
         (ec != system::error::missing_previous_output))
     {
         LOGR("Tx from [" << opposite() << "] " << ec.message());
+        fire(events::tx_dropped, count);
         stop(ec);
     }
 }

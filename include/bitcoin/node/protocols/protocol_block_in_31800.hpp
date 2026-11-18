@@ -82,6 +82,13 @@ private:
     network::messages::peer::get_data create_get_data(
         const database::associations& map) const NOEXCEPT;
 
+    bool archived(const code& ec, const system::hash_digest& hash,
+        size_t height, size_t size) NOEXCEPT;
+    void handle_archive_block(const code& ec, const system::hash_digest& hash,
+        size_t height, size_t size) NOEXCEPT;
+    void do_archive_block(const code& ec, const system::hash_digest& hash,
+        size_t height, size_t size) NOEXCEPT;
+
     void restore(const map_ptr& map) NOEXCEPT;
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
     type_id to_block_type(const database::association& item) const NOEXCEPT;

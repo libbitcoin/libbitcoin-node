@@ -506,8 +506,8 @@ void protocol_header_in_70014::do_submit_compact(const code& ec,
     if (stopped())
         return;
 
-    // Another channel may have completed the block.
-    if (ec == error::duplicate_block)
+    // Another channel may have completed the block, or it is downloaded.
+    if (ec == error::duplicate_block || ec == error::pooling_disabled)
         return;
 
     // The tx chaser marks an identified block with an invalid tx unconfirmable.

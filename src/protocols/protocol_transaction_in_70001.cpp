@@ -65,7 +65,7 @@ bool protocol_transaction_in_70001::handle_receive_not_found(const code& ec,
             continue;
 
         // A reply to a request that was not made is not accepted.
-        if (!erase_requested(item.hash))
+        if (!set_not_found(item.hash))
         {
             LOGR("Unrequested tx not_found [" << encode_hash(item.hash)
                 << "] from [" << opposite() << "].");

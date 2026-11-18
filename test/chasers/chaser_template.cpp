@@ -82,8 +82,10 @@ struct chaser_template_setup_fixture
     inline chaser_template_setup_fixture()
       : p2p_setup_fixture(stored_parent, [](configuration& config)
         {
+            using deployment = chain::chain_state::deployment;
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
+            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
         })
     {
         subscribe();
@@ -112,15 +114,18 @@ struct chaser_template_setup_fixture
         return promise.get_future().get();
     }
 
-    // True when a template event leaves the expected template (bounded).
-    bool templated(const database::tx_links& expected)
+    // The links of a template built upon request.
+    database::tx_links requested()
     {
-        node::chases::template_ event{};
-        while (await(event))
-            if (std::get<2>(get_template()) == expected)
-                return true;
+        return std::get<2>(get_template());
+    }
 
-        return false;
+    // The height of the template event of a request (bounded).
+    size_t announced()
+    {
+        get_template();
+        node::chases::template_ event{};
+        return await(event) ? event.height : max_size_t;
     }
 
     database::tx_link link(const chain::transaction::cptr& tx)
@@ -138,62 +143,63 @@ BC_AUTO_TEST_CASE(chaser_template__get_template__started__empty)
     BC_REQUIRE(links.empty());
 }
 
-BC_AUTO_TEST_CASE(chaser_template__transaction__single__templated_at_next_height)
+BC_AUTO_TEST_CASE(chaser_template__get_template__request__template_event_at_next_height)
+{
+    BC_REQUIRE_EQUAL(announced(), 1u);
+}
+
+BC_AUTO_TEST_CASE(chaser_template__get_template__single__templated_at_next_height)
 {
     const auto tx = spend(parent_value);
     const auto ec = submit(package({ tx }));
-    const auto templated_tx = templated({ link(tx) });
-    const auto height = std::get<1>(get_template());
+    const auto [built, height, links] = get_template();
     BC_REQUIRE_EQUAL(ec, node::error::success);
-    BC_REQUIRE(templated_tx);
+    BC_REQUIRE_EQUAL(built, node::error::success);
     BC_REQUIRE_EQUAL(height, 1u);
+    BC_REQUIRE(links == database::tx_links{ link(tx) });
 }
 
-BC_AUTO_TEST_CASE(chaser_template__transaction__parent_and_child__parent_first)
+BC_AUTO_TEST_CASE(chaser_template__get_template__parent_and_child__parent_first)
 {
     const auto first = spend(parent_value);
     const auto second = spend(first->hash(false), parent_value);
     const auto ec = submit(package({ first, second }));
-    const auto templated_both = templated({ link(first), link(second) });
     BC_REQUIRE_EQUAL(ec, node::error::success);
-    BC_REQUIRE(templated_both);
+    BC_REQUIRE(requested() == database::tx_links({ link(first), link(second) }));
 }
 
-BC_AUTO_TEST_CASE(chaser_template__transaction__separate_packages__both_templated)
+BC_AUTO_TEST_CASE(chaser_template__get_template__separate_packages__both_templated)
 {
     const auto first = spend(parent_value);
     const auto second = spend(first->hash(false), parent_value);
     const auto first_ec = submit(package({ first }));
     const auto second_ec = submit(package({ second }));
-    const auto templated_both = templated({ link(first), link(second) });
     BC_REQUIRE_EQUAL(first_ec, node::error::success);
     BC_REQUIRE_EQUAL(second_ec, node::error::success);
-    BC_REQUIRE(templated_both);
+    BC_REQUIRE(requested() == database::tx_links({ link(first), link(second) }));
 }
 
-BC_AUTO_TEST_CASE(chaser_template__transaction__conflict__higher_fee_only)
+BC_AUTO_TEST_CASE(chaser_template__get_template__conflict__higher_fee_only)
 {
     const auto first = spend(parent_value);
     const auto second = spend(sub1(parent_value));
     const auto first_ec = submit(package({ first }));
     const auto second_ec = submit(package({ second }));
-    const auto templated_rival = templated({ link(second) });
     BC_REQUIRE_EQUAL(first_ec, node::error::success);
     BC_REQUIRE_EQUAL(second_ec, node::error::success);
-    BC_REQUIRE(templated_rival);
+    BC_REQUIRE(requested() == database::tx_links{ link(second) });
 }
 
-BC_AUTO_TEST_CASE(chaser_template__transaction__child_of_losing_rival__rival_only)
+BC_AUTO_TEST_CASE(chaser_template__get_template__child_of_losing_rival__rival_only)
 {
     const auto first = spend(parent_value);
     const auto child = spend(first->hash(false), parent_value);
     const auto second = spend(sub1(parent_value));
     const auto first_ec = submit(package({ first, child }));
     const auto second_ec = submit(package({ second }));
-    const auto templated_rival = templated({ link(second) });
     BC_REQUIRE_EQUAL(first_ec, node::error::success);
     BC_REQUIRE_EQUAL(second_ec, node::error::success);
-    BC_REQUIRE(templated_rival);
+    BC_REQUIRE(requested() == database::tx_links{ link(second) });
 }
 
 BC_AUTO_TEST_SUITE_END()

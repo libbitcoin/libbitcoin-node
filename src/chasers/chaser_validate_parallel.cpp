@@ -63,6 +63,10 @@ void chaser_validate::validate_block(const header_link& link,
     const auto start = network::logger::now();
     const auto current = !bypass && is_current_header(link);
 
+    // A block is timed only if validated alone, as concurrent blocks share
+    // the processor.
+    const auto ticket = validating_.begin();
+
     if (!query.get_context(ctx, link))
     {
         ec = error::validate3;
@@ -111,24 +115,31 @@ void chaser_validate::validate_block(const header_link& link,
         }
     }
 
+    const auto alone = validating_.end(ticket);
+
     if (!ec && current)
     {
         const auto elapsed = network::logger::now() - start;
         const auto count = duration_cast<microseconds>(elapsed).count();
         const auto duration = limit<size_t>(count);
-        fire(events::validate_usecs, duration);
+        std::string timed{ "." };
+        if (alone)
+        {
+            fire(events::validate_usecs, duration);
+            timed = " in (" + std::to_string(duration) + ") usecs.";
+        }
+
         if (pooled)
         {
             LOGN("Validated pooled block [" << ctx.height << "] of ("
-                << query.get_tx_count(link) << ") txs in (" << duration
-                << ") usecs.");
+                << query.get_tx_count(link) << ") txs" << timed);
         }
         else
         {
             LOGN("Validated full block [" << ctx.height << "] of ("
                 << query.get_tx_count(link) << ") txs with ("
-                << unpooled_count(query, link, ctx) << ") unpooled in ("
-                << duration << ") usecs.");
+                << unpooled_count(query, link, ctx) << ") unpooled"
+                << timed);
         }
     }
 

@@ -69,11 +69,26 @@ void session::submit(const transactions_cptr& txs, bool test,
     node_.submit(txs, test, std::move(handler));
 }
 
+void session::submit_announced(const transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    node_.submit_announced(txs, std::move(handler));
+}
+
 void session::submit_compact(const transactions_cptr& txs,
     const database::tx_links& links, const database::header_link& link,
     submit_handler&& handler) NOEXCEPT
 {
     node_.submit_compact(txs, links, link, std::move(handler));
+}
+
+bool session::archive_block(code& ec,
+    const system::chain::view::block::cptr& block,
+    const database::header_link& link, bool strong, bool bypass, size_t height,
+    bool prune, network::result_handler&& handler) NOEXCEPT
+{
+    return node_.archive_block(ec, block, link, strong, bypass, height,
+        prune, std::move(handler));
 }
 
 void session::get_minimum_work(work_handler&& handler) NOEXCEPT
@@ -124,6 +139,11 @@ void session::unsubscribe_chase(object_key key) NOEXCEPT
 
 // Methods.
 // ----------------------------------------------------------------------------
+
+void session::get_template(template_handler&& handler) NOEXCEPT
+{
+    node_.get_template(std::move(handler));
+}
 
 void session::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT

@@ -333,28 +333,67 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     // Pruned nodes do not store input script or witness under bypass.
     const auto prune = bypass && node_pruned_;
-    if (const auto code = query.set_code(block, link, checked, bypass, height,
-        prune))
+    const auto size = block.serialized_size(true);
+    const chain::view::block::cptr shared{ message, &block };
+
+    code stored{};
+    if (!archive_block(stored, shared, link, checked, bypass, height, prune,
+        BIND(handle_archive_block, _1, hash, height, size)))
+        return true;
+
+    return archived(stored, hash, height, size);
+}
+
+// not stranded
+void protocol_block_in_31800::handle_archive_block(const code& ec,
+    const hash_digest& hash, size_t height, size_t size) NOEXCEPT
+{
+    // Chaser may be stopped before protocol.
+    if (stopped() || ec == network::error::service_stopped)
+        return;
+
+    POST(do_archive_block, ec, hash, height, size);
+}
+
+void protocol_block_in_31800::do_archive_block(const code& ec,
+    const hash_digest& hash, size_t height, size_t size) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    archived(ec, hash, height, size);
+}
+
+// Another channel or a compact block may have archived the block.
+bool protocol_block_in_31800::archived(const code& ec,
+    const hash_digest& hash, size_t height, size_t size) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped())
+        return false;
+
+    if (ec && (ec != error::duplicate_block))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
-            << "] from [" << opposite() << "] " << code.message());
+            << "] from [" << opposite() << "] " << ec.message());
 
-        stop(fault(code));
+        stop(fault(ec));
         return false;
     }
 
-    // Advance.
-    // ........................................................................
+    if (!ec)
+    {
+        LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
+            << "] from [" << opposite() << "].");
 
-    LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
-        << "] from [" << opposite() << "].");
+        notify(ec, chases::checked{ height });
+        fire(events::block_archived, height);
+    }
 
-    notify(ec, chases::checked{ height });
-    fire(events::block_archived, height);
-
-    count(block.serialized_size(true));
+    count(size);
     set_current(is_current_chain(true));
-    map_->erase(it);
+    if (const auto it = map_->find(hash); it != map_->cend())
+        map_->erase(it);
+
     if (is_idle())
     {
         job_.reset();

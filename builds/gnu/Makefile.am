@@ -59,6 +59,7 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/full_node.cpp \
     ${srcdir}/../../src/rolling_bloom_filter.cpp \
     ${srcdir}/../../src/settings.cpp \
+    ${srcdir}/../../src/solo_spans.cpp \
     ${srcdir}/../../src/channels/channel_peer.cpp \
     ${srcdir}/../../src/chasers/chaser.cpp \
     ${srcdir}/../../src/chasers/chaser_confirm.cpp \
@@ -141,6 +142,7 @@ include_bitcoin_node_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/preprocessor.hpp \
     ${srcdir}/../../include/bitcoin/node/rolling_bloom_filter.hpp \
     ${srcdir}/../../include/bitcoin/node/settings.hpp \
+    ${srcdir}/../../include/bitcoin/node/solo_spans.hpp \
     include/bitcoin/node/version.hpp
 
 include_bitcoin_node_channelsdir = \
@@ -243,6 +245,7 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/main.cpp \
     ${srcdir}/../../test/rolling_bloom_filter.cpp \
     ${srcdir}/../../test/settings.cpp \
+    ${srcdir}/../../test/solo_spans.cpp \
     ${srcdir}/../../test/test.cpp \
     ${srcdir}/../../test/chasers/chaser.cpp \
     ${srcdir}/../../test/chasers/chaser_confirm.cpp \

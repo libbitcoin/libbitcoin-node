@@ -188,6 +188,13 @@ void full_node::submit(const system::chain::transactions_cptr& txs, bool test,
     chaser_transaction_.submit(txs, test, std::move(handler));
 }
 
+void full_node::submit_announced(
+    const system::chain::transactions_cptr& txs,
+    submit_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.submit_announced(txs, std::move(handler));
+}
+
 void full_node::submit_compact(const system::chain::transactions_cptr& txs,
     const database::tx_links& links, const database::header_link& link,
     submit_handler&& handler) NOEXCEPT
@@ -195,9 +202,23 @@ void full_node::submit_compact(const system::chain::transactions_cptr& txs,
     chaser_transaction_.submit_compact(txs, links, link, std::move(handler));
 }
 
+bool full_node::archive_block(code& ec,
+    const system::chain::view::block::cptr& block,
+    const database::header_link& link, bool strong, bool bypass, size_t height,
+    bool prune, result_handler&& handler) NOEXCEPT
+{
+    return chaser_transaction_.archive_block(ec, block, link, strong, bypass,
+        height, prune, std::move(handler));
+}
+
 void full_node::build_template(template_handler&& handler) NOEXCEPT
 {
     chaser_transaction_.build_template(std::move(handler));
+}
+
+void full_node::subscribe_pool(pool_notifier&& handler) NOEXCEPT
+{
+    chaser_transaction_.subscribe_pool(std::move(handler));
 }
 
 void full_node::get_template(template_handler&& handler) NOEXCEPT
