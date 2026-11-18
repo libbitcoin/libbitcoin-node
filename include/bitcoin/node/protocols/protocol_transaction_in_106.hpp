@@ -60,8 +60,8 @@ protected:
     virtual system::hash_digest tx_identifier(
         const system::chain::transaction& tx) const NOEXCEPT;
 
-    /// The tx identified by the hash is archived.
-    virtual bool is_archived(const system::hash_digest& hash) const NOEXCEPT;
+    /// The tx identified by the hash is pooled or confirmed.
+    virtual bool is_known(const system::hash_digest& hash) const NOEXCEPT;
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,

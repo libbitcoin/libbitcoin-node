@@ -518,7 +518,9 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     std::transform(txs->cbegin(), txs->cend(), stored.begin(),
         [&](const auto& tx) NOEXCEPT
         {
-            return !tx->is_coinbase() && query.is_tx(tx->get_hash(false));
+            const auto link = to_stored(*tx);
+            return !tx->is_coinbase() && !link.is_terminal() &&
+                (query.is_pooled(link) || query.is_confirmed_tx(link));
         });
 
     const auto begin = now();
@@ -1102,25 +1104,25 @@ code chaser_transaction::check(const transaction_cptrs& txs,
 code chaser_transaction::admit(const chain::transaction& tx,
     uint32_t time) NOEXCEPT
 {
-    bool pooled{};
+    bool archived{};
     database::tx_link link{};
     auto& query = archive();
 
     // Disk full may leave a set partly archived, resolves by resubmit.
-    if (const auto ec = query.set_code(link, pooled, tx))
+    if (const auto ec = query.set_code(link, archived, tx))
         return fault(ec);
 
-    if (!pooled)
+    if (!query.is_pooled(link))
     {
         const auto start = now();
         const auto admitted = query.set_pooled(link, tx, pool_, time);
         report(pool_scan::admission, start);
         if (!admitted)
             return fault(error::transaction2);
-
-        if (query.silent_enabled() && !query.set_silent(link, tx))
-            return fault(error::transaction6);
     }
+
+    if (!archived && query.silent_enabled() && !query.set_silent(link, tx))
+        return fault(error::transaction6);
 
     fire(events::tx_archived, to_rate(tx));
     notify(error::success, chases::transaction{ link });

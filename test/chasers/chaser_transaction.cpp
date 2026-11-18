@@ -708,9 +708,26 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__empty__empty_package, chaser_tr
     BC_REQUIRE_EQUAL(result.first, node::error::empty_package);
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit__stored__duplicate_transaction, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__stored_unpooled__pooled, chaser_transaction_pooling_setup_fixture)
 {
-    const auto result = submit(package({ std::make_shared<const chain::transaction>(parent()) }));
+    const auto tx = spend(parent_value);
+    BC_REQUIRE(query_.set(*tx));
+
+    const auto stored = query_.to_tx(tx->hash(false));
+    BC_REQUIRE(!query_.is_pooled(stored));
+
+    const auto result = submit(package({ tx }));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_pooled(stored));
+    BC_REQUIRE_EQUAL(query_.to_tx(tx->hash(false)), stored);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__confirmed__duplicate_transaction, chaser_transaction_single_setup_fixture)
+{
+    const auto tx = spend(parent_value - 1'000);
+    const auto block = confirm(tx);
+    const auto result = submit(package({ tx }));
+    BC_REQUIRE(!block.is_terminal());
     BC_REQUIRE_EQUAL(result.first, node::error::duplicate_transaction);
 }
 
@@ -1589,12 +1606,23 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__unknown_tx__get_data, c
     BC_REQUIRE(message->items.front().hash == one_hash);
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__stored_tx__no_get_data, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__pooled_tx__no_get_data, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto tx = spend(parent_value);
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+
+    send(peer::inventory{ { { type_id::transaction, tx->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__stored_unpooled_tx__get_data, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::inventory{ { { type_id::transaction, parent().hash(false) } } }, node_version->value);
-    BC_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__not_current__no_get_data, chaser_transaction_relay_setup_fixture)

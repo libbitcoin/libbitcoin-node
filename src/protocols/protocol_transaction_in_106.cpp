@@ -73,10 +73,13 @@ hash_digest protocol_transaction_in_106::tx_identifier(
     return tx.get_hash(false);
 }
 
-bool protocol_transaction_in_106::is_archived(
+bool protocol_transaction_in_106::is_known(
     const hash_digest& hash) const NOEXCEPT
 {
-    return archive().is_tx(hash);
+    const auto& query = archive();
+    const auto link = query.to_tx(hash);
+    return !link.is_terminal() &&
+        (query.is_pooled(link) || query.is_confirmed_tx(link));
 }
 
 // Inbound (inv).
@@ -137,7 +140,7 @@ get_data protocol_transaction_in_106::create_get_data(
 
         // A tx is requested once.
         const request slot{ sequence, set.hashes.size() };
-        if (is_archived(item.hash) ||
+        if (is_known(item.hash) ||
             !requested_.emplace(item.hash, slot).second)
             continue;
 
