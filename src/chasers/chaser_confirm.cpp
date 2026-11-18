@@ -95,6 +95,11 @@ bool chaser_confirm::handle_chase(const code&, event_value value) NOEXCEPT
             POST(do_bump, height_t{});
             break;
         }
+        case chase::headers:
+        {
+            POST(do_headers, to_payload<chase::headers>(value).branch_point);
+            break;
+        }
         case chase::valid:
         {
             POST(do_validated, to_payload<chase::valid>(value).height);
@@ -128,9 +133,27 @@ bool chaser_confirm::handle_chase(const code&, event_value value) NOEXCEPT
 // Track validation
 // ----------------------------------------------------------------------------
 
-void chaser_confirm::do_regressed(height_t) NOEXCEPT
+// A candidate is timed only as the one block above a current confirmed top.
+void chaser_confirm::do_headers(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    const auto& query = archive();
+    timed_height_ = zero;
+
+    if (!is_current_chain(true) ||
+        branch_point != query.get_top_confirmed() ||
+        query.get_top_candidate() != add1(branch_point))
+        return;
+
+    timed_height_ = add1(branch_point);
+    timed_start_ = logger::now();
+}
+
+void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (timed_height_ > branch_point)
+        timed_height_ = zero;
 }
 
 void chaser_confirm::do_validated(height_t) NOEXCEPT
@@ -421,6 +444,7 @@ bool chaser_confirm::set_organized(const header_link& link,
     broadcast(link, true);
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
+    fire_top(confirmed_height);
 
     if (confirmed_height == maximum_height_)
     {
@@ -433,6 +457,15 @@ bool chaser_confirm::set_organized(const header_link& link,
 
     announce(link, confirmed_height);
     return true;
+}
+
+void chaser_confirm::fire_top(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (height == timed_height_)
+        span<microseconds>(events::top_usecs, timed_start_);
+
+    timed_height_ = zero;
 }
 
 // Rollback to the fork point, then forward through previously popped.

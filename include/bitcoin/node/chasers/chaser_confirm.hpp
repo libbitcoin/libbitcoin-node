@@ -47,6 +47,7 @@ protected:
 
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
+    virtual void do_headers(height_t branch_point) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
     virtual void do_bumped(height_t height) NOEXCEPT;
@@ -64,6 +65,7 @@ protected:
         const database::header_link& link, bool bypass) NOEXCEPT;
 
 private:
+    void fire_top(size_t height) NOEXCEPT;
     bool set_reorganized(const header_link& link,
         height_t confirmed_height) NOEXCEPT;
     bool set_organized(const header_link& link,
@@ -82,6 +84,8 @@ private:
 
     // These are protected by strand.
     network::deadline::ptr stale_timer_{};
+    network::logger::time timed_start_{};
+    size_t timed_height_{};
     size_t maximum_height_;
 };
 
