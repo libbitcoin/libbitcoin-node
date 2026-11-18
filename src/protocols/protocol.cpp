@@ -191,6 +191,15 @@ void protocol::submit_compact(const system::chain::transactions_cptr& txs,
     session_->submit_compact(txs, links, link, std::move(handler));
 }
 
+bool protocol::archive_block(code& ec,
+    const system::chain::view::block::cptr& block,
+    const database::header_link& link, bool strong, bool bypass, size_t height,
+    bool prune, network::result_handler&& handler) NOEXCEPT
+{
+    return session_->archive_block(ec, block, link, strong, bypass, height,
+        prune, std::move(handler));
+}
+
 void protocol::subscribe_chase(event_notifier&& handler) NOEXCEPT
 {
     // This is a shared instance multiply-derived from network::protocol.

@@ -185,7 +185,7 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
 void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto opened = pooling_;
+    const auto opened = pooling_.load();
     pooling_ = false;
     if (closed() || !is_current_chain(true))
         return;
@@ -472,6 +472,32 @@ void chaser_transaction::submit_compact(const transactions_cptr& txs,
     POST(do_submit_compact, txs, links, link, std::move(handler));
 }
 
+// A compact block is not filled while a block archives off the strand, so a
+// block that finds the pool closed archives alone.
+bool chaser_transaction::archive_block(code& ec,
+    const chain::view::block::cptr& block, const database::header_link& link,
+    bool strong, bool bypass, size_t height, bool prune,
+    network::result_handler&& handler) NOEXCEPT
+{
+    ++writers_;
+    if (pooling_)
+    {
+        --writers_;
+        if (!closed())
+            POST(do_archive_block, block, link, strong, bypass, height,
+                prune, std::move(handler));
+
+        return false;
+    }
+
+    auto& query = archive();
+    ec = query.is_associated(link) ? error::duplicate_block :
+        query.set_code(*block, link, strong, bypass, height, prune);
+
+    --writers_;
+    return true;
+}
+
 void chaser_transaction::build_template(template_handler&& handler) NOEXCEPT
 {
     if (closed())
@@ -712,6 +738,12 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return;
     }
 
+    if (!pooling_ || is_nonzero(writers_.load()))
+    {
+        handler(error::pooling_disabled, {});
+        return;
+    }
+
     chain::context ctx{};
     if (!query.get_context(ctx, link))
     {
@@ -781,6 +813,30 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     notify(error::success, chases::checked{ ctx.height });
     fire(events::block_archived, ctx.height);
     handler(error::success, {});
+}
+
+// private
+void chaser_transaction::do_archive_block(
+    const chain::view::block::cptr& block, const database::header_link& link,
+    bool strong, bool bypass, size_t height, bool prune,
+    const network::result_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped);
+        return;
+    }
+
+    auto& query = archive();
+    if (query.is_associated(link))
+    {
+        handler(error::duplicate_block);
+        return;
+    }
+
+    handler(query.set_code(*block, link, strong, bypass, height, prune));
 }
 
 // private

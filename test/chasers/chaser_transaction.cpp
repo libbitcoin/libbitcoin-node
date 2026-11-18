@@ -203,6 +203,24 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
+    using archive_result = std::pair<bool, code>;
+    archive_result archive_block(const database::header_link& link)
+    {
+        const auto& block1 = p2p_compact_setup_fixture::block1();
+        const auto block = std::make_shared<const chain::view::block>(
+            block1.to_data(true), true);
+
+        code ec{};
+        std::promise<code> promise{};
+        const auto local = node_.archive_block(ec, block, link, false, false,
+            1, false, [&](const code& result) NOEXCEPT
+            {
+                promise.set_value(result);
+            });
+
+        return { local, local ? ec : promise.get_future().get() };
+    }
+
     using built = std::tuple<code, size_t, database::tx_links>;
     built build_template()
     {
@@ -637,6 +655,18 @@ struct chaser_transaction_header_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
+        }, stored_header)
+    {
+    }
+};
+
+struct chaser_transaction_closed_header_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_closed_header_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = false;
         }, stored_header)
     {
     }
@@ -1392,6 +1422,71 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__poo
     BC_REQUIRE(query_.is_associated(link));
     BC_REQUIRE(query_.is_pooled(stored));
     BC_REQUIRE_EQUAL(query_.to_tx(tx->hash(false)), stored);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__not_pooling__pooling_disabled, chaser_transaction_closed_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto result = submit_compact(package({}), { database::tx_link{ 0 } }, link);
+    BC_REQUIRE_EQUAL(result.first, node::error::pooling_disabled);
+    BC_REQUIRE(!query_.is_associated(link));
+}
+
+// archive_block
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__archive_block__not_pooling__archived_locally, chaser_transaction_closed_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto result = archive_block(link);
+    BC_REQUIRE(result.first);
+    BC_REQUIRE(!result.second);
+    BC_REQUIRE(query_.is_associated(link));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__archive_block__not_pooling_associated__duplicate_block, chaser_transaction_closed_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    BC_REQUIRE(!archive_block(link).second);
+
+    const auto result = archive_block(link);
+    BC_REQUIRE(result.first);
+    BC_REQUIRE_EQUAL(result.second, node::error::duplicate_block);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__archive_block__pooling__archived_on_strand, chaser_transaction_header_setup_fixture)
+{
+    BC_REQUIRE(bumped(1));
+
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto result = archive_block(link);
+    BC_REQUIRE(!result.first);
+    BC_REQUIRE(!result.second);
+    BC_REQUIRE(query_.is_associated(link));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__archive_block__pooling_compact_associated__duplicate_block, chaser_transaction_header_setup_fixture)
+{
+    BC_REQUIRE(bumped(1));
+
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto& coinbase = p2p_compact_setup_fixture::block1().transactions_ptr()->front();
+    BC_REQUIRE_EQUAL(submit_compact(package({ coinbase }), { database::tx_link::terminal }, link).first, node::error::success);
+
+    const auto result = archive_block(link);
+    BC_REQUIRE(!result.first);
+    BC_REQUIRE_EQUAL(result.second, node::error::duplicate_block);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__pooling_archived__duplicate_block, chaser_transaction_header_setup_fixture)
+{
+    BC_REQUIRE(bumped(1));
+
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    BC_REQUIRE(!archive_block(link).second);
+
+    const auto& coinbase = p2p_compact_setup_fixture::block1().transactions_ptr()->front();
+    const auto result = submit_compact(package({ coinbase }), { database::tx_link::terminal }, link);
+    BC_REQUIRE_EQUAL(result.first, node::error::duplicate_block);
 }
 
 BC_AUTO_TEST_SUITE_END()

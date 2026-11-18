@@ -58,6 +58,15 @@ public:
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
+    /// Archive and associate the txs of an identified block. Not pooling, on
+    /// the calling thread, returning true with the code. Pooling, on the
+    /// strand with compact blocks, returning false and handling the code
+    /// (thread safe).
+    virtual bool archive_block(code& ec,
+        const system::chain::view::block::cptr& block,
+        const database::header_link& link, bool strong, bool bypass,
+        size_t height, bool prune, network::result_handler&& handler) NOEXCEPT;
+
     /// Build a template of pooled txs, parents first, and its height.
     virtual void build_template(template_handler&& handler) NOEXCEPT;
 
@@ -79,6 +88,11 @@ protected:
         const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
         const submit_handler& handler) NOEXCEPT;
+    virtual void do_archive_block(
+        const system::chain::view::block::cptr& block,
+        const database::header_link& link, bool strong, bool bypass,
+        size_t height, bool prune,
+        const network::result_handler& handler) NOEXCEPT;
     virtual void do_build_template(const template_handler& handler) NOEXCEPT;
     virtual void do_estimate(size_t target, estimate_mode mode,
         const estimate_handler& handler) NOEXCEPT;
@@ -153,12 +167,13 @@ private:
     // These are thread safe.
     network::threadpool scan_threadpool_;
     stopper stopping_{};
+    std::atomic_bool pooling_{};
+    std::atomic<size_t> writers_{};
 
     // These are protected by strand.
     pool_subscriber subscriber_{};
     system::chain::context pool_{};
     size_t floor_{};
-    bool pooling_{};
     bool due_{ true };
     bool scanning_{};
 };

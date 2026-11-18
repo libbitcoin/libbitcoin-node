@@ -148,6 +148,13 @@ protected:
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
+    /// Archive and associate the txs of an identified block, on the calling
+    /// thread (true) unless pooling, then on the strand of compact blocks.
+    virtual bool archive_block(code& ec,
+        const system::chain::view::block::cptr& block,
+        const database::header_link& link, bool strong, bool bypass,
+        size_t height, bool prune, network::result_handler&& handler) NOEXCEPT;
+
     /// Events subscription.
     /// -----------------------------------------------------------------------
 

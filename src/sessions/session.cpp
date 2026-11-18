@@ -82,6 +82,15 @@ void session::submit_compact(const transactions_cptr& txs,
     node_.submit_compact(txs, links, link, std::move(handler));
 }
 
+bool session::archive_block(code& ec,
+    const system::chain::view::block::cptr& block,
+    const database::header_link& link, bool strong, bool bypass, size_t height,
+    bool prune, network::result_handler&& handler) NOEXCEPT
+{
+    return node_.archive_block(ec, block, link, strong, bypass, height,
+        prune, std::move(handler));
+}
+
 void session::get_minimum_work(work_handler&& handler) NOEXCEPT
 {
     node_.get_minimum_work(std::move(handler));
