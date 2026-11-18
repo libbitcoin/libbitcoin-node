@@ -451,7 +451,7 @@ struct chaser_transaction_setup_fixture
     {
         const auto row = store_.pool.first(link);
         return row.is_terminal() ? pool::algorithm::absent :
-            store_.pool_cells.at(row.value);
+            store_.pool_index.cells.at(row.value);
     }
 
     // True once the pool cell of the tx is the value.
