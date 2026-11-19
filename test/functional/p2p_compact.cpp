@@ -229,6 +229,33 @@ BC_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__short_id_unpooled__n
     BC_REQUIRE(!received(get_compact_transactions::command, pong::command));
 }
 
+// The deferral does not expire, so only the unfilled block is downloaded.
+BC_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__short_id_unpooled__block_requested, p2p_compact_pooled_setup_fixture)
+{
+    BC_REQUIRE(handshake(full_node));
+
+    const auto& block = block1();
+    send(shortened(block), node_version->value);
+
+    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
+    BC_REQUIRE(request);
+    BC_REQUIRE(request->items.front().hash == block.hash());
+}
+
+// The fill is unidentified (wrong coinbase).
+BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__unidentified__block_requested)
+{
+    BC_REQUIRE(handshake(full_node));
+
+    const auto& block = block1();
+    const chain::block& genesis = config_.bitcoin.genesis_block;
+    send(prefilled(block, genesis.transactions_ptr()->front()), node_version->value);
+
+    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
+    BC_REQUIRE(request);
+    BC_REQUIRE(request->items.front().hash == block.hash());
+}
+
 BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id_mismatch__stopped)
 {
     BC_REQUIRE(handshake(full_node));

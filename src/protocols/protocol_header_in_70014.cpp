@@ -217,7 +217,16 @@ void protocol_header_in_70014::collect(const compact_block& message,
     // A block the pool cannot mostly fill is downloaded instead.
     const auto percent = node_settings().compact_missing_percent;
     if ((block.missing.size() * 100u) > (block.txs.size() * percent))
+    {
+        const auto count = block.txs.size();
+        LOGN("Compact block [" << encode_hash(block.hash) << ":"
+            << block.height << "] unfilled ("
+            << (count - block.unpooled.size()) << "/" << count << ") from ["
+            << opposite() << "].");
+
+        notify(error::success, chases::unfilled{ link });
         return;
+    }
 
     fill_.emplace(std::move(block));
     if (fill_->missing.empty())
@@ -417,6 +426,7 @@ void protocol_header_in_70014::identify(const gate_t::ptr& gate) NOEXCEPT
         evidence_link_ = block.link;
         evidence_root_ = witness_root;
         evidence_count_ = block.txs.size();
+        notify(error::success, chases::unfilled{ block.link });
         fill_.reset();
         return;
     }

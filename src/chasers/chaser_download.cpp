@@ -159,6 +159,11 @@ bool chaser_download::handle_chase(const code&, event_value value) NOEXCEPT
             POST(do_headers, to_payload<chase::headers>(value).branch_point);
             break;
         }
+        case chase::unfilled:
+        {
+            POST(do_unfilled, to_payload<chase::unfilled>(value).link);
+            break;
+        }
         case chase::valid:
         ////case chase::prevalid:
         {
@@ -574,6 +579,20 @@ void chaser_download::handle_compact_timer(const code& ec) NOEXCEPT
 
     expired_ = deferred_;
     deferred_ = {};
+    do_headers({});
+}
+
+void chaser_download::do_unfilled(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    expired_ = link;
+    if (deferred_ == expired_)
+    {
+        deferred_ = {};
+        compact_timer_->stop();
+    }
+
     do_headers({});
 }
 

@@ -230,6 +230,21 @@ struct chaser_download_compact_sampled_setup_fixture
     }
 };
 
+// A compact candidate whose deferral does not expire.
+struct chaser_download_compact_deferred_setup_fixture
+  : chaser_download_setup_fixture
+{
+    inline chaser_download_compact_deferred_setup_fixture()
+      : chaser_download_setup_fixture(
+            chaser_download_compact_setup_fixture::compact,
+            [](configuration& config)
+            {
+                config.node.compact_timeout_seconds = max_uint16;
+            })
+    {
+    }
+};
+
 BC_POP_WARNING()
 
 namespace peer = network::messages::peer;
@@ -516,6 +531,18 @@ BC_FIXTURE_TEST_CASE(chaser_download__bump__purging__download_on_purged, chaser_
 ////    BC_REQUIRE_EQUAL(download.count, one);
 ////    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
 ////}
+
+BC_FIXTURE_TEST_CASE(chaser_download__unfilled__deferred__download, chaser_download_compact_deferred_setup_fixture)
+{
+    subscribe();
+    const auto& hash = p2p_compact_setup_fixture::block1().hash();
+    node_.notify({}, chases::unfilled{ query_.to_header(hash).value });
+
+    chases::download download{};
+    BC_REQUIRE(await(download));
+    BC_REQUIRE_EQUAL(download.count, one);
+    BC_REQUIRE(get_hashes().map->exists(hash));
+}
 
 BC_AUTO_TEST_SUITE_END()
 
