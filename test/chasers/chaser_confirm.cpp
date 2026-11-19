@@ -434,6 +434,60 @@ private:
     std::vector<event_value> events_{};
 };
 
+// Counts top latency events fired before the unknown event (sentinel).
+// Every unsubscription (sentinel or stop code) completes the wait.
+class top_recorder
+{
+public:
+    void subscribe(const network::logger& log)
+    {
+        log.subscribe_events([state = state_](const code& ec, uint8_t event_,
+            uint64_t, const auto&) NOEXCEPT
+        {
+            if (ec)
+            {
+                state->done.set_value(false);
+                return false;
+            }
+
+            if (event_ == events::unknown)
+            {
+                state->done.set_value(true);
+                return false;
+            }
+
+            if (event_ == events::top_usecs)
+                ++state->tops;
+
+            return true;
+        });
+    }
+
+    /// Fire the sentinel and await unsubscription (once), true if delivered.
+    bool await(const network::logger& log) const
+    {
+        auto done = state_->done.get_future();
+        log.fire(events::unknown);
+        return done.get();
+    }
+
+    /// The count, valid after await.
+    size_t count() const
+    {
+        return state_->tops;
+    }
+
+private:
+    // The state is shared, as the subscription may outlive the recorder.
+    struct state_t
+    {
+        std::promise<bool> done{};
+        size_t tops{};
+    };
+
+    std::shared_ptr<state_t> state_{ std::make_shared<state_t>() };
+};
+
 // A running node whose only chasers are the header and confirm chasers.
 struct confirm_setup_fixture
 {
@@ -762,6 +816,46 @@ struct confirm_genesis_fixture
     }
 };
 
+// Records fired events from a settled start.
+struct confirm_top_setup_fixture
+  : confirm_setup_fixture
+{
+    confirm_top_setup_fixture(const configurator& configurer)
+      : confirm_setup_fixture(confirm_genesis_only, configurer)
+    {
+        fired_.subscribe(log_);
+        settle();
+    }
+
+    /// The count of top latency events once confirm work has settled.
+    size_t tops()
+    {
+        settle();
+        BC_REQUIRE(fired_.await(log_));
+        return fired_.count();
+    }
+
+    top_recorder fired_{};
+};
+
+struct confirm_top_fixture
+  : confirm_top_setup_fixture
+{
+    confirm_top_fixture()
+      : confirm_top_setup_fixture(confirm_current)
+    {
+    }
+};
+
+struct confirm_top_stale_fixture
+  : confirm_top_setup_fixture
+{
+    confirm_top_stale_fixture()
+      : confirm_top_setup_fixture(confirm_uncheckpointed)
+    {
+    }
+};
+
 BC_AUTO_TEST_SUITE(chaser_confirm_tests)
 
 BC_FIXTURE_TEST_CASE(chaser_confirm__start__stronger_candidate_fork__reorganized, confirm_stronger_fixture)
@@ -1000,6 +1094,62 @@ BC_FIXTURE_TEST_CASE(chaser_confirm__bump__wire_block_demanded_current__broadcas
     BC_REQUIRE(message->block()->to_data(true) == confirm_d1().to_data(true));
     BC_REQUIRE_EQUAL(message->transactions().size(), 1u);
     BC_REQUIRE(message->transactions().front()->tx()->to_data(true) == confirm_d1().transactions_ptr()->front()->to_data(true));
+}
+
+// top_usecs
+
+BC_FIXTURE_TEST_CASE(chaser_confirm__headers__current_candidate_organized__top_usecs, confirm_top_fixture)
+{
+    BC_REQUIRE(confirm_confirmable(query_));
+    node_.notify(node::error::success, chases::headers{ 0 });
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BC_REQUIRE(confirmed(confirm_d1(), 1));
+    BC_REQUIRE_EQUAL(tops(), 1u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_confirm__headers__current_candidates_organized__no_top_usecs, confirm_top_fixture)
+{
+    BC_REQUIRE(confirm_confirmables(query_));
+    node_.notify(node::error::success, chases::headers{ 0 });
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BC_REQUIRE(confirmed(confirm_d2(), 2));
+    BC_REQUIRE_EQUAL(tops(), 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_confirm__headers__above_unconfirmed_candidate_organized__no_top_usecs, confirm_top_fixture)
+{
+    BC_REQUIRE(confirm_confirmables(query_));
+    node_.notify(node::error::success, chases::headers{ 1 });
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BC_REQUIRE(confirmed(confirm_d2(), 2));
+    BC_REQUIRE_EQUAL(tops(), 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_confirm__regressed__dropped_candidate_organized__no_top_usecs, confirm_top_fixture)
+{
+    BC_REQUIRE(confirm_confirmable(query_));
+    node_.notify(node::error::success, chases::headers{ 0 });
+    node_.notify(node::error::success, chases::regressed{ 0 });
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BC_REQUIRE(confirmed(confirm_d1(), 1));
+    BC_REQUIRE_EQUAL(tops(), 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_confirm__bump__untimed_candidate_organized__no_top_usecs, confirm_top_fixture)
+{
+    BC_REQUIRE(confirm_confirmable(query_));
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BC_REQUIRE(confirmed(confirm_d1(), 1));
+    BC_REQUIRE_EQUAL(tops(), 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_confirm__headers__stale_candidate_organized__no_top_usecs, confirm_top_stale_fixture)
+{
+    BC_REQUIRE(confirm_confirmable(query_));
+    node_.notify(node::error::success, chases::headers{ 0 });
+    node_.notify(node::error::success, chases::bump{ 0 });
+    BC_REQUIRE(confirmed(confirm_d1(), 1));
+    BC_REQUIRE_EQUAL(tops(), 0u);
 }
 
 ////BC_FIXTURE_TEST_CASE(chaser_confirm__start__valid_candidate_without_prevouts__suspended_unconfirmable, confirm_unprevouted_fixture)

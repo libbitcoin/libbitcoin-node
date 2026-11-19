@@ -66,6 +66,10 @@ enum events : uint8_t
     schnorr_secs,        // schnorr batch verify timespan in seconds.
     silent_secs,         // silent payment scan timespan in seconds.
     validate_usecs,      // block validation timespan in microseconds.
+    top_usecs,           // candidate header to top timespan in microseconds.
+
+    /// Transaction pool.
+    pool_rows,          // pool table rows at each organized block
 
     /// Pool timespans.
     pool_submit_usecs,   // admitting set timespan in microseconds.

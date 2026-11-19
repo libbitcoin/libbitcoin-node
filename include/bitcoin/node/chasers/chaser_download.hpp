@@ -69,6 +69,7 @@ protected:
     virtual void do_headers(height_t branch_point) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_handle_purged(const code& ec) NOEXCEPT;
+    virtual void do_unfilled(header_t link) NOEXCEPT;
     virtual void handle_compact_timer(const code& ec) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,

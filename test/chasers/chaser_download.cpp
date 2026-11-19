@@ -230,6 +230,21 @@ struct chaser_download_compact_sampled_setup_fixture
     }
 };
 
+// A compact candidate whose deferral does not expire.
+struct chaser_download_compact_deferred_setup_fixture
+  : chaser_download_setup_fixture
+{
+    inline chaser_download_compact_deferred_setup_fixture()
+      : chaser_download_setup_fixture(
+            chaser_download_compact_setup_fixture::compact,
+            [](configuration& config)
+            {
+                config.node.compact_timeout_seconds = max_uint16;
+            })
+    {
+    }
+};
+
 BC_POP_WARNING()
 
 namespace peer = network::messages::peer;
@@ -517,6 +532,18 @@ BC_FIXTURE_TEST_CASE(chaser_download__bump__purging__download_on_purged, chaser_
 ////    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
 ////}
 
+BC_FIXTURE_TEST_CASE(chaser_download__unfilled__deferred__download, chaser_download_compact_deferred_setup_fixture)
+{
+    subscribe();
+    const auto& hash = p2p_compact_setup_fixture::block1().hash();
+    node_.notify({}, chases::unfilled{ query_.to_header(hash).value });
+
+    chases::download download{};
+    BC_REQUIRE(await(download));
+    BC_REQUIRE_EQUAL(download.count, one);
+    BC_REQUIRE(get_hashes().map->exists(hash));
+}
+
 BC_AUTO_TEST_SUITE_END()
 
 BC_AUTO_TEST_SUITE(protocol_block_in_31800_tests)
@@ -737,6 +764,22 @@ BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviation
 
 ////    BC_REQUIRE(dropped(pong::command));
 ////}
+
+// The block is checked whether the channel stops before or after it is stored.
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pooling_peer_closed__checked, p2p_compact_candidate_setup_fixture)
+{
+    BC_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(query_.is_pooling());
+
+    subscribe();
+    receive(get_data::command);
+    send(peer::block::command, p2p_compact_setup_fixture::block1().to_data(true));
+    disconnect();
+
+    chases::checked checked{};
+    BC_REQUIRE(p2p_setup_fixture::await(checked));
+    BC_REQUIRE_EQUAL(checked.height, one);
+}
 
 BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__idle__deferred_get_data, chaser_download_compact_sampled_setup_fixture)
 {
