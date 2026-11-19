@@ -323,6 +323,12 @@ bool full_node::resume() NOEXCEPT
         return false;
     }
 
+    if (query_.is_fault_locked())
+    {
+        LOGF("Cannot resume network, fault locked.");
+        return false;
+    }
+
     LOGS("Resuming network.");
     const auto resumed = net::resume();
     notify(error::success, chases::resume{});
@@ -349,12 +355,13 @@ void full_node::fault(const code& ec) NOEXCEPT
     {
         LOGF("Store fault (unrecoverable) '" << query_.get_fault().message()
             << "' following, " << ec.message());
+        /* bool */ query_.set_fault_lock();
     }
     else if (ec)
     {
-        // This is a resumable error condition, arising from calling fault(ec)
-        // when the cause did not originate from the memory map (!is_fault).
+        // The cause did not originate from the memory map (!is_fault).
         LOGF("Node fault, " << ec.message());
+        /* bool */ query_.set_fault_lock();
     }
 
     // If a call does not get all of the channels, subsequent failures do so.

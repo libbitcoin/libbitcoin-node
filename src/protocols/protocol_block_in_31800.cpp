@@ -341,27 +341,38 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         BIND(handle_archive_block, _1, hash, height, size)))
         return true;
 
-    announce(stored, height);
+    announce(stored, hash, height);
     return archived(stored, hash, height, size);
 }
 
 // not stranded
-// A stored block is announced whether or not its channel has stopped.
+// A stored block is announced, and a failure to store one is a fault, whether
+// or not its channel has stopped.
 void protocol_block_in_31800::announce(const code& ec,
-    size_t height) const NOEXCEPT
+    const hash_digest& hash, size_t height) NOEXCEPT
 {
-    if (ec)
+    if (!ec)
+    {
+        notify(ec, chases::checked{ height });
+        fire(events::block_archived, height);
+        return;
+    }
+
+    if ((ec == error::duplicate_block) ||
+        (ec == network::error::service_stopped))
         return;
 
-    notify(ec, chases::checked{ height });
-    fire(events::block_archived, height);
+    LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
+        << "] from [" << opposite() << "] " << ec.message());
+
+    fault(ec);
 }
 
 // not stranded
 void protocol_block_in_31800::handle_archive_block(const code& ec,
     const hash_digest& hash, size_t height, size_t size) NOEXCEPT
 {
-    announce(ec, height);
+    announce(ec, hash, height);
 
     // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped)
@@ -388,10 +399,7 @@ bool protocol_block_in_31800::archived(const code& ec,
 
     if (ec && (ec != error::duplicate_block))
     {
-        LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
-            << "] from [" << opposite() << "] " << ec.message());
-
-        stop(fault(ec));
+        stop(ec);
         return false;
     }
 

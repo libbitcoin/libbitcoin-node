@@ -326,6 +326,36 @@ BC_AUTO_TEST_CASE(full_node__fault__node_error__suspended)
     BC_REQUIRE(node_.suspended());
 }
 
+BC_AUTO_TEST_CASE(full_node__fault__node_error__fault_locked)
+{
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
+    BC_REQUIRE(!query_.is_fault_locked());
+    node_.fault(error::orphan_header);
+    BC_REQUIRE(query_.is_fault_locked());
+}
+
+BC_AUTO_TEST_CASE(full_node__fault__success__not_fault_locked)
+{
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
+    node_.fault(error::success);
+    BC_REQUIRE(!query_.is_fault_locked());
+}
+
+BC_AUTO_TEST_CASE(full_node__resume__faulted__not_resumed)
+{
+    BC_REQUIRE(initialize());
+    BC_REQUIRE(!start());
+    BC_REQUIRE(!run());
+    node_.fault(error::orphan_header);
+    BC_REQUIRE(node_.suspended());
+    BC_REQUIRE(!node_.resume());
+    BC_REQUIRE(node_.suspended());
+}
+
 BC_AUTO_TEST_CASE(full_node__resume__suspended__resumed)
 {
     BC_REQUIRE(initialize());
