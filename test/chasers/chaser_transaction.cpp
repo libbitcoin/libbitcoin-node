@@ -404,13 +404,14 @@ struct chaser_transaction_setup_fixture
         return shared->events;
     }
 
-    // The pool_rows values fired by the act, once strand work has settled.
-    std::vector<uint64_t> rows_fired(const std::function<void()>& act)
+    // The values of the event fired by the act, once strand work has settled.
+    std::vector<uint64_t> fired(uint8_t event,
+        const std::function<void()>& act)
     {
         struct state
         {
             std::promise<bool> done{};
-            std::vector<uint64_t> rows{};
+            std::vector<uint64_t> values{};
         };
 
         // The state is shared, as the subscription may outlive the call.
@@ -432,8 +433,8 @@ struct chaser_transaction_setup_fixture
                 return false;
             }
 
-            if (event_ == events::pool_rows)
-                shared->rows.push_back(value);
+            if (event_ == event)
+                shared->values.push_back(value);
 
             return true;
         });
@@ -443,7 +444,7 @@ struct chaser_transaction_setup_fixture
         build_template();
         log_.fire(events::unknown);
         BC_REQUIRE(done.get());
-        return shared->rows;
+        return shared->values;
     }
 
     // The pool cell of the tx (absent if it has no row).
@@ -1429,24 +1430,37 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__relay_off_pooled_block_tx__i
     const auto link = query_.to_tx(tx->hash(false));
     const auto before = cell(link);
 
+    // The subscription completes after the chaser is notified of the block.
     auto confirmed = false;
-    const auto events = reported(1, [&]()
+    const auto spans = fired(events::pool_block_in_usecs, [&]()
     {
         confirmed = !confirm(tx).is_terminal();
+        subscribe();
     });
 
     BC_REQUIRE(query_.is_pooling());
     BC_REQUIRE(pool::algorithm::is_present(before));
     BC_REQUIRE(confirmed);
-    BC_REQUIRE_EQUAL(events.size(), 1u);
-    BC_REQUIRE(events.front().scan == node::pool_scan::block_in);
+    BC_REQUIRE(spans.empty());
     BC_REQUIRE_EQUAL(cell(link), before);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__pooled_tx__pool_block_in_fired, chaser_transaction_single_setup_fixture)
+{
+    const auto result = submit(package({ spend(parent_value - 1'000) }));
+    const auto spans = fired(events::pool_block_in_usecs, [&]()
+    {
+        reported(1, [&]() { confirm(); });
+    });
+
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(spans.size(), 1u);
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__organized__pooled_tx__pool_rows_fired, chaser_transaction_single_setup_fixture)
 {
     const auto result = submit(package({ spend(parent_value - 1'000) }));
-    const auto rows = rows_fired([&]()
+    const auto rows = fired(events::pool_rows, [&]()
     {
         reported(1, [&]() { confirm(); });
     });
@@ -1456,11 +1470,13 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__pooled_tx__pool_rows_fired, 
     BC_REQUIRE_EQUAL(rows.front(), 1u);
 }
 
+// The subscription completes after the chaser is notified of the block.
 BC_FIXTURE_TEST_CASE(chaser_transaction__organized__relay_off__pool_rows_not_fired, chaser_transaction_relay_off_setup_fixture)
 {
-    const auto rows = rows_fired([&]()
+    const auto rows = fired(events::pool_rows, [&]()
     {
-        reported(1, [&]() { confirm(); });
+        confirm();
+        subscribe();
     });
 
     BC_REQUIRE(query_.is_pooling());

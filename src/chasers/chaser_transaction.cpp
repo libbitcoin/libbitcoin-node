@@ -336,18 +336,19 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
         return;
 
     auto& query = archive();
-    const auto start = now();
-    const auto applied = !is_indexing() || query.set_pool_block(link, true);
-
-    report(pool_scan::block_in, start);
-    if (!applied)
-    {
-        fault(error::transaction10);
-        return;
-    }
-
     if (is_indexing())
+    {
+        const auto start = now();
+        const auto applied = query.set_pool_block(link, true);
+        report(pool_scan::block_in, start);
+        if (!applied)
+        {
+            fault(error::transaction10);
+            return;
+        }
+
         fire(events::pool_rows, query.pool_records());
+    }
 
     do_bump();
 }
@@ -372,14 +373,16 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         return;
 
     auto& query = archive();
-    const auto start = now();
-    const auto applied = !is_indexing() || query.set_pool_block(link, false);
-
-    report(pool_scan::block_out, start);
-    if (!applied)
+    if (is_indexing())
     {
-        fault(error::transaction10);
-        return;
+        const auto start = now();
+        const auto applied = query.set_pool_block(link, false);
+        report(pool_scan::block_out, start);
+        if (!applied)
+        {
+            fault(error::transaction10);
+            return;
+        }
     }
 
     do_bump();
