@@ -82,7 +82,8 @@ private:
     network::messages::peer::get_data create_get_data(
         const database::associations& map) const NOEXCEPT;
 
-    void announce(const code& ec, size_t height) const NOEXCEPT;
+    void announce(const code& ec, const system::hash_digest& hash,
+        size_t height) NOEXCEPT;
     bool archived(const code& ec, const system::hash_digest& hash,
         size_t height, size_t size) NOEXCEPT;
     void handle_archive_block(const code& ec, const system::hash_digest& hash,
