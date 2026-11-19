@@ -223,6 +223,11 @@ void p2p_setup_fixture::select(size_t peer)
     active_ = peer;
 }
 
+void p2p_setup_fixture::disconnect()
+{
+    socket().close();
+}
+
 network::io::socket& p2p_setup_fixture::socket()
 {
     return sockets_.at(active_);

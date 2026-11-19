@@ -109,6 +109,9 @@ struct p2p_setup_fixture
     /// Make the peer at the index the active peer (the first is zero).
     void select(size_t peer);
 
+    /// Close the active peer's connection to the node.
+    void disconnect();
+
     /// Subscribe to chaser events, returning the subscription key.
     object_key subscribe();
 

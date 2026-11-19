@@ -765,6 +765,22 @@ BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__no_bytes_no_deviation
 ////    BC_REQUIRE(dropped(pong::command));
 ////}
 
+// The block is checked whether the channel stops before or after it is stored.
+BC_FIXTURE_TEST_CASE(protocol_block_in_31800__handle_receive_block__pooling_peer_closed__checked, p2p_compact_candidate_setup_fixture)
+{
+    BC_REQUIRE(handshake(peer_services));
+    BC_REQUIRE(query_.is_pooling());
+
+    subscribe();
+    receive(get_data::command);
+    send(peer::block::command, p2p_compact_setup_fixture::block1().to_data(true));
+    disconnect();
+
+    chases::checked checked{};
+    BC_REQUIRE(p2p_setup_fixture::await(checked));
+    BC_REQUIRE_EQUAL(checked.height, one);
+}
+
 BC_FIXTURE_TEST_CASE(protocol_block_in_31800__performance__idle__deferred_get_data, chaser_download_compact_sampled_setup_fixture)
 {
     BC_REQUIRE(handshake(peer_services));
