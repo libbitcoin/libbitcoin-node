@@ -16,8 +16,6 @@
 
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/block_arena.hpp>
-#include <bitcoin/node/block_memory.hpp>
 #include <bitcoin/node/chase.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -25,9 +23,7 @@
 #include <bitcoin/node/events.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/preprocessor.hpp>
-#include <bitcoin/node/rolling_bloom_filter.hpp>
 #include <bitcoin/node/settings.hpp>
-#include <bitcoin/node/solo_spans.hpp>
 #include <bitcoin/node/version.hpp>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/channels/channel_peer.hpp>
@@ -74,5 +70,10 @@
 #include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
+#include <bitcoin/node/types/estimate_mode.hpp>
+#include <bitcoin/node/types/pool_scan.hpp>
+#include <bitcoin/node/types/rolling_bloom_filter.hpp>
+#include <bitcoin/node/types/solo_spans.hpp>
+#include <bitcoin/node/types/types.hpp>
 
 #endif

@@ -51,15 +51,11 @@ src_libbitcoin_node_la_LIBADD = \
     ${libbitcoin_network_LIBS}
 
 src_libbitcoin_node_la_SOURCES = \
-    ${srcdir}/../../src/block_arena.cpp \
-    ${srcdir}/../../src/block_memory.cpp \
     ${srcdir}/../../src/configuration.cpp \
     ${srcdir}/../../src/define.cpp \
     ${srcdir}/../../src/error.cpp \
     ${srcdir}/../../src/full_node.cpp \
-    ${srcdir}/../../src/rolling_bloom_filter.cpp \
     ${srcdir}/../../src/settings.cpp \
-    ${srcdir}/../../src/solo_spans.cpp \
     ${srcdir}/../../src/channels/channel_peer.cpp \
     ${srcdir}/../../src/chasers/chaser.cpp \
     ${srcdir}/../../src/chasers/chaser_confirm.cpp \
@@ -101,7 +97,9 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/sessions/session.cpp \
     ${srcdir}/../../src/sessions/session_inbound.cpp \
     ${srcdir}/../../src/sessions/session_manual.cpp \
-    ${srcdir}/../../src/sessions/session_outbound.cpp
+    ${srcdir}/../../src/sessions/session_outbound.cpp \
+    ${srcdir}/../../src/types/rolling_bloom_filter.cpp \
+    ${srcdir}/../../src/types/solo_spans.cpp
 
 nodist_src_libbitcoin_node_la_SOURCES = \
     src/version.cpp
@@ -131,8 +129,6 @@ include_bitcoin_nodedir = \
     ${includedir}/bitcoin/node
 
 include_bitcoin_node_HEADERS = \
-    ${srcdir}/../../include/bitcoin/node/block_arena.hpp \
-    ${srcdir}/../../include/bitcoin/node/block_memory.hpp \
     ${srcdir}/../../include/bitcoin/node/chase.hpp \
     ${srcdir}/../../include/bitcoin/node/configuration.hpp \
     ${srcdir}/../../include/bitcoin/node/define.hpp \
@@ -140,9 +136,7 @@ include_bitcoin_node_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/events.hpp \
     ${srcdir}/../../include/bitcoin/node/full_node.hpp \
     ${srcdir}/../../include/bitcoin/node/preprocessor.hpp \
-    ${srcdir}/../../include/bitcoin/node/rolling_bloom_filter.hpp \
     ${srcdir}/../../include/bitcoin/node/settings.hpp \
-    ${srcdir}/../../include/bitcoin/node/solo_spans.hpp \
     include/bitcoin/node/version.hpp
 
 include_bitcoin_node_channelsdir = \
@@ -216,6 +210,16 @@ include_bitcoin_node_sessions_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/sessions/session_peer.hpp \
     ${srcdir}/../../include/bitcoin/node/sessions/sessions.hpp
 
+include_bitcoin_node_typesdir = \
+    ${includedir}/bitcoin/node/types
+
+include_bitcoin_node_types_HEADERS = \
+    ${srcdir}/../../include/bitcoin/node/types/estimate_mode.hpp \
+    ${srcdir}/../../include/bitcoin/node/types/pool_scan.hpp \
+    ${srcdir}/../../include/bitcoin/node/types/rolling_bloom_filter.hpp \
+    ${srcdir}/../../include/bitcoin/node/types/solo_spans.hpp \
+    ${srcdir}/../../include/bitcoin/node/types/types.hpp
+
 # Tests.
 #==============================================================================
 # Target test 'test/libbitcoin-node-test'
@@ -236,16 +240,12 @@ test_libbitcoin_node_test_LDADD = \
     ${src_libbitcoin_node_la_LIBADD}
 
 test_libbitcoin_node_test_SOURCES = \
-    ${srcdir}/../../test/block_arena.cpp \
-    ${srcdir}/../../test/block_memory.cpp \
     ${srcdir}/../../test/channel_peer.cpp \
     ${srcdir}/../../test/configuration.cpp \
     ${srcdir}/../../test/error.cpp \
     ${srcdir}/../../test/full_node.cpp \
     ${srcdir}/../../test/main.cpp \
-    ${srcdir}/../../test/rolling_bloom_filter.cpp \
     ${srcdir}/../../test/settings.cpp \
-    ${srcdir}/../../test/solo_spans.cpp \
     ${srcdir}/../../test/test.cpp \
     ${srcdir}/../../test/chasers/chaser.cpp \
     ${srcdir}/../../test/chasers/chaser_confirm.cpp \
@@ -259,7 +259,9 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/functional/p2p_setup_fixture.cpp \
     ${srcdir}/../../test/functional/p2p_witness.cpp \
     ${srcdir}/../../test/protocols/protocol.cpp \
-    ${srcdir}/../../test/sessions/session.cpp
+    ${srcdir}/../../test/sessions/session.cpp \
+    ${srcdir}/../../test/types/rolling_bloom_filter.cpp \
+    ${srcdir}/../../test/types/solo_spans.cpp
 
 TESTS = test_runner.sh
 

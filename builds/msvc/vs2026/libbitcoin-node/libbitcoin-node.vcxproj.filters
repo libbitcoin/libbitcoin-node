@@ -34,29 +34,29 @@
     <Filter Include="include\bitcoin\node\sessions">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000008}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src">
+    <Filter Include="include\bitcoin\node\types">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000009}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\channels">
+    <Filter Include="src">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000A}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\chasers">
+    <Filter Include="src\channels">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\protocols">
+    <Filter Include="src\chasers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000C}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\sessions">
+    <Filter Include="src\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\types">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000F}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\block_arena.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\block_memory.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\channels\channel_peer.cpp">
       <Filter>src\channels</Filter>
     </ClCompile>
@@ -183,9 +183,6 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70016.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\rolling_bloom_filter.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp">
       <Filter>src\sessions</Filter>
     </ClCompile>
@@ -201,19 +198,16 @@
     <ClCompile Include="..\..\..\..\src\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\solo_spans.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\..\..\..\src\types\rolling_bloom_filter.cpp">
+      <Filter>src\types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\types\solo_spans.cpp">
+      <Filter>src\types</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
       <Filter>include\bitcoin</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp">
-      <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
@@ -353,9 +347,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\rolling_bloom_filter.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
@@ -377,8 +368,20 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\solo_spans.hpp">
-      <Filter>include\bitcoin\node</Filter>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\estimate_mode.hpp">
+      <Filter>include\bitcoin\node\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\pool_scan.hpp">
+      <Filter>include\bitcoin\node\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\rolling_bloom_filter.hpp">
+      <Filter>include\bitcoin\node\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\solo_spans.hpp">
+      <Filter>include\bitcoin\node\types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\types.hpp">
+      <Filter>include\bitcoin\node\types</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
