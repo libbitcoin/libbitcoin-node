@@ -137,6 +137,15 @@ protected:
     /// Complete the scan start map.
     virtual void do_scanned(bool mapped) NOEXCEPT;
 
+    /// Revalidate the pooled txs under the context (revalidation threadpool).
+    virtual void do_revalidate(const database::tx_links& links,
+        const system::chain::context& ctx) NOEXCEPT;
+
+    /// Restore the pooled txs that passed, if the context still holds.
+    virtual void do_revalidated(const database::tx_links& links,
+        const system::data_chunk& passed,
+        const system::chain::context& ctx) NOEXCEPT;
+
 private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
@@ -155,6 +164,7 @@ private:
         const code& ec) NOEXCEPT;
     void broadcast(const system::chain::transaction& tx) const NOEXCEPT;
     void start_scan(bool remap) NOEXCEPT;
+    void start_revalidation() NOEXCEPT;
 
     /// The pool index follows blocks (pooling store and relay enabled).
     bool is_indexing() const NOEXCEPT;
@@ -181,6 +191,7 @@ private:
 
     // These are thread safe.
     network::threadpool scan_threadpool_;
+    network::threadpool revalidation_threadpool_;
     stopper stopping_{};
     std::atomic_bool pooling_{};
     std::atomic<size_t> writers_{};
@@ -191,6 +202,8 @@ private:
     size_t floor_{};
     bool due_{ true };
     bool scanning_{};
+    bool revalidating_{};
+    uint32_t revalidated_flags_{};
 };
 
 } // namespace node

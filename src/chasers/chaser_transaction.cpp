@@ -37,7 +37,8 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : chaser(node),
-    scan_threadpool_(one, node.node_settings().thread_priority_())
+    scan_threadpool_(one, node.node_settings().thread_priority_()),
+    revalidation_threadpool_(one, node.node_settings().thread_priority_())
 {
 }
 
@@ -55,13 +56,14 @@ void chaser_transaction::stopping(const code& ec) NOEXCEPT
 {
     stopping_.store(true);
     scan_threadpool_.stop();
+    revalidation_threadpool_.stop();
     chaser::stopping(ec);
 }
 
 // The strand is no longer running when the chaser is stopped.
 void chaser_transaction::stop() NOEXCEPT
 {
-    if (!scan_threadpool_.join())
+    if (!scan_threadpool_.join() || !revalidation_threadpool_.join())
     {
         BC_ASSERT_MSG(false, "failed to join threadpool");
         std::abort();
@@ -291,7 +293,95 @@ bool chaser_transaction::sweep() NOEXCEPT
 
     report(pool_scan::context, start);
     due_ = !applied || is_nonzero(count);
+    if (applied && is_nonzero(count))
+        start_revalidation();
+
     return applied;
+}
+
+// Rows left out by flags are revalidated once per change of flags, so a row
+// that fails is not retried until the flags change again.
+void chaser_transaction::start_revalidation() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (revalidating_ || pool_.flags == revalidated_flags_)
+        return;
+
+    database::tx_links links{};
+    const auto ctx = database::context::from(pool_);
+    if (const auto ec = archive().get_pool_revalidation(links, ctx))
+    {
+        fault(ec);
+        return;
+    }
+
+    revalidated_flags_ = pool_.flags;
+    if (links.empty())
+        return;
+
+    revalidating_ = true;
+    network::io::post(revalidation_threadpool_.service(),
+        BIND(do_revalidate, std::move(links), pool_));
+}
+
+void chaser_transaction::do_revalidate(const database::tx_links& links,
+    const chain::context& ctx) NOEXCEPT
+{
+    const auto& query = archive();
+    data_chunk passed(links.size());
+    std::for_each(poolstl::execution::par, links.cbegin(), links.cend(),
+        [&](const auto& link) NOEXCEPT
+        {
+            if (stopping_)
+                return;
+
+            const auto offset = std::distance(links.data(), &link);
+            const auto at = sign_cast<size_t>(offset);
+            const auto tx = query.get_transaction(link, true);
+            passed.at(at) = to_int<uint8_t>(tx && !validate(*tx, ctx));
+        });
+
+    POST(do_revalidated, links, std::move(passed), ctx);
+}
+
+// The pool context may have moved under the revalidation.
+void chaser_transaction::do_revalidated(const database::tx_links& links,
+    const data_chunk& passed, const chain::context& ctx) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    revalidating_ = false;
+    if (closed())
+        return;
+
+    if (!is_sufficient(ctx))
+    {
+        revalidated_flags_ = {};
+        return;
+    }
+
+    size_t count{};
+    auto& query = archive();
+    const auto revalidated = database::context::from(ctx);
+    for (size_t at{}; at < links.size(); ++at)
+    {
+        if (is_zero(passed.at(at)))
+            continue;
+
+        if (!query.set_pooled_context(links.at(at), revalidated))
+        {
+            fault(error::transaction2);
+            return;
+        }
+
+        ++count;
+    }
+
+    LOGN("Revalidated (" << count << ") of (" << links.size()
+        << ") pooled txs.");
+
+    due_ = true;
+    if (!sweep())
+        fault(error::transaction11);
 }
 
 void chaser_transaction::start_scan(bool remap) NOEXCEPT
