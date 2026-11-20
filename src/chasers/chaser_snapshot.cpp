@@ -140,8 +140,10 @@ bool chaser_snapshot::handle_chase(const code&, event_value value) NOEXCEPT
 void chaser_snapshot::do_prune(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (pruned_.load(std::memory_order_relaxed) ||
-        closed() || !archive().is_coalesced())
+
+    // The pool reads the prevouts of confirmed blocks above the settled block.
+    if (pruned_.load(std::memory_order_relaxed) || closed() ||
+        !archive().is_coalesced() || archive().to_top_confirmed() != link)
         return;
 
     const auto running = !suspended();
