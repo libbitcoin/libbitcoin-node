@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/rolling_bloom_filter.hpp>
+#include <bitcoin/node/types/rolling_bloom_filter.hpp>
 
 #include <bitcoin/node/define.hpp>
 

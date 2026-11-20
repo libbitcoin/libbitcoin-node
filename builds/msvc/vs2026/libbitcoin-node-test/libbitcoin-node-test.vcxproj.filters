@@ -22,14 +22,11 @@
     <Filter Include="src\sessions">
       <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000004}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\types">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000005}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\test\block_arena.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\test\block_memory.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\test\channel_peer.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -81,20 +78,20 @@
     <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\rolling_bloom_filter.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\test\sessions\session.cpp">
       <Filter>src\sessions</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\solo_spans.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\test\test.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\types\rolling_bloom_filter.cpp">
+      <Filter>src\types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\types\solo_spans.cpp">
+      <Filter>src\types</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

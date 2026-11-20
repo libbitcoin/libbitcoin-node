@@ -16,38 +16,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SOLO_SPANS_HPP
-#define LIBBITCOIN_NODE_SOLO_SPANS_HPP
+#include <bitcoin/node/types/solo_spans.hpp>
 
-#include <atomic>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// Thread safe spans that may overlap, each told at its end if it was alone.
-class BCN_API solo_spans
+solo_spans::ticket solo_spans::begin() NOEXCEPT
 {
-public:
-    using ticket = uint64_t;
+    return state_.fetch_add(one_begun + one_open);
+}
 
-    /// Begin a span.
-    ticket begin() NOEXCEPT;
-
-    /// End the span, true if no other span was open at any time during it.
-    bool end(ticket begun) NOEXCEPT;
-
-private:
-    // The state holds spans begun (high word) and spans open (low word).
-    static constexpr auto one_open = 1_u64;
-    static constexpr auto one_begun = system::power2<uint64_t>(
-        bits<uint32_t>);
-
-    // This is thread safe.
-    std::atomic<uint64_t> state_{};
-};
+// Alone if none was open at its begin and the state is as its begin left it.
+bool solo_spans::end(ticket begun) NOEXCEPT
+{
+    const auto ending = state_.fetch_sub(one_open);
+    return is_zero(begun % one_begun) &&
+        (ending == begun + one_begun + one_open);
+}
 
 } // namespace node
 } // namespace libbitcoin
-
-#endif

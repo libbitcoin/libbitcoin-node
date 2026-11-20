@@ -113,8 +113,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\block_arena.cpp" />
-    <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
     <ClCompile Include="..\..\..\..\src\channels\channel_peer.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
@@ -157,18 +155,16 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70013.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70016.cpp" />
-    <ClCompile Include="..\..\..\..\src\rolling_bloom_filter.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp" />
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
-    <ClCompile Include="..\..\..\..\src\solo_spans.cpp" />
+    <ClCompile Include="..\..\..\..\src\types\rolling_bloom_filter.cpp" />
+    <ClCompile Include="..\..\..\..\src\types\solo_spans.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp" />
@@ -215,7 +211,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_70013.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_70016.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\rolling_bloom_filter.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />
@@ -223,7 +218,11 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\solo_spans.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\estimate_mode.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\pool_scan.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\rolling_bloom_filter.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\solo_spans.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\types.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp" />

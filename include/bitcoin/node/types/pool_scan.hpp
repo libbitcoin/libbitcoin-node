@@ -16,33 +16,43 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/block_memory.hpp>
+#ifndef LIBBITCOIN_NODE_TYPES_POOL_SCAN_HPP
+#define LIBBITCOIN_NODE_TYPES_POOL_SCAN_HPP
 
-#include <atomic>
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/chase.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-
-block_memory::block_memory(size_t multiple, size_t threads) NOEXCEPT
+/// Scans of the pool.
+enum class pool_scan : uint8_t
 {
-    if (is_nonzero(multiple))
-    {
-        arenas_.reserve(threads);
-        for (auto index = zero; index < threads; ++index)
-            arenas_.emplace_back(multiple);
-    }
-}
+    /// Coverage of an incoming set.
+    coverage,
 
-arena* block_memory::get_arena() NOEXCEPT
-{
-    thread_local auto thread = count_.fetch_add(one, std::memory_order_relaxed);
-    return thread < arenas_.size() ? &arenas_.at(thread) : default_arena::get();
-}
+    /// Index write of an admitted tx.
+    admission,
 
-BC_POP_WARNING()
+    /// Index transition of an organized block.
+    block_in,
+
+    /// Index transition of a reorganized block.
+    block_out,
+
+    /// Index sweep of the pool context.
+    context,
+
+    /// Template.
+    template_,
+
+    /// Fee projection.
+    projection,
+
+    /// Confirmable txs or fees.
+    confirmable
+};
 
 } // namespace node
 } // namespace libbitcoin
+
+#endif

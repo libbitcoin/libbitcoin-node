@@ -22,7 +22,7 @@
 /// Standard includes (do not include directly).
 
 /// Pulls in common /node headers (excluding settings/config/full_node).
-#include <bitcoin/node/chase.hpp>
+#include <bitcoin/node/types/types.hpp>
 
 /// For common types below.
 #include <bitcoin/network.hpp>
@@ -33,23 +33,6 @@ namespace node {
 /// Alias system code.
 typedef std::error_code code;
 
-/// Estimate types.
-enum class estimate_mode
-{
-    /// The pool as it is, with no arrivals.
-    basic,
-
-    /// Arrivals weighted by recency, each block half of the one above it.
-    geometric,
-
-    /// Arrivals at their mean over the economical window.
-    economical,
-
-    /// Arrivals at their peak over the conservative window.
-    conservative,
-
-    unknown
-};
 constexpr size_t maximum_estimate_horizon = 1008;
 
 /// Blocks of arrivals (two hours and one day at ten minutes per block).
@@ -87,34 +70,6 @@ typedef std::function<void(const code&,
 typedef network::desubscriber<object_key, event_value> event_subscriber;
 typedef event_subscriber::handler event_notifier;
 typedef event_subscriber::completer event_completer;
-
-/// Scans of the pool.
-enum class pool_scan : uint8_t
-{
-    /// Coverage of an incoming set.
-    coverage,
-
-    /// Index write of an admitted tx.
-    admission,
-
-    /// Index transition of an organized block.
-    block_in,
-
-    /// Index transition of a reorganized block.
-    block_out,
-
-    /// Index sweep of the pool context.
-    context,
-
-    /// Template.
-    template_,
-
-    /// Fee projection.
-    projection,
-
-    /// Confirmable txs or fees.
-    confirmable
-};
 
 /// A scan of the pool and what it did.
 struct pool_event

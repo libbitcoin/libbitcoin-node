@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "test.hpp"
+#include "../test.hpp"
 
 BC_AUTO_TEST_SUITE(rolling_bloom_filter_tests)
 
