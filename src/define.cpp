@@ -31,8 +31,6 @@
 // Other directory common includes are not internally chained.
 // Each header includes only its required common headers.
 
-// block_arena    : define
-// block_memory   : block_arena
 // settings       : define
 // configuration  : settings
 // /chasers       : configuration                  [forward: full_node]
