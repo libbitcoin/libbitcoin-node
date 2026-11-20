@@ -522,6 +522,17 @@ void full_node::estimate(size_t target, estimate_mode mode,
     chaser_transaction_.estimate(target, mode, std::move(handler));
 }
 
+void full_node::get_confirmable_txs(confirmable_txs_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.get_confirmable_txs(std::move(handler));
+}
+
+void full_node::get_confirmable_fees(
+    confirmable_fees_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.get_confirmable_fees(std::move(handler));
+}
+
 void full_node::performance(object_key key, uint64_t speed,
     result_handler&& handler) NOEXCEPT
 {

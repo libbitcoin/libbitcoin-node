@@ -197,6 +197,12 @@ public:
     void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 
+    /// Tx links of the confirmable txs, in pool order.
+    void get_confirmable_txs(confirmable_txs_handler&& handler) NOEXCEPT;
+
+    /// Fee rate tuples of the confirmable txs, in pool order.
+    void get_confirmable_fees(confirmable_fees_handler&& handler) NOEXCEPT;
+
     /// Handle performance, base returns false (implied terminate).
     virtual void performance(object_key channel, uint64_t speed,
         result_handler&& handler) NOEXCEPT;

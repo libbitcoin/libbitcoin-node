@@ -74,6 +74,12 @@ typedef std::function<void(const code&, const map_ptr&,
 typedef std::function<void(const code&, size_t,
     const database::tx_links&)> template_handler;
 
+/// Confirmable types.
+typedef std::function<void(const code&,
+    const database::tx_links&)> confirmable_txs_handler;
+typedef std::function<void(const code&,
+    const database::fee_rates&)> confirmable_fees_handler;
+
 /// Event desubscriber.
 typedef network::desubscriber<object_key, event_value> event_subscriber;
 typedef event_subscriber::handler event_notifier;
@@ -101,7 +107,10 @@ enum class pool_scan : uint8_t
     template_,
 
     /// Fee projection.
-    projection
+    projection,
+
+    /// Confirmable txs or fees.
+    confirmable
 };
 
 /// A scan of the pool and what it did.

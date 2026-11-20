@@ -82,6 +82,7 @@ enum events : uint8_t
     pool_context_usecs,  // context sweep timespan in microseconds.
     pool_template_usecs, // template timespan in microseconds.
     pool_project_usecs,  // fee projection timespan in microseconds.
+    pool_confirmable_usecs, // confirmable scan timespan in microseconds.
 
     /// Peers.
     tx_dropped,          // peer dropped for a tx set (set size)

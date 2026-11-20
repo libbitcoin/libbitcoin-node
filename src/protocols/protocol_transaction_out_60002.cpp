@@ -69,53 +69,67 @@ bool protocol_transaction_out_60002::handle_receive_memory_pool(
     if (stopped(ec))
         return false;
 
-    // Txs pooled after this are announced by the transaction event.
-    using link_t = database::pool_link::integer;
-    const auto rows = archive().pool_records();
-    const database::pool_link end{ possible_narrow_cast<link_t>(rows) };
-    send_memory_pool(error::success, {}, end, gate());
+    // Txs pooled after these are read are announced by the transaction event.
+    get_confirmable_txs(BIND(handle_confirmable_txs, _1, _2, gate()));
     return true;
+}
+
+// not stranded
+void protocol_transaction_out_60002::handle_confirmable_txs(const code& ec,
+    const database::tx_links& links, const gate_t::ptr& gate) NOEXCEPT
+{
+    // Chaser may be stopped before protocol.
+    if (stopped() || ec == network::error::service_stopped)
+        return;
+
+    POST(do_confirmable_txs, ec,
+        std::make_shared<const database::tx_links>(links), gate);
+}
+
+// A closed pool has no txs to announce.
+void protocol_transaction_out_60002::do_confirmable_txs(const code& ec,
+    const links_ptr& links, const gate_t::ptr& gate) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped() || ec == error::pooling_disabled)
+        return;
+
+    if (ec)
+    {
+        stop(ec);
+        return;
+    }
+
+    send_memory_pool(error::success, links, zero, gate);
 }
 
 // Outbound (inv).
 // ----------------------------------------------------------------------------
 
 void protocol_transaction_out_60002::send_memory_pool(const code& ec,
-    const database::pool_link& cursor, const database::pool_link& end,
-    const gate_t::ptr& gate) NOEXCEPT
+    const links_ptr& links, size_t next, const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
         return;
 
-    const auto& query = archive();
-    auto next = cursor;
     inventory_items items{};
-    database::tx_links links{};
-    while (items.size() < max_inventory && next != end)
+    for (; items.size() < max_inventory && next < links->size(); ++next)
     {
-        const auto limit = max_inventory - items.size();
-        const auto result = query.get_confirmable_txs(next, links, end, limit);
-        if (result)
-        {
-            stop(result);
-            return;
-        }
+        const auto link = links->at(next);
+        if (is_filtered(link))
+            continue;
 
-        for (const auto link: links)
-        {
-            if (is_filtered(link))
-                continue;
-
-            if (const auto hash = tx_identifier(link); hash != null_hash)
-                items.emplace_back(inventory_type(), hash);
-        }
+        if (const auto hash = tx_identifier(link); hash != null_hash)
+            items.emplace_back(inventory_type(), hash);
     }
 
-    if (stopped() || items.empty())
+    if (items.empty())
         return;
 
-    SEND(inventory{ std::move(items) }, send_memory_pool, _1, next, end, gate);
+    SEND(inventory{ std::move(items) }, send_memory_pool, _1, links, next,
+        gate);
 }
 
 BC_POP_WARNING()

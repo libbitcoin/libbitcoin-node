@@ -257,6 +257,32 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
+    using listed = std::pair<code, database::tx_links>;
+    listed get_confirmable_txs()
+    {
+        std::promise<listed> promise{};
+        node_.get_confirmable_txs([&](const code& ec,
+            const database::tx_links& links) NOEXCEPT
+        {
+            promise.set_value({ ec, links });
+        });
+
+        return promise.get_future().get();
+    }
+
+    using rated = std::pair<code, database::fee_rates>;
+    rated get_confirmable_fees()
+    {
+        std::promise<rated> promise{};
+        node_.get_confirmable_fees([&](const code& ec,
+            const database::fee_rates& rates) NOEXCEPT
+        {
+            promise.set_value({ ec, rates });
+        });
+
+        return promise.get_future().get();
+    }
+
     // Confirm a block of a coinbase, and the tx if any, above genesis.
     database::header_link confirm(const chain::transaction::cptr& tx={})
     {
@@ -1148,6 +1174,92 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__child_of_losing_rival__
     BC_REQUIRE_EQUAL(links.front(), query_.to_tx(second->hash(false)));
 }
 
+// get_confirmable_txs
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_txs__relay_disabled__pooling_disabled, chaser_transaction_setup_fixture)
+{
+    const auto [ec, links] = get_confirmable_txs();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(links.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_txs__not_current__pooling_disabled, chaser_transaction_relay_setup_fixture)
+{
+    const auto [ec, links] = get_confirmable_txs();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(links.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_txs__empty_pool__empty, chaser_transaction_pooling_setup_fixture)
+{
+    const auto [ec, links] = get_confirmable_txs();
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE(links.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_txs__parent_and_child__pool_order, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    const auto result = submit(package({ first, second }));
+    const auto [ec, links] = get_confirmable_txs();
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(links.size(), 2u);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(first->hash(false)));
+    BC_REQUIRE_EQUAL(links.back(), query_.to_tx(second->hash(false)));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_txs__relay_off_pooled_row__pooling_disabled, chaser_transaction_relay_off_setup_fixture)
+{
+    const auto [ec, links] = get_confirmable_txs();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(links.empty());
+}
+
+// get_confirmable_fees
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_fees__relay_disabled__pooling_disabled, chaser_transaction_setup_fixture)
+{
+    const auto [ec, rates] = get_confirmable_fees();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(rates.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_fees__not_current__pooling_disabled, chaser_transaction_relay_setup_fixture)
+{
+    const auto [ec, rates] = get_confirmable_fees();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(rates.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_fees__empty_pool__empty, chaser_transaction_pooling_setup_fixture)
+{
+    const auto [ec, rates] = get_confirmable_fees();
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE(rates.empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_fees__pooled_tx__fee_and_size, chaser_transaction_pooling_setup_fixture)
+{
+    const auto tx = spend(parent_value - 1'000);
+    const auto result = submit(package({ tx }));
+    const auto [ec, rates] = get_confirmable_fees();
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(ec, database::error::success);
+    BC_REQUIRE_EQUAL(rates.size(), 1u);
+    BC_REQUIRE_EQUAL(rates.front().fee, 1'000u);
+    BC_REQUIRE_EQUAL(rates.front().bytes, tx->virtual_size());
+    BC_REQUIRE_EQUAL(rates.front().pooled_height, 1u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_fees__relay_off_pooled_row__pooling_disabled, chaser_transaction_relay_off_setup_fixture)
+{
+    const auto [ec, rates] = get_confirmable_fees();
+    BC_REQUIRE_EQUAL(ec, node::error::pooling_disabled);
+    BC_REQUIRE(rates.empty());
+}
+
 // estimate
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__relay_disabled__estimate_disabled, chaser_transaction_setup_fixture)
@@ -1341,6 +1453,17 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__submit__coverage_then_a
     BC_REQUIRE_EQUAL(events.size(), 2u);
     BC_REQUIRE(events.front().scan == node::pool_scan::coverage);
     BC_REQUIRE(events.back().scan == node::pool_scan::admission);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__get_confirmable_fees__confirmable_reported, chaser_transaction_single_setup_fixture)
+{
+    const auto events = reported(1, [&]()
+    {
+        get_confirmable_fees();
+    });
+
+    BC_REQUIRE_EQUAL(events.size(), 1u);
+    BC_REQUIRE(events.front().scan == node::pool_scan::confirmable);
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__build_template__template_reported, chaser_transaction_single_setup_fixture)

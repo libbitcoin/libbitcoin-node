@@ -106,6 +106,16 @@ void protocol::estimate(size_t target, estimate_mode mode,
     session_->estimate(target, mode, std::move(handler));
 }
 
+void protocol::get_confirmable_txs(confirmable_txs_handler&& handler) NOEXCEPT
+{
+    session_->get_confirmable_txs(std::move(handler));
+}
+
+void protocol::get_confirmable_fees(confirmable_fees_handler&& handler) NOEXCEPT
+{
+    session_->get_confirmable_fees(std::move(handler));
+}
+
 // Events subscription.
 // ----------------------------------------------------------------------------
 
