@@ -76,6 +76,9 @@ protected:
     virtual bool reserve_compact() NOEXCEPT;
     virtual void release_compact() NOEXCEPT;
 
+    /// The memory pool of the peer is requested once relaying.
+    virtual bool request_mempool() const NOEXCEPT;
+
     /// Reserve or release the channel's relay slot, false if none is free.
     virtual bool reserve_relay() NOEXCEPT;
     virtual void release_relay() NOEXCEPT;

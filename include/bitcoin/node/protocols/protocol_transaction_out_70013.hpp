@@ -55,6 +55,7 @@ private:
 
     // This is protected by strand.
     uint64_t sent_fee_{ max_uint64 };
+    bool requested_{};
 };
 
 } // namespace node

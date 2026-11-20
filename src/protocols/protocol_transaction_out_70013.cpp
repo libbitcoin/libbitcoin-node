@@ -65,6 +65,13 @@ void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
 
     sent_fee_ = minimum;
     NOTIFY(fee_filter{ minimum }, handle_send, _1);
+
+    // bip35: the reply follows the zero filter, so it is not filtered.
+    if (relaying && !requested_ && request_mempool())
+    {
+        requested_ = true;
+        NOTIFY(memory_pool{}, handle_send, _1);
+    }
 }
 
 bool protocol_transaction_out_70013::handle_chase(const code& ec,

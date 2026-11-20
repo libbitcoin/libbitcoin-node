@@ -845,6 +845,20 @@ struct chaser_transaction_reorganized_setup_fixture
     }
 };
 
+struct chaser_transaction_request_mempool_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_request_mempool_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.network.manual.request_mempool = true;
+            config.node.currency_window_minutes = 0;
+        })
+    {
+    }
+};
+
 struct chaser_transaction_memory_pool_setup_fixture
   : chaser_transaction_setup_fixture
 {
@@ -2778,6 +2792,12 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__stale_event__became_current__fee_
 }
 
 // memory_pool
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__request_mempool__inbound__not_requested, chaser_transaction_request_mempool_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::memory_pool::command));
+}
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__disabled__no_inventory, chaser_transaction_pooling_setup_fixture)
 {

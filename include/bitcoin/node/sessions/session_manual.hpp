@@ -40,6 +40,12 @@ protected:
         return system::bit_or(base::services_required(),
             node_settings().services_required());
     }
+
+    /// Manual peers are asked for their memory pool if configured.
+    bool request_mempool() const NOEXCEPT override
+    {
+        return network_settings().manual.request_mempool;
+    }
 };
 
 } // namespace node

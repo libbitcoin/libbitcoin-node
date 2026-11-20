@@ -122,6 +122,11 @@ void session::release_compact() NOEXCEPT
     node_.release_compact();
 }
 
+bool session::request_mempool() const NOEXCEPT
+{
+    return false;
+}
+
 size_t session::reserve_relay() NOEXCEPT
 {
     return node_.reserve_relay();

@@ -68,6 +68,11 @@ void protocol_peer::release_compact() NOEXCEPT
     session_->release_compact();
 }
 
+bool protocol_peer::request_mempool() const NOEXCEPT
+{
+    return session_->request_mempool();
+}
+
 bool protocol_peer::reserve_relay() NOEXCEPT
 {
     const auto slot = session_->reserve_relay();

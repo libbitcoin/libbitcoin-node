@@ -90,6 +90,9 @@ public:
     virtual bool reserve_compact() NOEXCEPT;
     virtual void release_compact() NOEXCEPT;
 
+    /// The memory pool of the session's peers is requested once relaying.
+    virtual bool request_mempool() const NOEXCEPT;
+
     /// Reserve (relay_slots if none) or release a relay slot.
     virtual size_t reserve_relay() NOEXCEPT;
     virtual void release_relay(size_t slot) NOEXCEPT;
