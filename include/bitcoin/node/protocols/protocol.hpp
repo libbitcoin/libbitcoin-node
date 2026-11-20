@@ -145,7 +145,7 @@ protected:
     /// Validate and archive an announced set, admitted prefix by prefix, a tx
     /// that is not accepted passed over (the first such failure reported).
     virtual void submit_announced(
-        const system::chain::transactions_cptr& txs,
+        const system::chain::transactions_cptr& txs, size_t slot,
         submit_handler&& handler) NOEXCEPT;
 
     /// Validate, archive and associate the txs of an identified compact block,

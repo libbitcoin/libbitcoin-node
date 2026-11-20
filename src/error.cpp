@@ -131,7 +131,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { silent_unwitnessed, "silent payments require witness" },
     { silent_pruned, "silent payments start in pruned blocks" },
     { filter_pruned, "client filters require unpruned blocks" },
-    { filter_unindexed, "client filters are not indexed by the store" }
+    { filter_unindexed, "client filters are not indexed by the store" },
+    { excessive_cutoff, "cutoff rate exceeds the minimum fee rate" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

@@ -29,6 +29,7 @@ namespace node {
 
 settings::transaction_pool::transaction_pool() NOEXCEPT
   : minimum_fee_rate{ 0.000001 },
+    cutoff_rate{ 0 },
     maximum_outcomes{ 1'024 },
     bytes_per_sigop{ 20 },
     coinbase_weight{ 2'000 },
@@ -41,6 +42,13 @@ uint64_t settings::transaction_pool::minimum_fee_rate_() const NOEXCEPT
 {
     // Ceilinged, as a configured minimum is not rounded down.
     return to_ceilinged_integer<uint64_t>(minimum_fee_rate *
+        chain::satoshi_per_bitcoin);
+}
+
+// The configured rate is btc/vkb, converted as the minimum is.
+uint64_t settings::transaction_pool::cutoff_rate_() const NOEXCEPT
+{
+    return to_ceilinged_integer<uint64_t>(cutoff_rate *
         chain::satoshi_per_bitcoin);
 }
 

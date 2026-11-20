@@ -56,6 +56,9 @@ typedef std::function<void(const code&, const map_ptr&,
 /// bip152: high bandwidth mode is requested of at most three peers.
 constexpr size_t maximum_compact_peers = 3;
 
+/// Relay slots, one bit of a pooled row's marks each (none is relay_slots).
+constexpr size_t relay_slots = bits<uint64_t>;
+
 /// Mining types.
 typedef std::function<void(const code&, size_t,
     const database::tx_links&)> template_handler;

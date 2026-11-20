@@ -19,6 +19,8 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
 
+#include <array>
+#include <atomic>
 #include <chrono>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -49,7 +51,7 @@ public:
     /// Validate and archive an announced set, admitted prefix by prefix, a tx
     /// that is not accepted passed over (the first such failure reported).
     virtual void submit_announced(
-        const system::chain::transactions_cptr& txs,
+        const system::chain::transactions_cptr& txs, size_t slot,
         submit_handler&& handler) NOEXCEPT;
 
     /// Validate, archive and associate the txs of an identified compact block,
@@ -85,13 +87,30 @@ public:
     /// Subscribe to pool scans (notified on the strand).
     virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
 
+    /// Reserve a free relay slot, relay_slots if none (thread safe).
+    virtual size_t reserve_relay() NOEXCEPT;
+
+    /// Release the relay slot, free once cleared from the marks.
+    virtual void release_relay(size_t slot) NOEXCEPT;
+
+    /// Set the fee rate of the slot's peer, a fall sweeping the pool to it.
+    virtual void set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT;
+
+    /// Mark the pooled txs as held by the slot's peer.
+    virtual void set_relayed(size_t slot,
+        const database::tx_links& links) NOEXCEPT;
+
+    /// Relay to the slot's peer the pooled txs it lacks that clear its rate.
+    virtual void relay_pool(size_t slot) NOEXCEPT;
+
 protected:
     using chaser::broadcast;
 
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_submit(const system::chain::transactions_cptr& txs,
-        bool test, bool announced, const submit_handler& handler) NOEXCEPT;
+        bool test, bool announced, size_t slot,
+        const submit_handler& handler) NOEXCEPT;
     virtual void do_submit_compact(
         const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
@@ -118,6 +137,13 @@ protected:
     /// Retain the pool subscription.
     virtual void do_subscribe_pool(const pool_notifier& handler) NOEXCEPT;
 
+    /// Relay slot management.
+    virtual void do_release_relay(size_t slot) NOEXCEPT;
+    virtual void do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT;
+    virtual void do_set_relayed(size_t slot,
+        const database::tx_links& links) NOEXCEPT;
+    virtual void do_relay_pool(size_t slot) NOEXCEPT;
+
     /// Apply the organized block to the pool index, then bump.
     virtual void do_organized(header_t link) NOEXCEPT;
 
@@ -137,6 +163,15 @@ protected:
     /// Complete the scan start map.
     virtual void do_scanned(bool mapped) NOEXCEPT;
 
+    /// Revalidate the pooled txs under the context (revalidation threadpool).
+    virtual void do_revalidate(const database::tx_links& links,
+        const system::chain::context& ctx) NOEXCEPT;
+
+    /// Restore the pooled txs that passed, if the context still holds.
+    virtual void do_revalidated(const database::tx_links& links,
+        const system::data_chunk& passed,
+        const system::chain::context& ctx) NOEXCEPT;
+
 private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
@@ -144,7 +179,8 @@ private:
     code check(const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored, bool announced) NOEXCEPT;
     code accept(const system::chain::transaction& tx) NOEXCEPT;
-    code admit(const system::chain::transaction& tx, uint32_t time) NOEXCEPT;
+    code admit(database::tx_link& out, const system::chain::transaction& tx,
+        uint32_t time) NOEXCEPT;
     code validate(const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
     database::tx_link to_stored(
@@ -155,6 +191,19 @@ private:
         const code& ec) NOEXCEPT;
     void broadcast(const system::chain::transaction& tx) const NOEXCEPT;
     void start_scan(bool remap) NOEXCEPT;
+    void start_revalidation() NOEXCEPT;
+
+    /// Relay the txs with their unconfirmed ancestry, marked held by origin,
+    /// to each of the slots whose rate the sum of the rows it lacks clears.
+    bool relay(const database::tx_links& links, size_t origin,
+        uint64_t slots) NOEXCEPT;
+
+    /// Relay the confirmable txs in row order, each with the ancestry the
+    /// slot lacks, where that clears the slot's rate.
+    bool sweep_relay(size_t slot) NOEXCEPT;
+
+    /// The marks of the pool row, grown with the table.
+    uint64_t& marks(size_t row) NOEXCEPT;
 
     /// The pool index follows blocks (pooling store and relay enabled).
     bool is_indexing() const NOEXCEPT;
@@ -181,9 +230,11 @@ private:
 
     // These are thread safe.
     network::threadpool scan_threadpool_;
+    network::threadpool revalidation_threadpool_;
     stopper stopping_{};
     std::atomic_bool pooling_{};
     std::atomic<size_t> writers_{};
+    std::atomic<uint64_t> reserved_{};
 
     // These are protected by strand.
     pool_subscriber subscriber_{};
@@ -191,6 +242,10 @@ private:
     size_t floor_{};
     bool due_{ true };
     bool scanning_{};
+    bool revalidating_{};
+    uint32_t revalidated_flags_{};
+    std::vector<uint64_t> marks_{};
+    std::array<uint64_t, relay_slots> rates_{};
 };
 
 } // namespace node

@@ -195,10 +195,10 @@ void full_node::submit(const system::chain::transactions_cptr& txs, bool test,
 }
 
 void full_node::submit_announced(
-    const system::chain::transactions_cptr& txs,
+    const system::chain::transactions_cptr& txs, size_t slot,
     submit_handler&& handler) NOEXCEPT
 {
-    chaser_transaction_.submit_announced(txs, std::move(handler));
+    chaser_transaction_.submit_announced(txs, slot, std::move(handler));
 }
 
 void full_node::submit_compact(const system::chain::transactions_cptr& txs,
@@ -261,6 +261,32 @@ bool full_node::reserve_compact() NOEXCEPT
 void full_node::release_compact() NOEXCEPT
 {
     --compact_peers_;
+}
+
+size_t full_node::reserve_relay() NOEXCEPT
+{
+    return chaser_transaction_.reserve_relay();
+}
+
+void full_node::release_relay(size_t slot) NOEXCEPT
+{
+    chaser_transaction_.release_relay(slot);
+}
+
+void full_node::set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
+{
+    chaser_transaction_.set_relay_rate(slot, rate);
+}
+
+void full_node::set_relayed(size_t slot,
+    const database::tx_links& links) NOEXCEPT
+{
+    chaser_transaction_.set_relayed(slot, links);
+}
+
+void full_node::relay_pool(size_t slot) NOEXCEPT
+{
+    chaser_transaction_.relay_pool(slot);
 }
 
 // Events.

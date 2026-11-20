@@ -178,8 +178,12 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A transaction has been added to the pool.
-    /// Issued by 'transaction' and handled by 'protocol_transaction_out'.
+    /// Issued by 'transaction' and handled by [clients].
     transaction,
+
+    /// A pooled transaction has been relayed to a word of slots, in order.
+    /// Issued by 'transaction' and handled by 'protocol_transaction_out'.
+    relay,
 
     /// A candidate block (template) has been created, upon request.
     /// Issued by 'template' and handled by [miners].
@@ -369,6 +373,13 @@ struct transaction
     transaction_t link;
 };
 
+struct relay
+{
+    static constexpr chase id{ chase::relay };
+    transaction_t link;
+    uint64_t slots;
+};
+
 struct template_
 {
     static constexpr chase id{ chase::template_ };
@@ -415,6 +426,7 @@ using event_value = std::variant
     chases::organized,
     chases::reorganized,
     chases::transaction,
+    chases::relay,
     chases::template_,
     chases::stop
 >;

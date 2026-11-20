@@ -64,8 +64,11 @@ protected:
     /// Handle chaser events.
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
-    /// Process tx announcement.
-    virtual bool do_announce(transaction_t link) NOEXCEPT;
+    /// Announce the relayed tx if the channel's slot is in the word.
+    virtual bool do_announce(transaction_t link, uint64_t slots) NOEXCEPT;
+
+    /// The channel's relay slot is in the word.
+    virtual bool is_relayed(uint64_t slots) const NOEXCEPT;
 
     virtual bool handle_receive_get_data(const code& ec,
         const network::messages::peer::get_data::cptr& message) NOEXCEPT;

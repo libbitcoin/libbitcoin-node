@@ -47,6 +47,16 @@ void channel_peer::set_downloader(downloader&& handler) NOEXCEPT
     downloader_ = std::move(handler);
 }
 
+void channel_peer::set_relay_slot(size_t slot) NOEXCEPT
+{
+    relay_slot_.store(slot);
+}
+
+size_t channel_peer::relay_slot() const NOEXCEPT
+{
+    return relay_slot_.load();
+}
+
 bool channel_peer::download(const map_ptr& map,
     const job::ptr& job) NOEXCEPT
 {

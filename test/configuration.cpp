@@ -107,6 +107,22 @@ BC_AUTO_TEST_CASE(configuration__initialize__limited_filter__filter_pruned)
     BC_REQUIRE_EQUAL(instance.initialize(), node::error::filter_pruned);
 }
 
+BC_AUTO_TEST_CASE(configuration__initialize__cutoff_above_minimum__excessive_cutoff)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.pool.minimum_fee_rate = 0.00001;
+    instance.node.pool.cutoff_rate = 0.00002;
+    BC_REQUIRE_EQUAL(instance.initialize(), node::error::excessive_cutoff);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__cutoff_at_minimum__success)
+{
+    node::configuration instance(test::node_configuration());
+    instance.node.pool.minimum_fee_rate = 0.00001;
+    instance.node.pool.cutoff_rate = 0.00001;
+    BC_REQUIRE(!instance.initialize());
+}
+
 BC_AUTO_TEST_CASE(configuration__initialize__limited_unfiltered__success)
 {
     node::configuration instance(test::node_configuration());

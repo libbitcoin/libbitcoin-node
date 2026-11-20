@@ -29,9 +29,6 @@ using namespace system;
 using namespace network::messages::peer;
 using namespace std::placeholders;
 
-// The fee filter is expressed in satoshis per virtual kilobyte (bip133).
-constexpr uint64_t vbytes_per_vkbyte = 1'000;
-
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
@@ -47,25 +44,34 @@ void protocol_transaction_out_70013::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(fee_filter, handle_receive_fee_filter, _1, _2);
-    do_send_fee_filter();
     protocol_transaction_out_70001::start();
+    do_send_fee_filter();
 }
 
 // Outbound (feefilter).
 // ----------------------------------------------------------------------------
 
-// bip133: a tx below the advertised rate is not announced to us.
+// bip133: a relaying channel is sent every tx (coverage decides admission),
+// and one with no relay slot, or while not current, is sent nothing.
 void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto minimum = minimum_fee_rate();
+    const auto relaying = relay_slot() < relay_slots && is_current_chain(true);
+    const auto minimum = relaying ? zero : system_settings().max_money();
 
     if (minimum == sent_fee_)
         return;
 
     sent_fee_ = minimum;
     NOTIFY(fee_filter{ minimum }, handle_send, _1);
+
+    // bip35: the reply follows the zero filter, so it is not filtered.
+    if (relaying && !requested_ && request_mempool())
+    {
+        requested_ = true;
+        NOTIFY(memory_pool{}, handle_send, _1);
+    }
 }
 
 bool protocol_transaction_out_70013::handle_chase(const code& ec,
@@ -104,47 +110,8 @@ bool protocol_transaction_out_70013::handle_receive_fee_filter(const code& ec,
         return false;
 
     set_minimum_fee(message->minimum_fee);
+    set_relay_rate(message->minimum_fee);
     return true;
-}
-
-// Outbound (inv).
-// ----------------------------------------------------------------------------
-
-bool protocol_transaction_out_70013::do_announce(transaction_t link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped())
-        return false;
-
-    if (is_filtered(link))
-        return true;
-
-    return protocol_transaction_out_70001::do_announce(link);
-}
-
-// The tx is archived and its prevouts populated, so the rate is known.
-bool protocol_transaction_out_70013::is_filtered(transaction_t link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    database::fee_rate rate{};
-    if (!archive().get_tx_fees(rate, link))
-    {
-        fault(database::error::integrity);
-        return true;
-    }
-
-    // bip133: the peer is not sent a tx below the rate it advertised.
-    return insufficient(rate);
-}
-
-// private
-bool protocol_transaction_out_70013::insufficient(
-    const database::fee_rate& rate) const NOEXCEPT
-{
-    return ceilinged_multiply(rate.fee, vbytes_per_vkbyte) <
-        ceilinged_multiply(minimum_fee(),
-            possible_wide_cast<uint64_t>(rate.bytes));
 }
 
 BC_POP_WARNING()

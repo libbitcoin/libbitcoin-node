@@ -199,6 +199,74 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
+    result submit_announced(const chain::transactions_cptr& txs, size_t slot)
+    {
+        std::promise<result> promise{};
+        const auto handler = [&](const code& ec, size_t index) NOEXCEPT
+        {
+            promise.set_value({ ec, index });
+        };
+
+        node_.submit_announced(txs, slot, handler);
+        return promise.get_future().get();
+    }
+
+    // Reserve every free relay slot.
+    void reserve_relays()
+    {
+        auto slot = node_.reserve_relay();
+        while (slot < node::relay_slots)
+            slot = node_.reserve_relay();
+    }
+
+    // Relay events recorded from subscription until the zero word marker.
+    struct relays
+    {
+        std::vector<chases::relay> events{};
+        std::promise<void> ended{};
+    };
+
+    std::shared_ptr<relays> record()
+    {
+        const auto out = std::make_shared<relays>();
+        std::promise<void> subscribed{};
+        node_.subscribe_chase([out](const code&, event_value value) NOEXCEPT
+        {
+            if (to_chase(value) != chase::relay)
+                return true;
+
+            const auto& relay = to_payload<chase::relay>(value);
+            if (is_zero(relay.slots))
+            {
+                out->ended.set_value();
+                return false;
+            }
+
+            out->events.push_back(relay);
+            return true;
+        }, [&](const code&, object_key) NOEXCEPT
+        {
+            subscribed.set_value();
+        });
+
+        subscribed.get_future().wait();
+        return out;
+    }
+
+    // The recorded relay events as tx hash and slots, ending the record.
+    using relayed = std::vector<std::pair<hash_digest, uint64_t>>;
+    relayed recorded(const std::shared_ptr<relays>& record)
+    {
+        node_.notify(node::error::success, chases::relay{ 0, 0 });
+        record->ended.get_future().wait();
+
+        relayed out{};
+        for (const auto& event: record->events)
+            out.emplace_back(query_.get_tx_key(event.link), event.slots);
+
+        return out;
+    }
+
     result submit_compact(const chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link)
     {
@@ -777,6 +845,20 @@ struct chaser_transaction_reorganized_setup_fixture
     }
 };
 
+struct chaser_transaction_request_mempool_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_request_mempool_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.network.manual.request_mempool = true;
+            config.node.currency_window_minutes = 0;
+        })
+    {
+    }
+};
+
 struct chaser_transaction_memory_pool_setup_fixture
   : chaser_transaction_setup_fixture
 {
@@ -962,13 +1044,25 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__success_archived, cha
     BC_REQUIRE(query_.is_tx(second->hash(false)));
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_no_added_fee__insufficient_fee, chaser_transaction_fee_setup_fixture)
+// The best outcome (100 satoshis) does not cover both rivals at the rate.
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_uncovered__insufficient_fee, chaser_transaction_fee_setup_fixture)
 {
-    const auto first = submit(package({ spend(parent_value - 1'000) }));
-    const auto second = submit(package({ spend(parent_value - 999) }));
+    const auto first = submit(package({ spend(parent_value - 100) }));
+    const auto second = submit(package({ spend(parent_value - 99) }));
     BC_REQUIRE_EQUAL(first.first, node::error::success);
     BC_REQUIRE_EQUAL(second.first, node::error::insufficient_fee);
     BC_REQUIRE_EQUAL(second.second, zero);
+}
+
+// The best outcome (1,000 satoshis) covers both rivals at the rate.
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_no_added_fee__covered_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto second = spend(parent_value - 999);
+    const auto first_result = submit(package({ spend(parent_value - 1'000) }));
+    const auto second_result = submit(package({ second }));
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_added_fee__success_archived, chaser_transaction_fee_setup_fixture)
@@ -1049,10 +1143,11 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__unpaid_parent_paying_child__bot
     BC_REQUIRE(query_.is_pooled(query_.to_tx(child->hash(false))));
 }
 
+// The paid tx's surplus does not cover the unpaid child.
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paid_then_unpaid__first_archived_fails_at_second, chaser_transaction_fee_setup_fixture)
 {
-    const auto paid = spend(parent_value - 1'000);
-    const auto unpaid = spend(paid->hash(false), parent_value - 1'000);
+    const auto paid = spend(parent_value - 100);
+    const auto unpaid = spend(paid->hash(false), parent_value - 100);
     const auto result = submit(package({ paid, unpaid }));
     BC_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
     BC_REQUIRE_EQUAL(result.second, one);
@@ -1060,11 +1155,24 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paid_then_unpaid__first_archive
     BC_REQUIRE(!query_.is_tx(unpaid->hash(false)));
 }
 
+// The paid tx's surplus covers the unpaid child (parent pays for child).
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paid_then_unpaid__parent_pays_for_child_both_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto paid = spend(parent_value - 1'000);
+    const auto unpaid = spend(paid->hash(false), parent_value - 1'000);
+    const auto first = submit(package({ paid }));
+    const auto second = submit(package({ unpaid }));
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, node::error::success);
+    BC_REQUIRE(query_.is_pooled(query_.to_tx(unpaid->hash(false))));
+}
+
+// The paying child covers its parent but not also the unpaid grandchild.
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paying_child_then_unpaid__two_archived_fails_at_third, chaser_transaction_fee_setup_fixture)
 {
     const auto parent = spend(parent_value);
-    const auto child = spend(parent->hash(false), parent_value - 1'000);
-    const auto unpaid = spend(child->hash(false), parent_value - 1'000);
+    const auto child = spend(parent->hash(false), parent_value - 200);
+    const auto unpaid = spend(child->hash(false), parent_value - 200);
     const auto result = submit(package({ parent, child, unpaid }));
     BC_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
     BC_REQUIRE_EQUAL(result.second, two);
@@ -1088,8 +1196,8 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__paid_then_paid_child__both_arch
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__test_paid_then_unpaid__fails_at_second_none_archived, chaser_transaction_fee_setup_fixture)
 {
-    const auto paid = spend(parent_value - 1'000);
-    const auto unpaid = spend(paid->hash(false), parent_value - 1'000);
+    const auto paid = spend(parent_value - 100);
+    const auto unpaid = spend(paid->hash(false), parent_value - 100);
     const auto result = submit(package({ paid, unpaid }), true);
     BC_REQUIRE_EQUAL(result.first, node::error::insufficient_fee);
     BC_REQUIRE_EQUAL(result.second, one);
@@ -1737,6 +1845,144 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__pooling_archived__dupli
     BC_REQUIRE_EQUAL(result.first, node::error::duplicate_block);
 }
 
+// relay
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reserve_relay__all_reserved__none, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 1u);
+    reserve_relays();
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), node::relay_slots);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__no_slot__not_relayed, chaser_transaction_pooling_setup_fixture)
+{
+    const auto events = record();
+    BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::success);
+    BC_REQUIRE(recorded(events).empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__two_slots__relayed_to_both, chaser_transaction_pooling_setup_fixture)
+{
+    const auto tx = spend(parent_value);
+    const relayed expected{ { tx->hash(false), 0b11 } };
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 1u);
+
+    const auto events = record();
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    BC_REQUIRE(recorded(events) == expected);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__test__not_relayed, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+
+    const auto events = record();
+    BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) }), true).first, node::error::success);
+    BC_REQUIRE(recorded(events).empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__origin__not_relayed_to_origin, chaser_transaction_pooling_setup_fixture)
+{
+    const auto tx = spend(parent_value);
+    const relayed expected{ { tx->hash(false), 0b10 } };
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 1u);
+
+    const auto events = record();
+    BC_REQUIRE_EQUAL(submit_announced(package({ tx }), 0).first, node::error::success);
+    BC_REQUIRE(recorded(events) == expected);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__below_rate__not_relayed, chaser_transaction_pooling_setup_fixture)
+{
+    const auto slot = node_.reserve_relay();
+    node_.set_relay_rate(slot, 100'000);
+
+    const auto events = record();
+    BC_REQUIRE_EQUAL(submit(package({ spend(parent_value - 1'000) })).first, node::error::success);
+    BC_REQUIRE(recorded(events).empty());
+}
+
+// The parent (1,000 satoshis on 60 vbytes) is below the rate, the child
+// (20,000) clears it with the parent.
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__child_pays_for_parent__both_in_order, chaser_transaction_pooling_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const auto high = spend(low->hash(false), parent_value - 21'000);
+    const relayed expected{ { low->hash(false), 0b01 }, { high->hash(false), 0b01 } };
+    const auto slot = node_.reserve_relay();
+    node_.set_relay_rate(slot, 100'000);
+
+    const auto first = record();
+    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+    BC_REQUIRE(recorded(first).empty());
+
+    const auto second = record();
+    BC_REQUIRE_EQUAL(submit(package({ high })).first, node::error::success);
+    BC_REQUIRE(recorded(second) == expected);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__parent_held__child_alone, chaser_transaction_pooling_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const auto high = spend(low->hash(false), parent_value - 21'000);
+    const relayed expected{ { high->hash(false), 0b01 } };
+    const auto slot = node_.reserve_relay();
+    node_.set_relay_rate(slot, 100'000);
+    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+    node_.set_relayed(slot, { query_.to_tx(low->hash(false)) });
+
+    const auto events = record();
+    BC_REQUIRE_EQUAL(submit(package({ high })).first, node::error::success);
+    BC_REQUIRE(recorded(events) == expected);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__rate_fall__swept, chaser_transaction_pooling_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const relayed expected{ { low->hash(false), 0b01 } };
+    const auto slot = node_.reserve_relay();
+    node_.set_relay_rate(slot, 100'000);
+    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+
+    const auto events = record();
+    node_.set_relay_rate(slot, 10'000);
+    BC_REQUIRE(!get_confirmable_txs().first);
+    BC_REQUIRE(recorded(events) == expected);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__rate_rise__not_swept, chaser_transaction_pooling_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const auto slot = node_.reserve_relay();
+    node_.set_relay_rate(slot, 100'000);
+    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+
+    const auto events = record();
+    node_.set_relay_rate(slot, 200'000);
+    BC_REQUIRE(!get_confirmable_txs().first);
+    BC_REQUIRE(recorded(events).empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__release_relay__reserved_again__marks_cleared, chaser_transaction_pooling_setup_fixture)
+{
+    const auto tx = spend(parent_value);
+    const relayed expected{ { tx->hash(false), 0b01 } };
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+    node_.release_relay(0);
+    BC_REQUIRE(!get_confirmable_txs().first);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+
+    const auto events = record();
+    node_.set_relay_rate(0, 1);
+    node_.set_relay_rate(0, 0);
+    BC_REQUIRE(!get_confirmable_txs().first);
+    BC_REQUIRE(recorded(events) == expected);
+}
+
 BC_AUTO_TEST_SUITE_END()
 
 BC_AUTO_TEST_SUITE(chaser_transaction_scan_tests)
@@ -2078,15 +2324,14 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__block_only__no_get_data
     BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__excessive_backlog__stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__over_maximum_inventory__not_stopped, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(announcement(peer::max_inventory, 1), node_version->value);
     send(announcement(1, 2), node_version->value);
     send(announcement(1, 3), node_version->value);
-    send(peer::ping{ 42 }, node_version->value);
-    BC_REQUIRE(dropped(peer::pong::command));
+    BC_REQUIRE(received_before_pong(peer::pong::command));
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped, chaser_transaction_pooling_setup_fixture)
@@ -2097,16 +2342,22 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped
     BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70013__stopped, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70013__not_stopped, chaser_transaction_fee_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
-    const auto tx = spend(parent_value);
-    send(peer::inventory{ { { type_id::transaction, tx->hash(false) } } }, node_version->value);
+    const auto low = spend(parent_value);
+    const auto high = spend(parent_value - 1'000);
+    send(peer::inventory{ { { type_id::transaction, low->hash(false) } } }, node_version->value);
     BC_REQUIRE(!receive(peer::get_data::command).empty());
 
-    send(peer::transaction{ tx }, node_version->value);
-    BC_REQUIRE(dropped(peer::not_found::command));
+    send(peer::transaction{ low }, node_version->value);
+    send(peer::inventory{ { { type_id::transaction, high->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ high }, node_version->value);
+    BC_REQUIRE(archived(high->hash(false)));
+    BC_REQUIRE(!query_.is_tx(low->hash(false)));
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70001__not_stopped, chaser_transaction_fee_setup_fixture)
@@ -2351,20 +2602,24 @@ BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__submitted_tx__announced
     BC_REQUIRE_EQUAL(announced(1), expected);
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__fee_filter, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__zero_fee_filter, chaser_transaction_fee_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto payload = receive(peer::fee_filter::command);
     const auto message = peer::fee_filter::deserialize(node_version->value, payload);
     BC_REQUIRE(message);
-    BC_REQUIRE_EQUAL(message->minimum_fee, 1'526u);
+    BC_REQUIRE_EQUAL(message->minimum_fee, 0u);
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__no_fee_filter, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__zero_fee_filter, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
-    BC_REQUIRE(!received_before_pong(peer::fee_filter::command));
+
+    const auto payload = receive(peer::fee_filter::command);
+    const auto message = peer::fee_filter::deserialize(node_version->value, payload);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->minimum_fee, 0u);
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__archived__inventory, chaser_transaction_pooling_setup_fixture)
@@ -2383,28 +2638,45 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__archived__inventory, chas
     BC_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
-////BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__below_fee_filter__not_announced, chaser_transaction_pooling_setup_fixture)
-////{
-////    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__child_pays_for_parent__both_announced, chaser_transaction_pooling_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const auto high = spend(low->hash(false), parent_value - 21'000);
+    const hashes expected{ low->hash(false), high->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
-////    send(peer::fee_filter{ 1'000'000 }, node_version->value);
-////    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+    send(peer::fee_filter{ 100'000 }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
-////    const auto low = spend(parent_value);
-////    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit(package({ high })).first, node::error::success);
+    BC_REQUIRE_EQUAL(announced(2), expected);
+}
 
-////    send(peer::fee_filter{ 0 }, node_version->value);
-////    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__fee_filter__rate_fall__swept_inventory, chaser_transaction_pooling_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const hashes expected{ low->hash(false) };
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
-////    const auto next = spend(low->hash(false), parent_value);
-////    BC_REQUIRE_EQUAL(submit(package({ next })).first, node::error::success);
+    send(peer::fee_filter{ 100'000 }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
 
-////    const auto payload = receive(peer::inventory::command);
-////    const auto message = peer::inventory::deserialize(node_version->value, payload);
-////    BC_REQUIRE(message);
-////    BC_REQUIRE_EQUAL(message->items.size(), one);
-////    BC_REQUIRE(message->items.front().hash == next->hash(false));
-////}
+    send(peer::fee_filter{ 10'000 }, node_version->value);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__no_relay_slot__max_money_fee_filter, chaser_transaction_pooling_setup_fixture)
+{
+    reserve_relays();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto payload = receive(peer::fee_filter::command);
+    const auto message = peer::fee_filter::deserialize(node_version->value, payload);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->minimum_fee, config_.bitcoin.max_money());
+}
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__announced_by_peer__not_announced, chaser_transaction_pooling_setup_fixture)
 {
@@ -2467,12 +2739,12 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__get_data__block_then_stored_tx__t
     BC_REQUIRE(message->transaction_ptr->hash(false) == parent().hash(false));
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70001__not_announced, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__relay_event__missing_tx_70001__not_announced, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::bip37, true));
     BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
-    node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
+    node_.notify(node::error::success, chases::relay{ node::transaction_t{ 42 }, max_uint64 });
 
     // The announcement of a subsequent tx orders the missing tx event.
     const auto tx = spend(parent_value);
@@ -2485,14 +2757,22 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_700
     BC_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_out__transaction_event__missing_tx_70013__stopped_suspended, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__relay_event__missing_tx_70013__not_announced, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
     BC_REQUIRE(!received_before_pong(peer::inventory::command));
 
-    node_.notify(node::error::success, chases::transaction{ node::transaction_t{ 42 } });
-    BC_REQUIRE(suspended());
-    BC_REQUIRE(dropped(peer::pong::command));
+    node_.notify(node::error::success, chases::relay{ node::transaction_t{ 42 }, max_uint64 });
+
+    // The announcement of a subsequent tx orders the missing tx event.
+    const auto tx = spend(parent_value);
+    BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
+
+    const auto payload = receive(peer::inventory::command);
+    const auto message = peer::inventory::deserialize(node_version->value, payload);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->items.size(), one);
+    BC_REQUIRE(message->items.front().hash == tx->hash(false));
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__stale_event__became_current__fee_filter, chaser_transaction_relay_setup_fixture)
@@ -2512,6 +2792,12 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__stale_event__became_current__fee_
 }
 
 // memory_pool
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__request_mempool__inbound__not_requested, chaser_transaction_request_mempool_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::memory_pool::command));
+}
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__disabled__no_inventory, chaser_transaction_pooling_setup_fixture)
 {
@@ -2535,18 +2821,12 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__pooled__inventory, c
 {
     const auto parent_tx = spend(parent_value);
     const auto child_tx = spend(parent_tx->hash(false), parent_value);
+    const hashes expected{ parent_tx->hash(false), child_tx->hash(false) };
     BC_REQUIRE_EQUAL(submit(package({ parent_tx, child_tx })).first, node::error::success);
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::memory_pool{}, node_version->value);
-
-    const auto message = peer::inventory::deserialize(node_version->value, receive_before_pong(peer::inventory::command));
-    BC_REQUIRE(message);
-    BC_REQUIRE_EQUAL(message->items.size(), two);
-    BC_REQUIRE(message->items.front().type == type_id::transaction);
-    BC_REQUIRE(message->items.front().hash == parent_tx->hash(false));
-    BC_REQUIRE(message->items.back().type == type_id::transaction);
-    BC_REQUIRE(message->items.back().hash == child_tx->hash(false));
+    BC_REQUIRE_EQUAL(announced(2), expected);
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__bip35__inventory, chaser_transaction_memory_pool_setup_fixture)
@@ -2557,7 +2837,7 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__bip35__inventory, ch
 
     send(peer::memory_pool{}, peer::level::bip35);
 
-    const auto message = peer::inventory::deserialize(peer::level::bip35, receive_before_pong(peer::inventory::command));
+    const auto message = peer::inventory::deserialize(peer::level::bip35, receive(peer::inventory::command));
     BC_REQUIRE(message);
     BC_REQUIRE_EQUAL(message->items.size(), one);
     BC_REQUIRE(message->items.front().type == type_id::transaction);
@@ -2575,6 +2855,37 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__below_fee_filter__no
     BC_REQUIRE(!received_before_pong(peer::inventory::command));
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__child_pays_for_parent__both_inventory, chaser_transaction_memory_pool_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const auto high = spend(low->hash(false), parent_value - 21'000);
+    const hashes expected{ low->hash(false), high->hash(false) };
+    BC_REQUIRE_EQUAL(submit(package({ low, high })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(peer::fee_filter{ 100'000 }, node_version->value);
+    send(peer::memory_pool{}, node_version->value);
+    BC_REQUIRE_EQUAL(announced(2), expected);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__relayed__not_announced_again, chaser_transaction_memory_pool_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    const hashes expected{ second->hash(false) };
+    BC_REQUIRE_EQUAL(submit(package({ first })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    send(peer::inventory{ { { type_id::transaction, first->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE_EQUAL(submit(package({ second })).first, node::error::success);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+
+    send(peer::memory_pool{}, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+}
+
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__witness_relay__wtxid_inventory, chaser_transaction_witness_memory_pool_setup_fixture)
 {
     const auto tx = spend(parent_value);
@@ -2583,7 +2894,7 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__witness_relay__wtxid
 
     send(peer::memory_pool{}, node_version->value);
 
-    const auto message = peer::inventory::deserialize(node_version->value, receive_before_pong(peer::inventory::command));
+    const auto message = peer::inventory::deserialize(node_version->value, receive(peer::inventory::command));
     BC_REQUIRE(message);
     BC_REQUIRE_EQUAL(message->items.size(), one);
     BC_REQUIRE(message->items.front().type == type_id::wtxid);

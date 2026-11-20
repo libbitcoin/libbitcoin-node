@@ -68,6 +68,45 @@ void protocol_peer::release_compact() NOEXCEPT
     session_->release_compact();
 }
 
+bool protocol_peer::request_mempool() const NOEXCEPT
+{
+    return session_->request_mempool();
+}
+
+bool protocol_peer::reserve_relay() NOEXCEPT
+{
+    const auto slot = session_->reserve_relay();
+    channel_->set_relay_slot(slot);
+    return slot < relay_slots;
+}
+
+void protocol_peer::release_relay() NOEXCEPT
+{
+    const auto slot = channel_->relay_slot();
+    channel_->set_relay_slot(relay_slots);
+    session_->release_relay(slot);
+}
+
+size_t protocol_peer::relay_slot() const NOEXCEPT
+{
+    return channel_->relay_slot();
+}
+
+void protocol_peer::set_relay_rate(uint64_t rate) NOEXCEPT
+{
+    session_->set_relay_rate(channel_->relay_slot(), rate);
+}
+
+void protocol_peer::set_relayed(const database::tx_links& links) NOEXCEPT
+{
+    session_->set_relayed(channel_->relay_slot(), links);
+}
+
+void protocol_peer::relay_pool() NOEXCEPT
+{
+    session_->relay_pool(channel_->relay_slot());
+}
+
 // Methods.
 // ----------------------------------------------------------------------------
 

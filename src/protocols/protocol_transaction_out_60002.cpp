@@ -51,14 +51,6 @@ void protocol_transaction_out_60002::start() NOEXCEPT
     protocol_transaction_out_106::start();
 }
 
-// Filter.
-// ----------------------------------------------------------------------------
-
-bool protocol_transaction_out_60002::is_filtered(transaction_t) NOEXCEPT
-{
-    return false;
-}
-
 // Inbound (mempool).
 // ----------------------------------------------------------------------------
 
@@ -69,65 +61,8 @@ bool protocol_transaction_out_60002::handle_receive_memory_pool(
     if (stopped(ec))
         return false;
 
-    // Txs pooled after these are read are announced by the transaction event.
-    get_confirmable_txs(BIND(handle_confirmable_txs, _1, _2, gate()));
+    relay_pool();
     return true;
-}
-
-// not stranded
-void protocol_transaction_out_60002::handle_confirmable_txs(const code& ec,
-    const database::tx_links& links, const gate_t::ptr& gate) NOEXCEPT
-{
-    // Chaser may be stopped before protocol.
-    if (stopped() || ec == network::error::service_stopped)
-        return;
-
-    POST(do_confirmable_txs, ec, to_shared(links), gate);
-}
-
-// A closed pool has no txs to announce.
-void protocol_transaction_out_60002::do_confirmable_txs(const code& ec,
-    const links_ptr& links, const gate_t::ptr& gate) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped() || ec == error::pooling_disabled)
-        return;
-
-    if (ec)
-    {
-        stop(ec);
-        return;
-    }
-
-    send_memory_pool(error::success, links, zero, gate);
-}
-
-// Outbound (inv).
-// ----------------------------------------------------------------------------
-
-void protocol_transaction_out_60002::send_memory_pool(const code& ec,
-    const links_ptr& links, size_t next, const gate_t::ptr& gate) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    if (stopped(ec))
-        return;
-
-    inventory_items items{};
-    for (; items.size() < max_inventory && next < links->size(); ++next)
-    {
-        const auto link = links->at(next);
-        if (is_filtered(link))
-            continue;
-
-        if (const auto hash = tx_identifier(link); hash != null_hash)
-            items.emplace_back(inventory_type(), hash);
-    }
-
-    if (items.empty())
-        return;
-
-    SEND(inventory{ std::move(items) }, send_memory_pool, _1, links, next, gate);
 }
 
 BC_POP_WARNING()

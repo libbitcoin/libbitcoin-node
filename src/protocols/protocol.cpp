@@ -189,9 +189,9 @@ void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
 }
 
 void protocol::submit_announced(const system::chain::transactions_cptr& txs,
-    submit_handler&& handler) NOEXCEPT
+    size_t slot, submit_handler&& handler) NOEXCEPT
 {
-    session_->submit_announced(txs, std::move(handler));
+    session_->submit_announced(txs, slot, std::move(handler));
 }
 
 void protocol::submit_compact(const system::chain::transactions_cptr& txs,
