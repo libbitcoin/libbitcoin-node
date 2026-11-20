@@ -50,11 +50,7 @@ protected:
     virtual bool handle_receive_fee_filter(const code& ec,
         const network::messages::peer::fee_filter::cptr& message) NOEXCEPT;
 
-    /// True if the tx is below the peer's minimum fee rate.
-    bool is_filtered(transaction_t link) NOEXCEPT override;
-
 private:
-    bool insufficient(const database::fee_rate& rate) const NOEXCEPT;
     void do_send_fee_filter() NOEXCEPT;
 
     // This is protected by strand.

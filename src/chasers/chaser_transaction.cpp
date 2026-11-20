@@ -129,6 +129,14 @@ void chaser_transaction::set_relayed(size_t slot,
     POST(do_set_relayed, slot, links);
 }
 
+void chaser_transaction::relay_pool(size_t slot) NOEXCEPT
+{
+    if (closed() || slot >= relay_slots)
+        return;
+
+    POST(do_relay_pool, slot);
+}
+
 void chaser_transaction::do_release_relay(size_t slot) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -145,16 +153,24 @@ void chaser_transaction::do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
     BC_ASSERT(stranded());
     const auto prior = rates_.at(slot);
     rates_.at(slot) = rate;
-    if (rate >= prior || !pooling_)
-        return;
+    if (rate < prior && pooling_ && !sweep_relay(slot))
+        fault(database::error::integrity);
+}
 
+void chaser_transaction::do_relay_pool(size_t slot) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (pooling_ && !sweep_relay(slot))
+        fault(database::error::integrity);
+}
+
+// private
+bool chaser_transaction::sweep_relay(size_t slot) NOEXCEPT
+{
     database::tx_links links{};
     const auto& query = archive();
-    if (const auto ec = query.get_confirmable_txs(links))
-    {
-        fault(ec);
-        return;
-    }
+    if (query.get_confirmable_txs(links))
+        return false;
 
     const auto word = bit_right<uint64_t>(slot);
     for (const auto& link: links)
@@ -164,11 +180,10 @@ void chaser_transaction::do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
             continue;
 
         if (!relay({ link }, relay_slots, word))
-        {
-            fault(database::error::integrity);
-            return;
-        }
+            return false;
     }
+
+    return true;
 }
 
 void chaser_transaction::do_set_relayed(size_t slot,

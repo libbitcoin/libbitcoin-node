@@ -284,6 +284,11 @@ void full_node::set_relayed(size_t slot,
     chaser_transaction_.set_relayed(slot, links);
 }
 
+void full_node::relay_pool(size_t slot) NOEXCEPT
+{
+    chaser_transaction_.relay_pool(slot);
+}
+
 // Events.
 // ----------------------------------------------------------------------------
 

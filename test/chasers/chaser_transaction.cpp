@@ -2778,18 +2778,12 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__pooled__inventory, c
 {
     const auto parent_tx = spend(parent_value);
     const auto child_tx = spend(parent_tx->hash(false), parent_value);
+    const hashes expected{ parent_tx->hash(false), child_tx->hash(false) };
     BC_REQUIRE_EQUAL(submit(package({ parent_tx, child_tx })).first, node::error::success);
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(peer::memory_pool{}, node_version->value);
-
-    const auto message = peer::inventory::deserialize(node_version->value, receive_before_pong(peer::inventory::command));
-    BC_REQUIRE(message);
-    BC_REQUIRE_EQUAL(message->items.size(), two);
-    BC_REQUIRE(message->items.front().type == type_id::transaction);
-    BC_REQUIRE(message->items.front().hash == parent_tx->hash(false));
-    BC_REQUIRE(message->items.back().type == type_id::transaction);
-    BC_REQUIRE(message->items.back().hash == child_tx->hash(false));
+    BC_REQUIRE_EQUAL(announced(2), expected);
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__bip35__inventory, chaser_transaction_memory_pool_setup_fixture)
@@ -2800,7 +2794,7 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__bip35__inventory, ch
 
     send(peer::memory_pool{}, peer::level::bip35);
 
-    const auto message = peer::inventory::deserialize(peer::level::bip35, receive_before_pong(peer::inventory::command));
+    const auto message = peer::inventory::deserialize(peer::level::bip35, receive(peer::inventory::command));
     BC_REQUIRE(message);
     BC_REQUIRE_EQUAL(message->items.size(), one);
     BC_REQUIRE(message->items.front().type == type_id::transaction);
@@ -2818,6 +2812,37 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__below_fee_filter__no
     BC_REQUIRE(!received_before_pong(peer::inventory::command));
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__child_pays_for_parent__both_inventory, chaser_transaction_memory_pool_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const auto high = spend(low->hash(false), parent_value - 21'000);
+    const hashes expected{ low->hash(false), high->hash(false) };
+    BC_REQUIRE_EQUAL(submit(package({ low, high })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(peer::fee_filter{ 100'000 }, node_version->value);
+    send(peer::memory_pool{}, node_version->value);
+    BC_REQUIRE_EQUAL(announced(2), expected);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__relayed__not_announced_again, chaser_transaction_memory_pool_setup_fixture)
+{
+    const auto first = spend(parent_value);
+    const auto second = spend(first->hash(false), parent_value);
+    const hashes expected{ second->hash(false) };
+    BC_REQUIRE_EQUAL(submit(package({ first })).first, node::error::success);
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    send(peer::inventory{ { { type_id::transaction, first->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
+    BC_REQUIRE_EQUAL(submit(package({ second })).first, node::error::success);
+    BC_REQUIRE_EQUAL(announced(1), expected);
+
+    send(peer::memory_pool{}, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+}
+
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__witness_relay__wtxid_inventory, chaser_transaction_witness_memory_pool_setup_fixture)
 {
     const auto tx = spend(parent_value);
@@ -2826,7 +2851,7 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__witness_relay__wtxid
 
     send(peer::memory_pool{}, node_version->value);
 
-    const auto message = peer::inventory::deserialize(node_version->value, receive_before_pong(peer::inventory::command));
+    const auto message = peer::inventory::deserialize(node_version->value, receive(peer::inventory::command));
     BC_REQUIRE(message);
     BC_REQUIRE_EQUAL(message->items.size(), one);
     BC_REQUIRE(message->items.front().type == type_id::wtxid);

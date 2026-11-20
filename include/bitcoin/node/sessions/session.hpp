@@ -101,6 +101,9 @@ public:
     virtual void set_relayed(size_t slot,
         const database::tx_links& links) NOEXCEPT;
 
+    /// Relay to the slot's peer the pooled txs it lacks that clear its rate.
+    virtual void relay_pool(size_t slot) NOEXCEPT;
+
     /// Events.
     /// -----------------------------------------------------------------------
 

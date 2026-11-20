@@ -100,6 +100,9 @@ public:
     virtual void set_relayed(size_t slot,
         const database::tx_links& links) NOEXCEPT;
 
+    /// Relay to the slot's peer the pooled txs it lacks that clear its rate.
+    virtual void relay_pool(size_t slot) NOEXCEPT;
+
 protected:
     using chaser::broadcast;
 
@@ -139,6 +142,7 @@ protected:
     virtual void do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT;
     virtual void do_set_relayed(size_t slot,
         const database::tx_links& links) NOEXCEPT;
+    virtual void do_relay_pool(size_t slot) NOEXCEPT;
 
     /// Apply the organized block to the pool index, then bump.
     virtual void do_organized(header_t link) NOEXCEPT;
@@ -193,6 +197,10 @@ private:
     /// to each of the slots whose rate the sum of the rows it lacks clears.
     bool relay(const database::tx_links& links, size_t origin,
         uint64_t slots) NOEXCEPT;
+
+    /// Relay the confirmable txs in row order, each with the ancestry the
+    /// slot lacks, where that clears the slot's rate.
+    bool sweep_relay(size_t slot) NOEXCEPT;
 
     /// The marks of the pool row, grown with the table.
     uint64_t& marks(size_t row) NOEXCEPT;

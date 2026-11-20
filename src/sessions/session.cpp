@@ -143,6 +143,11 @@ void session::set_relayed(size_t slot,
     node_.set_relayed(slot, links);
 }
 
+void session::relay_pool(size_t slot) NOEXCEPT
+{
+    node_.relay_pool(slot);
+}
+
 // Events.
 // ----------------------------------------------------------------------------
 

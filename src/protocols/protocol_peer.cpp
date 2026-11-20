@@ -97,6 +97,11 @@ void protocol_peer::set_relayed(const database::tx_links& links) NOEXCEPT
     session_->set_relayed(channel_->relay_slot(), links);
 }
 
+void protocol_peer::relay_pool() NOEXCEPT
+{
+    session_->relay_pool(channel_->relay_slot());
+}
+
 // Methods.
 // ----------------------------------------------------------------------------
 

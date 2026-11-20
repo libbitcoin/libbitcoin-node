@@ -29,9 +29,6 @@ using namespace system;
 using namespace network::messages::peer;
 using namespace std::placeholders;
 
-// The fee filter is expressed in satoshis per virtual kilobyte (bip133).
-constexpr uint64_t vbytes_per_vkbyte = 1'000;
-
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
@@ -108,33 +105,6 @@ bool protocol_transaction_out_70013::handle_receive_fee_filter(const code& ec,
     set_minimum_fee(message->minimum_fee);
     set_relay_rate(message->minimum_fee);
     return true;
-}
-
-// Filter.
-// ----------------------------------------------------------------------------
-
-// The tx is archived and its prevouts populated, so the rate is known.
-bool protocol_transaction_out_70013::is_filtered(transaction_t link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    database::fee_rate rate{};
-    if (!archive().get_tx_fees(rate, link))
-    {
-        fault(database::error::integrity);
-        return true;
-    }
-
-    // bip133: the peer is not sent a tx below the rate it advertised.
-    return insufficient(rate);
-}
-
-// private
-bool protocol_transaction_out_70013::insufficient(
-    const database::fee_rate& rate) const NOEXCEPT
-{
-    return ceilinged_multiply(rate.fee, vbytes_per_vkbyte) <
-        ceilinged_multiply(minimum_fee(),
-            possible_wide_cast<uint64_t>(rate.bytes));
 }
 
 BC_POP_WARNING()

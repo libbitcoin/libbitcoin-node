@@ -89,6 +89,9 @@ protected:
     /// Mark the pooled txs as held by the channel's peer.
     virtual void set_relayed(const database::tx_links& links) NOEXCEPT;
 
+    /// Relay to the channel's peer the pooled txs it lacks at its rate.
+    virtual void relay_pool() NOEXCEPT;
+
     /// Methods.
     /// -----------------------------------------------------------------------
 
