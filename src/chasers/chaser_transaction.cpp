@@ -239,7 +239,51 @@ bool chaser_transaction::relay(const database::tx_links& links,
             return false;
     }
 
+    // Parents first, as a reorganized parent can hold a higher row than its
+    // child, otherwise by row.
     std::ranges::sort(rows, {}, &relayable::row);
+    std::vector<size_t> pending(rows.size());
+    std::vector<std::vector<size_t>> children(rows.size());
+    for (size_t node{}; node < rows.size(); ++node)
+    {
+        for (const auto& up: query.to_confirmable_parents(rows[node].link))
+        {
+            const auto it = std::ranges::find_if(rows, [&](const auto& row)
+                NOEXCEPT { return row.link == up; });
+
+            if (it == rows.end())
+                continue;
+
+            ++pending[node];
+            children[std::distance(rows.begin(), it)].push_back(node);
+        }
+    }
+
+    std::vector<size_t> ready{};
+    for (size_t node{}; node < rows.size(); ++node)
+        if (is_zero(pending[node]))
+            ready.push_back(node);
+
+    std::ranges::make_heap(ready, std::greater{});
+    std::vector<relayable> ordered{};
+    ordered.reserve(rows.size());
+    while (!ready.empty())
+    {
+        std::ranges::pop_heap(ready, std::greater{});
+        const auto node = ready.back();
+        ready.pop_back();
+        ordered.push_back(rows[node]);
+        for (const auto child: children[node])
+        {
+            if (is_zero(--pending[child]))
+            {
+                ready.push_back(child);
+                std::ranges::push_heap(ready, std::greater{});
+            }
+        }
+    }
+
+    rows = std::move(ordered);
 
     const auto limit = block_limit().size;
     const auto bytes_per_sigop = node_settings().pool.bytes_per_sigop;
