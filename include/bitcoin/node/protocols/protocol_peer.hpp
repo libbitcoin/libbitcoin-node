@@ -63,6 +63,19 @@ protected:
     virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
+    /// Get the block of a compact block that was not filled, as work.
+    virtual void get_unfilled(header_t link, map_handler&& handler) NOEXCEPT;
+
+    /// Set the channel's handler of work offered by its own protocols.
+    virtual void set_downloader(channel_peer::downloader&& handler) NOEXCEPT;
+
+    /// Offer work to the channel's downloader, false if there is none.
+    virtual bool download(const map_ptr& map, const job::ptr& job) NOEXCEPT;
+
+    /// Reserve or release a high bandwidth compact peer slot.
+    virtual bool reserve_compact() NOEXCEPT;
+    virtual void release_compact() NOEXCEPT;
+
     /// Methods.
     /// -----------------------------------------------------------------------
 

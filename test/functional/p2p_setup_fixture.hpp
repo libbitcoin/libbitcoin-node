@@ -263,14 +263,15 @@ struct p2p_compact_setup_fixture
     static const system::chain::block& block2() NOEXCEPT;
 
     inline p2p_compact_setup_fixture(const initializer& setup={},
-        uint16_t compact_timeout=max_uint16, uint8_t missing_percent=100)
+        uint16_t compact_timeout=max_uint16, uint8_t missing_percent=100,
+        bool relay=true, uint32_t currency_window=0)
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             using deployment = system::chain::chain_state::deployment;
             config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
-            config.network.enable_relay = true;
+            config.network.enable_relay = relay;
             config.network.enable_compact = true;
-            config.node.currency_window_minutes = 0;
+            config.node.currency_window_minutes = currency_window;
             config.node.compact_timeout_seconds = compact_timeout;
             config.node.compact_missing_percent = missing_percent;
             config.bitcoin.minimum_work = {};
@@ -291,6 +292,26 @@ struct p2p_compact_pooled_setup_fixture
 {
     inline p2p_compact_pooled_setup_fixture()
       : p2p_compact_setup_fixture({}, max_uint16, 0)
+    {
+    }
+};
+
+// A compact node with relay disabled, so its pool is closed.
+struct p2p_compact_closed_setup_fixture
+  : p2p_compact_setup_fixture
+{
+    inline p2p_compact_closed_setup_fixture()
+      : p2p_compact_setup_fixture({}, max_uint16, 100, false)
+    {
+    }
+};
+
+// A compact node with a chain that is not current.
+struct p2p_compact_stale_setup_fixture
+  : p2p_compact_setup_fixture
+{
+    inline p2p_compact_stale_setup_fixture()
+      : p2p_compact_setup_fixture({}, max_uint16, 100, true, one)
     {
     }
 };

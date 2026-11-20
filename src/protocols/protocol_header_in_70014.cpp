@@ -60,6 +60,34 @@ void protocol_header_in_70014::complete() NOEXCEPT
     protocol_header_in_70012::complete();
 }
 
+void protocol_header_in_70014::stopping(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (compact_)
+    {
+        compact_ = false;
+        release_compact();
+    }
+
+    protocol_header_in_70012::stopping(ec);
+}
+
+// Inbound (headers).
+// ----------------------------------------------------------------------------
+
+bool protocol_header_in_70014::handle_receive_headers(const code& ec,
+    const headers::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!protocol_header_in_70012::handle_receive_headers(ec, message))
+        return false;
+
+    upgrade();
+    return true;
+}
+
 // Inbound (sendcmpct).
 // ----------------------------------------------------------------------------
 
@@ -76,7 +104,7 @@ bool protocol_header_in_70014::handle_receive_send_compact(const code& ec,
 }
 
 // High bandwidth is requested of a peer that signaled compact blocks, once the
-// chain is current, whichever comes last.
+// chain is current, whichever comes last, while a slot is free.
 void protocol_header_in_70014::upgrade() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -84,7 +112,8 @@ void protocol_header_in_70014::upgrade() NOEXCEPT
     // TODO: this is hardwired in handshake.
     constexpr auto version = send_compact::compact_version_2;
 
-    if (compact_ || !accepts_compact_blocks() || !is_current_chain(true))
+    if (compact_ || !accepts_compact_blocks() || !is_current_chain(true) ||
+        !reserve_compact())
         return;
 
     compact_ = true;
@@ -113,11 +142,17 @@ bool protocol_header_in_70014::handle_receive_compact_block(const code& ec,
     if (stopped())
         return false;
 
-    // A compact block only extends a current chain, otherwise it is fetched.
-    if (!is_current_chain(true))
-        return true;
-
     set_announced(hash);
+
+    // A header is organized unproven only on a current chain.
+    if (!is_current_chain(true))
+    {
+        if (link.is_terminal())
+            resynchronize();
+
+        return true;
+    }
+
     if (fill_ && (fill_->hash == hash))
         return true;
 
@@ -160,6 +195,7 @@ void protocol_header_in_70014::do_organize_compact(const code& ec,
         {
             LOGP("Compact block [" << encode_hash(hash) << "] from ["
                 << opposite() << "] " << ec.message());
+            resynchronize();
             return;
         }
 
@@ -224,7 +260,7 @@ void protocol_header_in_70014::collect(const compact_block& message,
             << (count - block.unpooled.size()) << "/" << count << ") from ["
             << opposite() << "].");
 
-        notify(error::success, chases::unfilled{ link });
+        get_unfilled(link, BIND(handle_unfilled, _1, _2, _3));
         return;
     }
 
@@ -426,7 +462,7 @@ void protocol_header_in_70014::identify(const gate_t::ptr& gate) NOEXCEPT
         evidence_link_ = block.link;
         evidence_root_ = witness_root;
         evidence_count_ = block.txs.size();
-        notify(error::success, chases::unfilled{ block.link });
+        get_unfilled(block.link, BIND(handle_unfilled, _1, _2, _3));
         fill_.reset();
         return;
     }
@@ -516,9 +552,17 @@ void protocol_header_in_70014::do_submit_compact(const code& ec,
     if (stopped())
         return;
 
-    // Another channel may have completed the block, or it is downloaded.
-    if (ec == error::duplicate_block || ec == error::pooling_disabled)
+    // Another channel may have completed the block.
+    if (ec == error::duplicate_block)
         return;
+
+    // The pool is closed to the fill.
+    if (ec == error::pooling_disabled)
+    {
+        get_unfilled(archive().to_header(hash),
+            BIND(handle_unfilled, _1, _2, _3));
+        return;
+    }
 
     // The tx chaser marks an identified block with an invalid tx unconfirmable.
     if (ec)
@@ -532,6 +576,39 @@ void protocol_header_in_70014::do_submit_compact(const code& ec,
     LOGN("Compact block [" << encode_hash(hash) << ":" << height
         << "] filled (" << pooled << "/" << count << ") from ["
         << opposite() << "].");
+}
+
+// Unfilled.
+// ----------------------------------------------------------------------------
+// The block is requested of the peer that announced it, as work of the
+// channel's block protocol, and work not taken is returned.
+
+// not stranded
+void protocol_header_in_70014::handle_unfilled(const code& ec,
+    const map_ptr& map, const job::ptr& job) NOEXCEPT
+{
+    if (stopped() || ec)
+    {
+        restore(map);
+        return;
+    }
+
+    POST(do_unfilled, map, job);
+}
+
+void protocol_header_in_70014::do_unfilled(const map_ptr& map,
+    const job::ptr& job) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped() || !download(map, job))
+        restore(map);
+}
+
+void protocol_header_in_70014::restore(const map_ptr& map) NOEXCEPT
+{
+    if (!map->empty())
+        put_hashes(map, [](const code&) NOEXCEPT {});
 }
 
 // Evidence.

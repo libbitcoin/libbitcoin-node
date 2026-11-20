@@ -116,6 +116,11 @@ public:
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,
         result_handler&& handler) NOEXCEPT;
+    virtual void get_unfilled(header_t link, map_handler&& handler) NOEXCEPT;
+
+    /// Reserve or release a high bandwidth compact peer slot.
+    virtual bool reserve_compact() NOEXCEPT;
+    virtual void release_compact() NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------
@@ -233,6 +238,7 @@ private:
     const configuration& config_;
     const time_t start_time_;
     query& query_;
+    std::atomic<size_t> compact_peers_{};
 
     // These are protected by strand.
     chaser_header chaser_header_;

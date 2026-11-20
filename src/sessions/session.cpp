@@ -107,6 +107,21 @@ void session::put_hashes(const map_ptr& map,
     node_.put_hashes(map, std::move(handler));
 }
 
+void session::get_unfilled(header_t link, map_handler&& handler) NOEXCEPT
+{
+    node_.get_unfilled(link, std::move(handler));
+}
+
+bool session::reserve_compact() NOEXCEPT
+{
+    return node_.reserve_compact();
+}
+
+void session::release_compact() NOEXCEPT
+{
+    node_.release_compact();
+}
+
 // Events.
 // ----------------------------------------------------------------------------
 

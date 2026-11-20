@@ -109,6 +109,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     // Protocol presumes max_get_headers unless complete.
     // Completeness assumes empty response from peer if caught up at 2000.
     const auto full = (ptrs.size() == max_get_headers);
+
+    // An announcement received while archiving stops the peer.
     if (archiving_)
         collect(*message, full);
     else
@@ -404,9 +406,20 @@ void protocol_header_in_31800::complete() NOEXCEPT
     }
 }
 
+// A branch in progress is resumed above its top when archived.
+void protocol_header_in_31800::resynchronize() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!state_)
+    {
+        SEND(create_get_headers(), handle_send, _1);
+    }
+}
+
 // Inbound (inv).
 // ----------------------------------------------------------------------------
-// Handle announcement by sending get_headers() if missing any announced.
+// Handle announcement by requesting headers if the last announced is missing.
 
 bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
@@ -417,18 +430,16 @@ bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
         return false;
 
     // bip144: get_data uses witness type_id but inv does not.
-
-    const auto& query = archive();
-    for (const auto& item: message->view(type_id::block))
-    {
-        if (!query.is_block(item.hash))
+    const auto& items = message->items;
+    const auto top = std::find_if(items.crbegin(), items.crend(),
+        [](const auto& item) NOEXCEPT
         {
-            // This is inefficient but simple and limited to protocol 31800.
-            // Since subscribed is set, the response headers will be cached.
-            SEND(create_get_headers(), handle_send, _1);
-            return true;
-        }
-    }
+            return item.type == type_id::block;
+        });
+
+    // The last block announced is the top of the peer.
+    if (top != items.crend() && archive().to_header(top->hash).is_terminal())
+        resynchronize();
 
     return true;
 }

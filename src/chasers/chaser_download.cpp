@@ -159,11 +159,6 @@ bool chaser_download::handle_chase(const code&, event_value value) NOEXCEPT
             POST(do_headers, to_payload<chase::headers>(value).branch_point);
             break;
         }
-        case chase::unfilled:
-        {
-            POST(do_unfilled, to_payload<chase::unfilled>(value).link);
-            break;
-        }
         case chase::valid:
         ////case chase::prevalid:
         {
@@ -456,6 +451,15 @@ void chaser_download::do_get_hashes(const map_handler& handler) NOEXCEPT
     handler(error::success, get_map(), job_);
 }
 
+void chaser_download::get_unfilled(header_t link,
+    map_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_get_unfilled, link, std::move(handler));
+}
+
 void chaser_download::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
@@ -477,6 +481,27 @@ map_ptr chaser_download::get_map() NOEXCEPT
 {
     BC_ASSERT(stranded());
     return maps_.empty() ? empty_map() : pop_front(maps_);
+}
+
+map_ptr chaser_download::get_map(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto it = std::find_if(maps_.begin(), maps_.end(),
+        [link](const map_ptr& map) NOEXCEPT
+        {
+            return std::any_of(map->pos_begin(), map->pos_end(),
+                [link](const auto& item) NOEXCEPT
+                {
+                    return item.link == link;
+                });
+        });
+
+    if (it == maps_.end())
+        return empty_map();
+
+    const auto map = *it;
+    maps_.erase(it);
+    return map;
 }
 
 bool chaser_download::set_map(const map_ptr& map) NOEXCEPT
@@ -582,9 +607,14 @@ void chaser_download::handle_compact_timer(const code& ec) NOEXCEPT
     do_headers({});
 }
 
-void chaser_download::do_unfilled(header_t link) NOEXCEPT
+// The block is issued once, to the first channel that did not fill it. Other
+// work found by the scan is announced to all channels.
+void chaser_download::do_get_unfilled(header_t link,
+    const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    if (closed() || purging())
+        return;
 
     expired_ = link;
     if (deferred_ == expired_)
@@ -593,7 +623,12 @@ void chaser_download::do_unfilled(header_t link) NOEXCEPT
         compact_timer_->stop();
     }
 
-    do_headers({});
+    const auto added = set_unassociated();
+    const auto map = get_map(link);
+    handler(error::success, map, job_);
+
+    if (added > map->size())
+        notify(error::success, chases::download{ added - map->size() });
 }
 
 size_t chaser_download::get_inventory_size() const NOEXCEPT

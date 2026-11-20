@@ -70,6 +70,9 @@ typedef std::shared_ptr<database::associations> map_ptr;
 typedef std::function<void(const code&, const map_ptr&,
     const job::ptr&)> map_handler;
 
+/// bip152: high bandwidth mode is requested of at most three peers.
+constexpr size_t maximum_compact_peers = 3;
+
 /// Mining types.
 typedef std::function<void(const code&, size_t,
     const database::tx_links&)> template_handler;

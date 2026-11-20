@@ -78,6 +78,7 @@ private:
     code identify(const system::chain::view::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
+    void do_download(const map_ptr& map, const job::ptr& job) NOEXCEPT;
     void send_get_data(const map_ptr& map, const job::ptr& job) NOEXCEPT;
     network::messages::peer::get_data create_get_data(
         const database::associations& map) const NOEXCEPT;

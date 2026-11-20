@@ -243,6 +243,26 @@ void full_node::put_hashes(const map_ptr& map,
     chaser_download_.put_hashes(map, std::move(handler));
 }
 
+void full_node::get_unfilled(header_t link, map_handler&& handler) NOEXCEPT
+{
+    chaser_download_.get_unfilled(link, std::move(handler));
+}
+
+bool full_node::reserve_compact() NOEXCEPT
+{
+    auto count = compact_peers_.load();
+    while (count < maximum_compact_peers)
+        if (compact_peers_.compare_exchange_weak(count, add1(count)))
+            return true;
+
+    return false;
+}
+
+void full_node::release_compact() NOEXCEPT
+{
+    --compact_peers_;
+}
+
 // Events.
 // ----------------------------------------------------------------------------
 

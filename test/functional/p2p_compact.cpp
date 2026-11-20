@@ -159,6 +159,29 @@ BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__prefilled__associated)
     BC_REQUIRE(associated(block.hash()));
 }
 
+// The pool is closed, so the fill is refused and the block is requested.
+BC_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__prefilled_closed_pool__block_requested, p2p_compact_closed_setup_fixture)
+{
+    BC_REQUIRE(handshake(full_node));
+
+    const auto& block = block1();
+    send(prefilled(block, block.transactions_ptr()->front()), node_version->value);
+
+    const auto request = get_data::deserialize(node_version->value, receive(get_data::command));
+    BC_REQUIRE(request);
+    BC_REQUIRE(request->items.front().hash == block.hash());
+}
+
+BC_AUTO_TEST_CASE(functional_p2p_compact__reserve_compact__at_limit__refused_until_released)
+{
+    BC_REQUIRE(node_.reserve_compact());
+    BC_REQUIRE(node_.reserve_compact());
+    BC_REQUIRE(node_.reserve_compact());
+    BC_REQUIRE(!node_.reserve_compact());
+    node_.release_compact();
+    BC_REQUIRE(node_.reserve_compact());
+}
+
 BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id__requested_and_associated)
 {
     BC_REQUIRE(handshake(full_node));
@@ -207,15 +230,46 @@ BC_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__replayed_while_submi
 }
 
 // An unstored parent is resolved by header synchronization.
-BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__orphan__not_stopped)
+BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__orphan__headers_requested)
 {
     BC_REQUIRE(handshake(full_node));
+    receive(get_headers::command);
 
     const auto& block = block2();
     send(prefilled(block, block.transactions_ptr()->front()), node_version->value);
     send(ping{ 42 }, node_version->value);
 
-    BC_REQUIRE(!receive(pong::command).empty());
+    BC_REQUIRE(received(get_headers::command, pong::command));
+}
+
+// The chain is not current, so headers are requested and the header is not organized.
+BC_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__not_current__headers_requested, p2p_compact_stale_setup_fixture)
+{
+    BC_REQUIRE(handshake(full_node));
+    receive(get_headers::command);
+
+    const auto& block = block1();
+    send(shortened(block), node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    BC_REQUIRE(received(get_headers::command, pong::command));
+    BC_REQUIRE(query_.to_header(block.hash()).is_terminal());
+}
+
+// A branch in progress is resumed above its top, so headers are not requested.
+BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__orphan_synchronizing__headers_not_requested)
+{
+    BC_REQUIRE(handshake(full_node));
+    receive(get_headers::command);
+
+    send(headers{ { block1().header_ptr() } }, node_version->value);
+    receive(get_headers::command);
+
+    const auto& block = block2();
+    send(prefilled(block, block.transactions_ptr()->front()), node_version->value);
+    send(ping{ 42 }, node_version->value);
+
+    BC_REQUIRE(!received(get_headers::command, pong::command));
 }
 
 // The pool holds none of the block, so it is downloaded (not requested).

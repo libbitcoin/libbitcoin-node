@@ -84,6 +84,11 @@ public:
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
+    virtual void get_unfilled(header_t link, map_handler&& handler) NOEXCEPT;
+
+    /// Reserve or release a high bandwidth compact peer slot.
+    virtual bool reserve_compact() NOEXCEPT;
+    virtual void release_compact() NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------

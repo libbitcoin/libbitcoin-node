@@ -40,6 +40,34 @@ void protocol_peer::put_hashes(const map_ptr& map,
     session_->put_hashes(map, std::move(handler));
 }
 
+void protocol_peer::get_unfilled(header_t link,
+    map_handler&& handler) NOEXCEPT
+{
+    session_->get_unfilled(link, std::move(handler));
+}
+
+void protocol_peer::set_downloader(
+    channel_peer::downloader&& handler) NOEXCEPT
+{
+    channel_->set_downloader(std::move(handler));
+}
+
+bool protocol_peer::download(const map_ptr& map,
+    const job::ptr& job) NOEXCEPT
+{
+    return channel_->download(map, job);
+}
+
+bool protocol_peer::reserve_compact() NOEXCEPT
+{
+    return session_->reserve_compact();
+}
+
+void protocol_peer::release_compact() NOEXCEPT
+{
+    session_->release_compact();
+}
+
 // Methods.
 // ----------------------------------------------------------------------------
 

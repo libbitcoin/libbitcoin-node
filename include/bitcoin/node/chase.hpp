@@ -108,10 +108,6 @@ enum class chase
     /// Issued by 'organize' and handled by 'download', 'validate', 'confirm'.
     disorganized,
 
-    /// A compact block is not filled by its channel, so it is downloaded.
-    /// Issued by 'header_in_70014' and handled by 'download'.
-    unfilled,
-
     /// Check/Identify.
     /// -----------------------------------------------------------------------
 
@@ -290,12 +286,6 @@ struct disorganized
     height_t branch_point;
 };
 
-struct unfilled
-{
-    static constexpr chase id{ chase::unfilled };
-    header_t link;
-};
-
 struct checked
 {
     static constexpr chase id{ chase::checked };
@@ -411,7 +401,6 @@ using event_value = std::variant
     chases::download,
     chases::regressed,
     chases::disorganized,
-    chases::unfilled,
     chases::checked,
     chases::unchecked,
     chases::windowed,
