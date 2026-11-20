@@ -832,7 +832,7 @@ void chaser_transaction::get_confirmable_fees(
 
 // private
 // A set is tested prefix by prefix. The running set is its unstored txs since
-// the last prefix to clear, and clears when its own rate and its coverage do.
+// the last prefix to clear, and clears when its coverage does.
 // It is then connected and admitted, and the next tx starts another. An
 // announced set is a batch, not a package, so a tx of it that is not accepted
 // is passed over as if stored. Prevouts are populated from the whole set, so
@@ -882,7 +882,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
     // In a test the cleared txs are not pooled, so remain given candidates.
     query::pool_graph graph{};
-    uint64_t fee{}, charge{}, bytes{}, sigops{};
+    uint64_t bytes{}, sigops{};
     size_t given{}, first{}, passed{};
     auto running = false;
     auto cleared = false;
@@ -943,9 +943,6 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
         running = true;
         const auto ops = tx.signature_operations(bip16, bip141);
-        const auto cost = ceilinged_multiply<uint64_t>(ops, bytes_per_sigop);
-        fee = ceilinged_add(fee, tx.fee());
-        charge = ceilinged_add(charge, greater(tx.virtual_size(), cost));
         bytes = ceilinged_add<uint64_t>(bytes, tx.virtual_size());
         sigops = ceilinged_add<uint64_t>(sigops, ops);
 
@@ -955,11 +952,6 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             handler(database::error::pool_limit, first);
             return;
         }
-
-        // Compared in satoshis per virtual kilobyte.
-        if (ceilinged_multiply(fee, 1'000_u64) <
-            ceilinged_multiply(rate, charge))
-            continue;
 
         bool covered{};
         const auto start = now();
@@ -1026,7 +1018,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         }
 
         running = false;
-        fee = charge = bytes = sigops = zero;
+        bytes = sigops = zero;
     }
 
     if (cleared)

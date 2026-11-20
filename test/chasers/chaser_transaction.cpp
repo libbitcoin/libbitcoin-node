@@ -1030,13 +1030,25 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict__success_archived, cha
     BC_REQUIRE(query_.is_tx(second->hash(false)));
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_no_added_fee__insufficient_fee, chaser_transaction_fee_setup_fixture)
+// The best outcome (100 satoshis) does not cover both rivals at the rate.
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_uncovered__insufficient_fee, chaser_transaction_fee_setup_fixture)
 {
-    const auto first = submit(package({ spend(parent_value - 1'000) }));
-    const auto second = submit(package({ spend(parent_value - 999) }));
+    const auto first = submit(package({ spend(parent_value - 100) }));
+    const auto second = submit(package({ spend(parent_value - 99) }));
     BC_REQUIRE_EQUAL(first.first, node::error::success);
     BC_REQUIRE_EQUAL(second.first, node::error::insufficient_fee);
     BC_REQUIRE_EQUAL(second.second, zero);
+}
+
+// The best outcome (1,000 satoshis) covers both rivals at the rate.
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_no_added_fee__covered_archived, chaser_transaction_fee_setup_fixture)
+{
+    const auto second = spend(parent_value - 999);
+    const auto first_result = submit(package({ spend(parent_value - 1'000) }));
+    const auto second_result = submit(package({ second }));
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(second->hash(false)));
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_added_fee__success_archived, chaser_transaction_fee_setup_fixture)
