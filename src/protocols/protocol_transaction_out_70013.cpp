@@ -51,14 +51,14 @@ void protocol_transaction_out_70013::start() NOEXCEPT
 // Outbound (feefilter).
 // ----------------------------------------------------------------------------
 
-// bip133: a tx below the advertised rate is not announced to us, and a
-// channel with no relay slot is announced nothing.
+// bip133: a relaying channel is sent every tx (coverage decides admission),
+// and one with no relay slot, or while not current, is sent nothing.
 void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto minimum = relay_slot() < relay_slots ? minimum_fee_rate() :
-        system_settings().max_money();
+    const auto relaying = relay_slot() < relay_slots && is_current_chain(true);
+    const auto minimum = relaying ? zero : system_settings().max_money();
 
     if (minimum == sent_fee_)
         return;

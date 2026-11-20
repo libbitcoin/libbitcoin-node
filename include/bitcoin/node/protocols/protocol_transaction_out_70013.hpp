@@ -54,7 +54,7 @@ private:
     void do_send_fee_filter() NOEXCEPT;
 
     // This is protected by strand.
-    uint64_t sent_fee_{};
+    uint64_t sent_fee_{ max_uint64 };
 };
 
 } // namespace node

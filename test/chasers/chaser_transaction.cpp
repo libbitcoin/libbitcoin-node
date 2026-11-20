@@ -2329,16 +2329,22 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped
     BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70013__stopped, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70013__not_stopped, chaser_transaction_fee_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
-    const auto tx = spend(parent_value);
-    send(peer::inventory{ { { type_id::transaction, tx->hash(false) } } }, node_version->value);
+    const auto low = spend(parent_value);
+    const auto high = spend(parent_value - 1'000);
+    send(peer::inventory{ { { type_id::transaction, low->hash(false) } } }, node_version->value);
     BC_REQUIRE(!receive(peer::get_data::command).empty());
 
-    send(peer::transaction{ tx }, node_version->value);
-    BC_REQUIRE(dropped(peer::not_found::command));
+    send(peer::transaction{ low }, node_version->value);
+    send(peer::inventory{ { { type_id::transaction, high->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ high }, node_version->value);
+    BC_REQUIRE(archived(high->hash(false)));
+    BC_REQUIRE(!query_.is_tx(low->hash(false)));
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_insufficient_fee_70001__not_stopped, chaser_transaction_fee_setup_fixture)
@@ -2583,20 +2589,24 @@ BC_FIXTURE_TEST_CASE(protocol_transaction__distribution__submitted_tx__announced
     BC_REQUIRE_EQUAL(announced(1), expected);
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__fee_filter, chaser_transaction_fee_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__minimum_fee_rate__zero_fee_filter, chaser_transaction_fee_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     const auto payload = receive(peer::fee_filter::command);
     const auto message = peer::fee_filter::deserialize(node_version->value, payload);
     BC_REQUIRE(message);
-    BC_REQUIRE_EQUAL(message->minimum_fee, 1'526u);
+    BC_REQUIRE_EQUAL(message->minimum_fee, 0u);
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__no_fee_filter, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__zero_minimum_fee_rate__zero_fee_filter, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
-    BC_REQUIRE(!received_before_pong(peer::fee_filter::command));
+
+    const auto payload = receive(peer::fee_filter::command);
+    const auto message = peer::fee_filter::deserialize(node_version->value, payload);
+    BC_REQUIRE(message);
+    BC_REQUIRE_EQUAL(message->minimum_fee, 0u);
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__archived__inventory, chaser_transaction_pooling_setup_fixture)
