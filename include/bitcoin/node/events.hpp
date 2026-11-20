@@ -85,6 +85,8 @@ enum events : uint8_t
 
     /// Peers.
     tx_dropped,          // peer dropped for a tx set (set size)
+    tx_refused,          // tx set not admitted in full, peer kept (set size)
+    tx_unserved,         // requested txs not sent by the peer (count)
 
     unknown
 };

@@ -46,6 +46,9 @@ public:
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
 
+    /// The channel is stopping (called on strand by stop subscription).
+    void stopping(const code& ec) NOEXCEPT override;
+
 protected:
     /// Record the requested tx as not found, false if it was not requested.
     bool set_not_found(const system::hash_digest& hash) NOEXCEPT;

@@ -1880,6 +1880,34 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__requested__not_stopped,
     BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__requested__tx_unserved_fired, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(peer::inventory{ { { type_id::transaction, one_hash } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE_EQUAL(fired_value(events::tx_unserved, [&]() { send(peer::not_found{ { { type_id::transaction, one_hash } } }, node_version->value); }), one);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__stopping__requested__tx_unserved_fired, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(peer::inventory{ { { type_id::transaction, one_hash }, { type_id::transaction, missing_hash } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE_EQUAL(fired_value(events::tx_unserved, [&]() { disconnect(); }), 2u);
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_missing_prevout__tx_refused_fired, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto missing = spend(missing_hash, parent_value);
+    send(peer::inventory{ { { type_id::transaction, missing->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE_EQUAL(fired_value(events::tx_refused, [&]() { send(peer::transaction{ missing }, node_version->value); }), one);
+}
+
 BC_FIXTURE_TEST_CASE(protocol_transaction_in__transaction__requested_valid__archived, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));

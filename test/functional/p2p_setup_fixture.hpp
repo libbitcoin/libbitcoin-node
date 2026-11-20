@@ -139,6 +139,9 @@ struct p2p_setup_fixture
             });
     }
 
+    /// The value of the first event of the type fired from the act onward.
+    uint64_t fired_value(uint8_t event, const std::function<void()>& act);
+
 protected:
     static configuration configured(const configurator& configure);
 
