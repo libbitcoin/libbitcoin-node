@@ -28,66 +28,66 @@ namespace node {
 enum events : uint8_t
 {
     /// Candidate chain.
-    header_archived,     // header checked, accepted
-    header_organized,    // header pushed (previously archived)
-    header_reorganized,  // header popped
+    header_archived,        // header checked, accepted
+    header_organized,       // header pushed (previously archived)
+    header_reorganized,     // header popped
 
     /// Blocks.
-    block_archived,      // block checked
-    block_buffered,      // block buffered for validation
-    block_validated,     // block checked, accepted, connected
-    block_confirmed,     // block checked, accepted, connected, confirmable
-    block_unconfirmable, // block invalid (after headers-first archive)
-    validate_bypassed,   // block checked, accepted [assumed]
-    confirm_bypassed,    // block checked, accepted, connected [assumed]
+    block_archived,         // block checked
+    block_buffered,         // block buffered for validation
+    block_validated,        // block checked, accepted, connected
+    block_confirmed,        // block checked, accepted, connected, confirmable
+    block_unconfirmable,    // block invalid (after headers-first archive)
+    validate_bypassed,      // block checked, accepted [assumed]
+    confirm_bypassed,       // block checked, accepted, connected [assumed]
 
     /// Transactions.
-    tx_archived,         // unassociated tx checked, accepted, connected
-    tx_validated,        // associated tx checked, accepted, connected (unused)
-    tx_invalidated,      // associated tx invalid (unused)
+    tx_archived,            // unassociated tx checked, accepted, connected
+    tx_validated,           // associated tx checked, accepted, connected (unused)
+    tx_invalidated,         // associated tx invalid (unused)
 
     /// Confirmed chain.
-    block_organized,     // block pushed (previously confirmable)
-    block_reorganized,   // block popped
+    block_organized,        // block pushed (previously confirmable)
+    block_reorganized,      // block popped
 
     /// Mining.
-    template_issued,     // block template issued for mining
+    template_issued,        // block template issued for mining
 
     /// Timespans.
-    snapshot_secs,       // snapshot timespan in seconds.
-    prune_msecs,         // prune timespan in milliseconds.
-    reload_msecs,        // store reload timespan in milliseconds.
-    block_usecs,         // getblock timespan in microseconds.
-    ancestry_msecs,      // getancestry timespan in milliseconds.
-    filter_msecs,        // getfilter timespan in milliseconds.
-    filterhashes_msecs,  // getfilterhashes timespan in milliseconds.
-    filterchecks_msecs,  // getcfcheckpt timespan in milliseconds.
-    ecdsa_secs,          // ecdsa batch verify timespan in seconds.
-    schnorr_secs,        // schnorr batch verify timespan in seconds.
-    silent_secs,         // silent payment scan timespan in seconds.
-    validate_usecs,      // block validation timespan in microseconds.
-    top_usecs,           // candidate header to top timespan in microseconds.
+    snapshot_secs,          // snapshot timespan in seconds.
+    prune_msecs,            // prune timespan in milliseconds.
+    reload_msecs,           // store reload timespan in milliseconds.
+    block_usecs,            // getblock timespan in microseconds.
+    ancestry_msecs,         // getancestry timespan in milliseconds.
+    filter_msecs,           // getfilter timespan in milliseconds.
+    filterhashes_msecs,     // getfilterhashes timespan in milliseconds.
+    filterchecks_msecs,     // getcfcheckpt timespan in milliseconds.
+    ecdsa_secs,             // ecdsa batch verify timespan in seconds.
+    schnorr_secs,           // schnorr batch verify timespan in seconds.
+    silent_secs,            // silent payment scan timespan in seconds.
+    validate_usecs,         // block validation timespan in microseconds.
+    top_usecs,              // candidate header to top timespan in microseconds.
 
     /// Transaction pool.
-    pool_rows,          // pool table rows at each organized block
+    pool_rows,             // pool table rows at each organized block
 
     /// Pool timespans.
-    pool_submit_usecs,   // admitting set timespan in microseconds.
-    pool_coverage_usecs, // clearing coverage timespan in microseconds.
-    pool_connect_usecs,  // clearing scripts timespan in microseconds.
-    pool_admit_usecs,    // tx index write timespan in microseconds.
-    pool_compact_usecs,  // compact block fill timespan in microseconds.
-    pool_block_in_usecs, // organized block index timespan in microseconds.
-    pool_block_out_usecs, // reorganized block index timespan in microseconds.
-    pool_context_usecs,  // context sweep timespan in microseconds.
-    pool_template_usecs, // template timespan in microseconds.
-    pool_project_usecs,  // fee projection timespan in microseconds.
+    pool_submit_usecs,      // admitting set timespan in microseconds.
+    pool_coverage_usecs,    // clearing coverage timespan in microseconds.
+    pool_connect_usecs,     // clearing scripts timespan in microseconds.
+    pool_admit_usecs,       // tx index write timespan in microseconds.
+    pool_compact_usecs,     // compact block fill timespan in microseconds.
+    pool_block_in_usecs,    // organized block index timespan in microseconds.
+    pool_block_out_usecs,   // reorganized block index timespan in microseconds.
+    pool_context_usecs,     // context sweep timespan in microseconds.
+    pool_template_usecs,    // template timespan in microseconds.
+    pool_project_usecs,     // fee projection timespan in microseconds.
     pool_confirmable_usecs, // confirmable scan timespan in microseconds.
 
     /// Peers.
-    tx_dropped,          // peer dropped for a tx set (set size)
-    tx_refused,          // tx set not admitted in full, peer kept (set size)
-    tx_unserved,         // requested txs not sent by the peer (count)
+    tx_dropped,             // peer dropped for a tx set (set size)
+    tx_refused,             // tx set not admitted in full, peer kept (set size)
+    tx_unserved,            // requested txs not sent by the peer (count)
 
     unknown
 };
