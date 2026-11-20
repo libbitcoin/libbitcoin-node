@@ -22,7 +22,7 @@
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/rolling_bloom_filter.hpp>
+#include <bitcoin/node/types/types.hpp>
 
 namespace libbitcoin {
 namespace node {

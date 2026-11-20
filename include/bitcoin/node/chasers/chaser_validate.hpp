@@ -22,7 +22,7 @@
 #include <atomic>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/solo_spans.hpp>
+#include <bitcoin/node/types/types.hpp>
 
 namespace libbitcoin {
 namespace node {

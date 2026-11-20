@@ -16,35 +16,40 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SOLO_SPANS_HPP
-#define LIBBITCOIN_NODE_SOLO_SPANS_HPP
+#ifndef LIBBITCOIN_NODE_TYPES_POOL_SCAN_HPP
+#define LIBBITCOIN_NODE_TYPES_POOL_SCAN_HPP
 
-#include <atomic>
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/chase.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// Thread safe spans that may overlap, each told at its end if it was alone.
-class BCN_API solo_spans
+/// Scans of the pool.
+enum class pool_scan : uint8_t
 {
-public:
-    using ticket = uint64_t;
+    /// Coverage of an incoming set.
+    coverage,
 
-    /// Begin a span.
-    ticket begin() NOEXCEPT;
+    /// Index write of an admitted tx.
+    admission,
 
-    /// End the span, true if no other span was open at any time during it.
-    bool end(ticket begun) NOEXCEPT;
+    /// Index transition of an organized block.
+    block_in,
 
-private:
-    // The state holds spans begun (high word) and spans open (low word).
-    static constexpr auto one_open = 1_u64;
-    static constexpr auto one_begun = system::power2<uint64_t>(
-        bits<uint32_t>);
+    /// Index transition of a reorganized block.
+    block_out,
 
-    // This is thread safe.
-    std::atomic<uint64_t> state_{};
+    /// Index sweep of the pool context.
+    context,
+
+    /// Template.
+    template_,
+
+    /// Fee projection.
+    projection,
+
+    /// Confirmable txs or fees.
+    confirmable
 };
 
 } // namespace node

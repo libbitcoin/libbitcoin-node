@@ -16,25 +16,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/solo_spans.hpp>
+#ifndef LIBBITCOIN_NODE_TYPES_ESTIMATE_MODE_HPP
+#define LIBBITCOIN_NODE_TYPES_ESTIMATE_MODE_HPP
 
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/chase.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-solo_spans::ticket solo_spans::begin() NOEXCEPT
+/// Estimate types.
+enum class estimate_mode
 {
-    return state_.fetch_add(one_begun + one_open);
-}
+    /// The pool as it is, with no arrivals.
+    basic,
 
-// Alone if none was open at its begin and the state is as its begin left it.
-bool solo_spans::end(ticket begun) NOEXCEPT
-{
-    const auto ending = state_.fetch_sub(one_open);
-    return is_zero(begun % one_begun) &&
-        (ending == begun + one_begun + one_open);
-}
+    /// Arrivals weighted by recency, each block half of the one above it.
+    geometric,
+
+    /// Arrivals at their mean over the economical window.
+    economical,
+
+    /// Arrivals at their peak over the conservative window.
+    conservative,
+
+    unknown
+};
 
 } // namespace node
 } // namespace libbitcoin
+
+#endif

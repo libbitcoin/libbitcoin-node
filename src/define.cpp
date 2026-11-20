@@ -26,7 +26,8 @@
 // error          : version <bitcoin/system>
 // events         : error
 // chase          : events <bitcoin/database>
-// define         : chase <bitcoin/network>
+// /types         : chase <bitcoin/network>
+// define         : /types <bitcoin/network>
 
 // Other directory common includes are not internally chained.
 // Each header includes only its required common headers.
