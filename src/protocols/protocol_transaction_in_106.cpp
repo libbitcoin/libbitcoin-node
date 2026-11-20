@@ -29,9 +29,6 @@ using namespace system;
 using namespace network::messages::peer;
 using namespace std::placeholders;
 
-// The maximum number of txs requested from a peer and not yet received.
-constexpr size_t maximum_backlog = max_inventory;
-
 // The set of a requested tx whose set has been submitted.
 constexpr size_t late = max_size_t;
 
@@ -111,16 +108,6 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
     // Relay is implied by protocol attachment, so peer is not in violation.
     if (!is_current_chain(true))
         return true;
-
-    // An announcement is buffered in full, so the backlog is measured only
-    // between messages, and may exceed the maximum by one message.
-    if (requested_.size() > maximum_backlog)
-    {
-        LOGR("Excessive tx backlog (" << requested_.size() << ") from ["
-            << opposite() << "].");
-        stop(error::excessive_backlog);
-        return false;
-    }
 
     const auto getter = create_get_data(*message);
     if (getter.items.empty())

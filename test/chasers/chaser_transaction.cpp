@@ -2310,15 +2310,14 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__block_only__no_get_data
     BC_REQUIRE(!received_before_pong(peer::get_data::command));
 }
 
-BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__excessive_backlog__stopped, chaser_transaction_pooling_setup_fixture)
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__over_maximum_inventory__not_stopped, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
 
     send(announcement(peer::max_inventory, 1), node_version->value);
     send(announcement(1, 2), node_version->value);
     send(announcement(1, 3), node_version->value);
-    send(peer::ping{ 42 }, node_version->value);
-    BC_REQUIRE(dropped(peer::pong::command));
+    BC_REQUIRE(received_before_pong(peer::pong::command));
 }
 
 BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped, chaser_transaction_pooling_setup_fixture)
