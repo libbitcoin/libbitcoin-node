@@ -69,10 +69,10 @@ void session::submit(const transactions_cptr& txs, bool test,
     node_.submit(txs, test, std::move(handler));
 }
 
-void session::submit_announced(const transactions_cptr& txs,
+void session::submit_announced(const transactions_cptr& txs, size_t slot,
     submit_handler&& handler) NOEXCEPT
 {
-    node_.submit_announced(txs, std::move(handler));
+    node_.submit_announced(txs, slot, std::move(handler));
 }
 
 void session::submit_compact(const transactions_cptr& txs,
@@ -120,6 +120,27 @@ bool session::reserve_compact() NOEXCEPT
 void session::release_compact() NOEXCEPT
 {
     node_.release_compact();
+}
+
+size_t session::reserve_relay() NOEXCEPT
+{
+    return node_.reserve_relay();
+}
+
+void session::release_relay(size_t slot) NOEXCEPT
+{
+    node_.release_relay(slot);
+}
+
+void session::set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
+{
+    node_.set_relay_rate(slot, rate);
+}
+
+void session::set_relayed(size_t slot,
+    const database::tx_links& links) NOEXCEPT
+{
+    node_.set_relayed(slot, links);
 }
 
 // Events.

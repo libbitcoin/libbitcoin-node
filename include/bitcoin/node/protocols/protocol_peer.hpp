@@ -76,6 +76,19 @@ protected:
     virtual bool reserve_compact() NOEXCEPT;
     virtual void release_compact() NOEXCEPT;
 
+    /// Reserve or release the channel's relay slot, false if none is free.
+    virtual bool reserve_relay() NOEXCEPT;
+    virtual void release_relay() NOEXCEPT;
+
+    /// The channel's relay slot, relay_slots if none.
+    virtual size_t relay_slot() const NOEXCEPT;
+
+    /// Set the fee rate of the channel's peer for relay.
+    virtual void set_relay_rate(uint64_t rate) NOEXCEPT;
+
+    /// Mark the pooled txs as held by the channel's peer.
+    virtual void set_relayed(const database::tx_links& links) NOEXCEPT;
+
     /// Methods.
     /// -----------------------------------------------------------------------
 

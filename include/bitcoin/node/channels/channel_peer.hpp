@@ -59,6 +59,10 @@ public:
     /// Offer work to the downloader, false if there is none.
     bool download(const map_ptr& map, const job::ptr& job) NOEXCEPT;
 
+    /// The relay slot of the channel, relay_slots if none (thread safe).
+    void set_relay_slot(size_t slot) NOEXCEPT;
+    size_t relay_slot() const NOEXCEPT;
+
 protected:
     /// Stamp witness parse context on the frame.
     inline network::messages::peer::frame_ptr create_frame()
@@ -70,8 +74,9 @@ protected:
     }
 
 private:
-    // This is thread safe (const).
+    // These are thread safe.
     const bool witness_;
+    std::atomic<size_t> relay_slot_{ relay_slots };
 
     // These are protected by strand.
     rolling_bloom_filter announced_{};

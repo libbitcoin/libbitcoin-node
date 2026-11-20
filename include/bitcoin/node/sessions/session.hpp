@@ -61,7 +61,7 @@ public:
     /// Validate and archive an announced set, admitted prefix by prefix, a tx
     /// that is not accepted passed over (the first such failure reported).
     virtual void submit_announced(
-        const system::chain::transactions_cptr& txs,
+        const system::chain::transactions_cptr& txs, size_t slot,
         submit_handler&& handler) NOEXCEPT;
 
     /// Validate, archive and associate the txs of an identified compact block,
@@ -89,6 +89,17 @@ public:
     /// Reserve or release a high bandwidth compact peer slot.
     virtual bool reserve_compact() NOEXCEPT;
     virtual void release_compact() NOEXCEPT;
+
+    /// Reserve (relay_slots if none) or release a relay slot.
+    virtual size_t reserve_relay() NOEXCEPT;
+    virtual void release_relay(size_t slot) NOEXCEPT;
+
+    /// Set the fee rate of the relay slot's peer.
+    virtual void set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT;
+
+    /// Mark the pooled txs as held by the relay slot's peer.
+    virtual void set_relayed(size_t slot,
+        const database::tx_links& links) NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------

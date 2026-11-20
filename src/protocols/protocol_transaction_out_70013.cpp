@@ -47,19 +47,21 @@ void protocol_transaction_out_70013::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(fee_filter, handle_receive_fee_filter, _1, _2);
-    do_send_fee_filter();
     protocol_transaction_out_70001::start();
+    do_send_fee_filter();
 }
 
 // Outbound (feefilter).
 // ----------------------------------------------------------------------------
 
-// bip133: a tx below the advertised rate is not announced to us.
+// bip133: a tx below the advertised rate is not announced to us, and a
+// channel with no relay slot is announced nothing.
 void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto minimum = minimum_fee_rate();
+    const auto minimum = relay_slot() < relay_slots ? minimum_fee_rate() :
+        system_settings().max_money();
 
     if (minimum == sent_fee_)
         return;
@@ -104,24 +106,12 @@ bool protocol_transaction_out_70013::handle_receive_fee_filter(const code& ec,
         return false;
 
     set_minimum_fee(message->minimum_fee);
+    set_relay_rate(message->minimum_fee);
     return true;
 }
 
-// Outbound (inv).
+// Filter.
 // ----------------------------------------------------------------------------
-
-bool protocol_transaction_out_70013::do_announce(transaction_t link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped())
-        return false;
-
-    if (is_filtered(link))
-        return true;
-
-    return protocol_transaction_out_70001::do_announce(link);
-}
 
 // The tx is archived and its prevouts populated, so the rate is known.
 bool protocol_transaction_out_70013::is_filtered(transaction_t link) NOEXCEPT

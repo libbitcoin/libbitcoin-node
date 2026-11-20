@@ -45,7 +45,8 @@ protected:
     type_id get_data_type() const NOEXCEPT override;
     system::hash_digest tx_identifier(
         const system::chain::transaction& tx) const NOEXCEPT override;
-    bool is_known(const system::hash_digest& hash) const NOEXCEPT override;
+    database::tx_link to_known(
+        const system::hash_digest& hash) const NOEXCEPT override;
 };
 
 } // namespace node

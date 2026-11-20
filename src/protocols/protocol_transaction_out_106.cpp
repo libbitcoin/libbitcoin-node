@@ -43,6 +43,9 @@ void protocol_transaction_out_106::start() NOEXCEPT
     if (started())
         return;
 
+    // A channel with no relay slot is relayed nothing.
+    reserve_relay();
+
     // Events subscription is asynchronous, events may be missed.
     subscribe_chase(BIND(handle_chase, _1, _2));
 
@@ -56,6 +59,7 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 
     // Unsubscriber race is ok.
     unsubscribe_chase();
+    release_relay();
     protocol_peer::stopping(ec);
 }
 
@@ -91,9 +95,12 @@ bool protocol_transaction_out_106::handle_chase(const code&,
 
     switch (to_chase(value))
     {
-        case chase::transaction:
+        case chase::relay:
         {
-            POST(do_announce, to_payload<chase::transaction>(value).link);
+            const auto& relay = to_payload<chase::relay>(value);
+            if (is_relayed(relay.slots))
+                POST(do_announce, relay.link, relay.slots);
+
             break;
         }
         default:
@@ -108,14 +115,21 @@ bool protocol_transaction_out_106::handle_chase(const code&,
 // Outbound (inv).
 // ----------------------------------------------------------------------------
 
-bool protocol_transaction_out_106::do_announce(transaction_t link) NOEXCEPT
+bool protocol_transaction_out_106::do_announce(transaction_t link,
+    uint64_t slots) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (stopped())
+    if (stopped() || !is_relayed(slots))
         return false;
 
     return announce(tx_identifier(link));
+}
+
+bool protocol_transaction_out_106::is_relayed(uint64_t slots) const NOEXCEPT
+{
+    const auto slot = relay_slot();
+    return slot < relay_slots && get_right(slots, slot);
 }
 
 bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT

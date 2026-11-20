@@ -83,13 +83,14 @@ hash_digest protocol_transaction_in_106::tx_identifier(
     return tx.get_hash(false);
 }
 
-bool protocol_transaction_in_106::is_known(
+database::tx_link protocol_transaction_in_106::to_known(
     const hash_digest& hash) const NOEXCEPT
 {
     const auto& query = archive();
     const auto link = query.to_tx(hash);
     return !link.is_terminal() &&
-        (query.is_pooled(link) || query.is_confirmed_tx(link));
+        (query.is_pooled(link) || query.is_confirmed_tx(link)) ? link :
+        database::tx_link{};
 }
 
 // Inbound (inv).
@@ -141,6 +142,7 @@ get_data protocol_transaction_in_106::create_get_data(
 
     get_data getter{};
     announcement set{};
+    database::tx_links known{};
     const auto sequence = first_ + sets_.size();
     getter.items.reserve(message.count(inventory_type()));
     for (const auto& item: message.view(inventory_type()))
@@ -148,10 +150,15 @@ get_data protocol_transaction_in_106::create_get_data(
         // The peer has the tx, so it is not announced back to it.
         set_announced(item.hash);
 
-        // A tx is requested once.
+        // A known tx is held by the peer, and a tx is requested once.
         const request slot{ sequence, set.hashes.size() };
-        if (is_known(item.hash) ||
-            !requested_.emplace(item.hash, slot).second)
+        if (const auto link = to_known(item.hash); !link.is_terminal())
+        {
+            known.push_back(link);
+            continue;
+        }
+
+        if (!requested_.emplace(item.hash, slot).second)
             continue;
 
         getter.items.emplace_back(get_data_type(), item.hash);
@@ -164,6 +171,9 @@ get_data protocol_transaction_in_106::create_get_data(
         set.txs.resize(set.open);
         sets_.push_back(std::move(set));
     }
+
+    if (!known.empty())
+        set_relayed(known);
 
     getter.items.shrink_to_fit();
     return getter;
@@ -212,7 +222,7 @@ void protocol_transaction_in_106::flush() NOEXCEPT
         return;
 
     const auto count = txs.size();
-    submit_announced(to_shared(std::move(txs)),
+    submit_announced(to_shared(std::move(txs)), relay_slot(),
         BIND(handle_submit, _1, _2, count, set.whole, gate()));
 }
 
@@ -263,7 +273,7 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
     if (at.set == late)
     {
         submit_announced(to_shared(chain::transaction_cptrs{ tx }),
-            BIND(handle_submit, _1, _2, one, false, gate()));
+            relay_slot(), BIND(handle_submit, _1, _2, one, false, gate()));
 
         return true;
     }

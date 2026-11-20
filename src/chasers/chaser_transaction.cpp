@@ -87,6 +87,201 @@ void chaser_transaction::do_subscribe_pool(
     subscriber_.subscribe(pool_notifier{ handler });
 }
 
+// relay slots
+// ----------------------------------------------------------------------------
+
+size_t chaser_transaction::reserve_relay() NOEXCEPT
+{
+    auto reserved = reserved_.load();
+    while (reserved != bit_all<uint64_t>)
+    {
+        const auto slot = right_ones(reserved);
+        if (reserved_.compare_exchange_weak(reserved,
+            set_right(reserved, slot)))
+            return slot;
+    }
+
+    return relay_slots;
+}
+
+void chaser_transaction::release_relay(size_t slot) NOEXCEPT
+{
+    if (closed() || slot >= relay_slots)
+        return;
+
+    POST(do_release_relay, slot);
+}
+
+void chaser_transaction::set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
+{
+    if (closed() || slot >= relay_slots)
+        return;
+
+    POST(do_set_relay_rate, slot, rate);
+}
+
+void chaser_transaction::set_relayed(size_t slot,
+    const database::tx_links& links) NOEXCEPT
+{
+    if (closed() || slot >= relay_slots)
+        return;
+
+    POST(do_set_relayed, slot, links);
+}
+
+void chaser_transaction::do_release_relay(size_t slot) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    for (auto& mark: marks_)
+        set_right_into(mark, slot, false);
+
+    rates_.at(slot) = zero;
+    reserved_.fetch_and(bit_not(bit_right<uint64_t>(slot)));
+}
+
+// A rise leaves the slot's marks, a fall relays to it what now clears.
+void chaser_transaction::do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto prior = rates_.at(slot);
+    rates_.at(slot) = rate;
+    if (rate >= prior || !pooling_)
+        return;
+
+    database::tx_links links{};
+    const auto& query = archive();
+    if (const auto ec = query.get_confirmable_txs(links))
+    {
+        fault(ec);
+        return;
+    }
+
+    const auto word = bit_right<uint64_t>(slot);
+    for (const auto& link: links)
+    {
+        const auto row = query.to_pool_row(link);
+        if (row.is_terminal() || get_right(marks(row.value), slot))
+            continue;
+
+        if (!relay({ link }, relay_slots, word))
+        {
+            fault(database::error::integrity);
+            return;
+        }
+    }
+}
+
+void chaser_transaction::do_set_relayed(size_t slot,
+    const database::tx_links& links) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+    for (const auto& link: links)
+    {
+        const auto row = query.to_pool_row(link);
+        if (!row.is_terminal())
+            set_right_into(marks(row.value), slot);
+    }
+}
+
+// private
+bool chaser_transaction::relay(const database::tx_links& links,
+    size_t origin, uint64_t slots) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    using algorithm = pool::algorithm;
+    struct relayable
+    {
+        size_t row;
+        database::tx_link link;
+        algorithm::totals_t totals;
+    };
+
+    const auto& query = archive();
+    std::vector<relayable> rows{};
+    std::unordered_set<database::tx_link::integer> seen{};
+    const auto add = [&](const database::tx_link& link) NOEXCEPT
+    {
+        if (!seen.insert(link.value).second)
+            return true;
+
+        algorithm::totals_t totals{};
+        const auto row = query.to_pool_row(link);
+        if (row.is_terminal() || !query.get_pooled_totals(totals, link))
+            return false;
+
+        rows.push_back({ row.value, link, totals });
+        return true;
+    };
+
+    for (const auto& link: links)
+    {
+        for (const auto& ancestor: query.to_confirmable_ancestors(link))
+            if (!add(ancestor))
+                return false;
+
+        if (!add(link))
+            return false;
+    }
+
+    std::ranges::sort(rows, {}, &relayable::row);
+
+    const auto limit = block_limit().size;
+    const auto bytes_per_sigop = node_settings().pool.bytes_per_sigop;
+    std::array<uint64_t, relay_slots> fees{};
+    std::array<uint64_t, relay_slots> sizes{};
+    for (const auto& row: rows)
+    {
+        auto& mark = marks(row.row);
+        if (origin < relay_slots)
+            set_right_into(mark, origin);
+
+        const auto lacking = bit_and(slots, bit_not(mark));
+        const auto size = algorithm::chargeable(row.totals, bytes_per_sigop);
+        for (size_t slot{}; slot < relay_slots; ++slot)
+        {
+            if (get_right(lacking, slot))
+            {
+                fees.at(slot) = ceilinged_add(fees.at(slot), row.totals.fee);
+                sizes.at(slot) = ceilinged_add(sizes.at(slot), size);
+            }
+        }
+    }
+
+    // Compared in satoshis per virtual kilobyte.
+    uint64_t clears{};
+    for (size_t slot{}; slot < relay_slots; ++slot)
+    {
+        const auto size = sizes.at(slot);
+        if (!is_zero(size) && size <= limit &&
+            ceilinged_multiply(fees.at(slot), 1'000_u64) >=
+            ceilinged_multiply(rates_.at(slot), size))
+            set_right_into(clears, slot);
+    }
+
+    for (const auto& row: rows)
+    {
+        auto& mark = marks(row.row);
+        const auto word = bit_and(clears, bit_not(mark));
+        if (is_zero(word))
+            continue;
+
+        mark = bit_or(mark, word);
+        notify(error::success, chases::relay{ row.link.value, word });
+    }
+
+    return true;
+}
+
+// private
+uint64_t& chaser_transaction::marks(size_t row) NOEXCEPT
+{
+    if (row >= marks_.size())
+        marks_.resize(add1(row));
+
+    return marks_.at(row);
+}
+
 chaser_transaction::time_point chaser_transaction::now() NOEXCEPT
 {
     return std::chrono::steady_clock::now();
@@ -552,16 +747,16 @@ void chaser_transaction::submit(const transactions_cptr& txs, bool test,
     if (closed())
         return;
 
-    POST(do_submit, txs, test, false, std::move(handler));
+    POST(do_submit, txs, test, false, relay_slots, std::move(handler));
 }
 
 void chaser_transaction::submit_announced(const transactions_cptr& txs,
-    submit_handler&& handler) NOEXCEPT
+    size_t slot, submit_handler&& handler) NOEXCEPT
 {
     if (closed())
         return;
 
-    POST(do_submit, txs, false, true, std::move(handler));
+    POST(do_submit, txs, false, true, slot, std::move(handler));
 }
 
 void chaser_transaction::submit_compact(const transactions_cptr& txs,
@@ -643,7 +838,7 @@ void chaser_transaction::get_confirmable_fees(
 // is passed over as if stored. Prevouts are populated from the whole set, so
 // a tx spending one of it not held (stored or accepted before it) is not.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
-    bool announced, const submit_handler& handler) NOEXCEPT
+    bool announced, size_t slot, const submit_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -806,19 +1001,28 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         else
             graph = {};
 
+        database::tx_links admitted{};
         for (auto at = first; !test && at <= index; ++at)
         {
             if (stored.at(at))
                 continue;
 
-            if (const auto admitted = admit(*txs->at(at), time))
+            database::tx_link link{};
+            if (const auto failed = admit(link, *txs->at(at), time))
             {
-                handler(admitted, at);
+                handler(failed, at);
                 return;
             }
 
+            admitted.push_back(link);
             stored.at(at) = true;
             cleared = true;
+        }
+
+        if (!admitted.empty() && !relay(admitted, slot, reserved_.load()))
+        {
+            handler(fault(database::error::integrity), first);
+            return;
         }
 
         running = false;
@@ -1328,11 +1532,10 @@ code chaser_transaction::check(const transaction_cptrs& txs,
     return block::populate(txs, pool_, false);
 }
 
-code chaser_transaction::admit(const chain::transaction& tx,
-    uint32_t time) NOEXCEPT
+code chaser_transaction::admit(database::tx_link& link,
+    const chain::transaction& tx, uint32_t time) NOEXCEPT
 {
     bool archived{};
-    database::tx_link link{};
     auto& query = archive();
 
     // Disk full may leave a set partly archived, resolves by resubmit.

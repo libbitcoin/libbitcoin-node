@@ -50,9 +50,6 @@ protected:
     virtual bool handle_receive_fee_filter(const code& ec,
         const network::messages::peer::fee_filter::cptr& message) NOEXCEPT;
 
-    /// Bypasses announcement of a tx below the peer's minimum fee rate.
-    bool do_announce(transaction_t link) NOEXCEPT override;
-
     /// True if the tx is below the peer's minimum fee rate.
     bool is_filtered(transaction_t link) NOEXCEPT override;
 
