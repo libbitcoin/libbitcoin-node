@@ -82,8 +82,7 @@ void protocol_transaction_out_60002::handle_confirmable_txs(const code& ec,
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    POST(do_confirmable_txs, ec,
-        std::make_shared<const database::tx_links>(links), gate);
+    POST(do_confirmable_txs, ec, to_shared(links), gate);
 }
 
 // A closed pool has no txs to announce.
@@ -128,8 +127,7 @@ void protocol_transaction_out_60002::send_memory_pool(const code& ec,
     if (items.empty())
         return;
 
-    SEND(inventory{ std::move(items) }, send_memory_pool, _1, links, next,
-        gate);
+    SEND(inventory{ std::move(items) }, send_memory_pool, _1, links, next, gate);
 }
 
 BC_POP_WARNING()
