@@ -63,6 +63,9 @@ protected:
         bool initial) NOEXCEPT;
     virtual void complete() NOEXCEPT;
 
+    /// Request headers from the top candidate, unless a branch is in progress.
+    virtual void resynchronize() NOEXCEPT;
+
     // This is protected by strand.
     bool subscribed{};
 

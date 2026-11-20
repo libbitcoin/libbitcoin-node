@@ -54,6 +54,16 @@ void protocol_transaction_in_106::start() NOEXCEPT
     protocol_peer::start();
 }
 
+void protocol_transaction_in_106::stopping(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!requested_.empty())
+        fire(events::tx_unserved, requested_.size());
+
+    protocol_peer::stopping(ec);
+}
+
 // Identity.
 // ----------------------------------------------------------------------------
 
@@ -309,6 +319,14 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec,
         LOGR("Tx from [" << opposite() << "] " << ec.message());
         fire(events::tx_dropped, count);
         stop(ec);
+        return;
+    }
+
+    if (ec)
+    {
+        LOGP("Refused (" << count << ") txs from [" << opposite() << "] "
+            << ec.message());
+        fire(events::tx_refused, count);
     }
 }
 

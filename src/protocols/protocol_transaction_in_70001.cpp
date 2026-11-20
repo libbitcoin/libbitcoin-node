@@ -59,19 +59,32 @@ bool protocol_transaction_in_70001::handle_receive_not_found(const code& ec,
         return false;
 
     // bip144: get_data uses witness type_id but inv does not.
+    size_t unserved{};
+    auto requested = true;
     for (const auto& item: message->items)
     {
         if (!item.is_transaction_type())
             continue;
 
         // A reply to a request that was not made is not accepted.
-        if (!set_not_found(item.hash))
+        requested = set_not_found(item.hash);
+        if (!requested)
         {
             LOGR("Unrequested tx not_found [" << encode_hash(item.hash)
                 << "] from [" << opposite() << "].");
-            stop(network::error::protocol_violation);
-            return false;
+            break;
         }
+
+        ++unserved;
+    }
+
+    if (is_nonzero(unserved))
+        fire(events::tx_unserved, unserved);
+
+    if (!requested)
+    {
+        stop(network::error::protocol_violation);
+        return false;
     }
 
     return true;

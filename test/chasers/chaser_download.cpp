@@ -95,6 +95,19 @@ struct chaser_download_setup_fixture
         return promise.get_future().get();
     }
 
+    /// Obtain the work of an unfilled compact block from the download chaser.
+    work get_unfilled(const hash_digest& hash)
+    {
+        std::promise<work> promise{};
+        node_.get_unfilled(query_.to_header(hash).value, [&](const code& ec,
+            const map_ptr& map, const job::ptr& job) NOEXCEPT
+        {
+            promise.set_value({ ec, map, job });
+        });
+
+        return promise.get_future().get();
+    }
+
     /// Return work to the download chaser.
     code put_hashes(const map_ptr& map)
     {
@@ -532,11 +545,33 @@ BC_FIXTURE_TEST_CASE(chaser_download__bump__purging__download_on_purged, chaser_
 ////    BC_REQUIRE(get_hashes().map->exists(p2p_compact_setup_fixture::block1().hash()));
 ////}
 
-BC_FIXTURE_TEST_CASE(chaser_download__unfilled__deferred__download, chaser_download_compact_deferred_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_download__get_unfilled__deferred__work, chaser_download_compact_deferred_setup_fixture)
+{
+    const auto& hash = p2p_compact_setup_fixture::block1().hash();
+    const auto unfilled = get_unfilled(hash);
+    BC_REQUIRE(!unfilled.ec);
+    BC_REQUIRE_EQUAL(unfilled.map->size(), one);
+    BC_REQUIRE(unfilled.map->exists(hash));
+    BC_REQUIRE(get_hashes().map->empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_download__get_unfilled__twice__empty, chaser_download_compact_deferred_setup_fixture)
+{
+    const auto& hash = p2p_compact_setup_fixture::block1().hash();
+    const auto first = get_unfilled(hash);
+    const auto second = get_unfilled(hash);
+    BC_REQUIRE(first.map->exists(hash));
+    BC_REQUIRE(!second.ec);
+    BC_REQUIRE(second.map->empty());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_download__get_unfilled__returned__issued_to_all, chaser_download_compact_deferred_setup_fixture)
 {
     subscribe();
     const auto& hash = p2p_compact_setup_fixture::block1().hash();
-    node_.notify({}, chases::unfilled{ query_.to_header(hash).value });
+    const auto unfilled = get_unfilled(hash);
+    BC_REQUIRE(unfilled.map->exists(hash));
+    BC_REQUIRE(!put_hashes(unfilled.map));
 
     chases::download download{};
     BC_REQUIRE(await(download));

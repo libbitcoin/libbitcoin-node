@@ -74,6 +74,14 @@ public:
     virtual void estimate(size_t target, estimate_mode mode,
         estimate_handler&& handler) NOEXCEPT;
 
+    /// Tx links of the confirmable txs, in pool order.
+    virtual void get_confirmable_txs(
+        confirmable_txs_handler&& handler) NOEXCEPT;
+
+    /// Fee rate tuples of the confirmable txs, in pool order.
+    virtual void get_confirmable_fees(
+        confirmable_fees_handler&& handler) NOEXCEPT;
+
     /// Subscribe to pool scans (notified on the strand).
     virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
 
@@ -96,6 +104,10 @@ protected:
     virtual void do_build_template(const template_handler& handler) NOEXCEPT;
     virtual void do_estimate(size_t target, estimate_mode mode,
         const estimate_handler& handler) NOEXCEPT;
+    virtual void do_get_confirmable_txs(
+        const confirmable_txs_handler& handler) NOEXCEPT;
+    virtual void do_get_confirmable_fees(
+        const confirmable_fees_handler& handler) NOEXCEPT;
 
     /// Recompute the pool context and sweep the index by it if due, closing
     /// the pool if not current or the context is not reusable, and map scan

@@ -51,6 +51,7 @@ void protocol_block_in_31800::start() NOEXCEPT
     // Events subscription is asynchronous, events may be missed.
     subscribe_chase(BIND(handle_chase, _1, _2));
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
+    set_downloader(BIND(do_download, _1, _2));
     protocol_performer::start();
 }
 
@@ -79,6 +80,7 @@ void protocol_block_in_31800::subscribed(const code& ec, object_key) NOEXCEPT
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    set_downloader({});
     restore(map_);
     map_ = chaser_download::empty_map();
     stop_performance();
@@ -215,6 +217,19 @@ void protocol_block_in_31800::do_split(peer_t) NOEXCEPT
 
 // request hashes
 // ----------------------------------------------------------------------------
+
+void protocol_block_in_31800::do_download(const map_ptr& map,
+    const job::ptr& job) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (map->empty())
+        return;
+
+    // Assume performance was stopped due to exhaustion.
+    start_performance();
+    send_get_data(map, job);
+}
 
 void protocol_block_in_31800::send_get_data(const map_ptr& map,
     const job::ptr& job) NOEXCEPT

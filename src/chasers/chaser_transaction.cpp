@@ -115,6 +115,9 @@ void chaser_transaction::report(pool_scan scan,
         case pool_scan::projection:
             fire_span(events::pool_project_usecs, start);
             break;
+        case pool_scan::confirmable:
+            fire_span(events::pool_confirmable_usecs, start);
+            break;
         default:
             break;
     }
@@ -522,6 +525,24 @@ void chaser_transaction::estimate(size_t target, estimate_mode mode,
         return;
 
     POST(do_estimate, target, mode, std::move(handler));
+}
+
+void chaser_transaction::get_confirmable_txs(
+    confirmable_txs_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_get_confirmable_txs, std::move(handler));
+}
+
+void chaser_transaction::get_confirmable_fees(
+    confirmable_fees_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_get_confirmable_fees, std::move(handler));
 }
 
 // private
@@ -956,6 +977,56 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
     }
 
     handler(error::success, std::max(rate, settings.minimum_fee_rate_()));
+}
+
+// private
+void chaser_transaction::do_get_confirmable_txs(
+    const confirmable_txs_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped, {});
+        return;
+    }
+
+    if (!pooling_)
+    {
+        handler(error::pooling_disabled, {});
+        return;
+    }
+
+    database::tx_links links{};
+    const auto start = now();
+    const auto ec = archive().get_confirmable_txs(links);
+    report(pool_scan::confirmable, start);
+    handler(ec, links);
+}
+
+// private
+void chaser_transaction::do_get_confirmable_fees(
+    const confirmable_fees_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        handler(network::error::service_stopped, {});
+        return;
+    }
+
+    if (!pooling_)
+    {
+        handler(error::pooling_disabled, {});
+        return;
+    }
+
+    database::fee_rates rates{};
+    const auto start = now();
+    const auto ec = archive().get_confirmable_fees(rates);
+    report(pool_scan::confirmable, start);
+    handler(ec, rates);
 }
 
 // utility

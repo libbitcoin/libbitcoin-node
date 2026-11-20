@@ -36,6 +36,9 @@ void protocol_header_in_70012::complete() NOEXCEPT
     {
         subscribed = true;
         SEND(send_headers{}, handle_send, _1);
+
+        // bip130: a peer announces by inv when its headers would not connect.
+        SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
         LOGP("Subscribed to header announcements at [" << opposite() << "].");
     }
 

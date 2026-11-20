@@ -58,6 +58,10 @@ public:
     virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
+    /// Interface for a protocol to obtain the block of a compact block that
+    /// it did not fill, as work for its own channel (empty if issued before).
+    virtual void get_unfilled(header_t link, map_handler&& handler) NOEXCEPT;
+
 protected:
     virtual void handle_purged(const code& ec) NOEXCEPT;
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
@@ -69,7 +73,8 @@ protected:
     virtual void do_headers(height_t branch_point) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_handle_purged(const code& ec) NOEXCEPT;
-    virtual void do_unfilled(header_t link) NOEXCEPT;
+    virtual void do_get_unfilled(header_t link,
+        const map_handler& handler) NOEXCEPT;
     virtual void handle_compact_timer(const code& ec) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
@@ -86,6 +91,7 @@ private:
     typedef std::deque<map_ptr> maps;
 
     map_ptr get_map() NOEXCEPT;
+    map_ptr get_map(header_t link) NOEXCEPT;
     size_t set_unassociated() NOEXCEPT;
     size_t get_inventory_size() const NOEXCEPT;
     bool set_map(const map_ptr& map) NOEXCEPT;

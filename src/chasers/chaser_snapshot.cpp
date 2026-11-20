@@ -158,6 +158,9 @@ void chaser_snapshot::do_prune(header_t link) NOEXCEPT
         // Prune may fail due to chain not being coalesced following suspend,
         // in which case pruning will be attempted on announce until success.
         LOGF("Prune deferred, " << ec.message());
+
+        if (running && ec == database::error::not_coalesced)
+            resume();
     }
     else
     {
@@ -168,6 +171,7 @@ void chaser_snapshot::do_prune(header_t link) NOEXCEPT
         // Could become full before prune start (and it could still succeed).
         if (running && !archive().is_full())
             resume();
+
         LOG_ONLY(const auto time = logger::now() - start;)
         LOG_ONLY(const auto span = duration_cast<milliseconds>(time);)
         LOGN("Pruned prevout cache at height [" << archive().get_top_confirmed()

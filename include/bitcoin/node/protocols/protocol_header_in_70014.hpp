@@ -44,6 +44,9 @@ public:
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
 
+    /// The channel is stopping (called on strand by stop subscription).
+    void stopping(const code& ec) NOEXCEPT override;
+
 protected:
     using send_compact = network::messages::peer::send_compact;
     using compact_transactions = network::messages::peer::compact_transactions;
@@ -69,6 +72,11 @@ protected:
     /// Invoked when initial headers sync is complete.
     void complete() NOEXCEPT override;
 
+    /// A peer that announces by header may take a high bandwidth slot.
+    bool handle_receive_headers(const code& ec,
+        const network::messages::peer::headers::cptr& message) NOEXCEPT
+        override;
+
     virtual bool handle_receive_send_compact(const code& ec,
         const send_compact::cptr& message) NOEXCEPT;
     virtual bool handle_receive_compact_block(const code& ec,
@@ -85,6 +93,10 @@ protected:
     virtual void do_submit_compact(const code& ec,
         const system::hash_digest& hash, size_t height, size_t pooled,
         size_t count, const gate_t::ptr& gate) NOEXCEPT;
+    virtual void handle_unfilled(const code& ec, const map_ptr& map,
+        const job::ptr& job) NOEXCEPT;
+    virtual void do_unfilled(const map_ptr& map,
+        const job::ptr& job) NOEXCEPT;
 
 private:
     bool scan(fill& block) NOEXCEPT;
@@ -95,6 +107,7 @@ private:
 
     void upgrade() NOEXCEPT;
     void request() NOEXCEPT;
+    void restore(const map_ptr& map) NOEXCEPT;
     void identify(const gate_t::ptr& gate) NOEXCEPT;
     bool resolve(const database::header_link& link) NOEXCEPT;
     bool matched(const database::header_link& link) const NOEXCEPT;

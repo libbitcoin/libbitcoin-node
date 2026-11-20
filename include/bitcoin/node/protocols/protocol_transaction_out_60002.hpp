@@ -44,15 +44,20 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    using links_ptr = std::shared_ptr<const database::tx_links>;
+
     /// True if the tx is not announced to the peer.
     virtual bool is_filtered(transaction_t link) NOEXCEPT;
 
     /// Announce the unconfirmed pool txs (bip35).
     virtual bool handle_receive_memory_pool(const code& ec,
         const network::messages::peer::memory_pool::cptr& message) NOEXCEPT;
-    virtual void send_memory_pool(const code& ec,
-        const database::pool_link& cursor, const database::pool_link& end,
+    virtual void handle_confirmable_txs(const code& ec,
+        const database::tx_links& links, const gate_t::ptr& gate) NOEXCEPT;
+    virtual void do_confirmable_txs(const code& ec, const links_ptr& links,
         const gate_t::ptr& gate) NOEXCEPT;
+    virtual void send_memory_pool(const code& ec, const links_ptr& links,
+        size_t next, const gate_t::ptr& gate) NOEXCEPT;
 
 private:
     // This is thread safe.

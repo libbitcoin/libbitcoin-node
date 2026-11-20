@@ -35,6 +35,7 @@ class BCN_API channel_peer
 {
 public:
     typedef std::shared_ptr<channel_peer> ptr;
+    typedef std::function<void(const map_ptr&, const job::ptr&)> downloader;
 
     inline channel_peer(const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
@@ -52,6 +53,12 @@ public:
     /// The hash is (probably) known to the peer.
     bool was_announced(const system::hash_digest& hash) const NOEXCEPT;
 
+    /// Set the handler of work offered by the channel's own protocols.
+    void set_downloader(downloader&& handler) NOEXCEPT;
+
+    /// Offer work to the downloader, false if there is none.
+    bool download(const map_ptr& map, const job::ptr& job) NOEXCEPT;
+
 protected:
     /// Stamp witness parse context on the frame.
     inline network::messages::peer::frame_ptr create_frame()
@@ -66,8 +73,9 @@ private:
     // This is thread safe (const).
     const bool witness_;
 
-    // This is protected by strand.
+    // These are protected by strand.
     rolling_bloom_filter announced_{};
+    downloader downloader_{};
 };
 
 } // namespace node

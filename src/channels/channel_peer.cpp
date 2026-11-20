@@ -41,6 +41,24 @@ bool channel_peer::was_announced(const hash_digest& hash) const NOEXCEPT
     return announced_.contains(hash);
 }
 
+void channel_peer::set_downloader(downloader&& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    downloader_ = std::move(handler);
+}
+
+bool channel_peer::download(const map_ptr& map,
+    const job::ptr& job) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!downloader_)
+        return false;
+
+    downloader_(map, job);
+    return true;
+}
+
 BC_POP_WARNING()
 
 } // namespace node

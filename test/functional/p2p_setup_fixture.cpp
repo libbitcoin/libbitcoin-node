@@ -164,6 +164,27 @@ object_key p2p_setup_fixture::subscribe()
     return subscribed.get_future().get();
 }
 
+// The state is shared, as the subscription may outlive the call. Either end
+// of the subscription (the event or a stop code) completes the wait.
+uint64_t p2p_setup_fixture::fired_value(uint8_t event,
+    const std::function<void()>& act)
+{
+    const auto value = std::make_shared<std::promise<uint64_t>>();
+    auto done = value->get_future();
+    log_.subscribe_events([=](const code& ec, uint8_t event_, uint64_t value_,
+        const auto&) NOEXCEPT
+    {
+        if (!ec && event_ != event)
+            return true;
+
+        value->set_value(ec ? max_uint64 : value_);
+        return false;
+    });
+
+    act();
+    return done.get();
+}
+
 data_chunk p2p_setup_fixture::receive(const std::string& command)
 {
     while (true)

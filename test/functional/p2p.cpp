@@ -687,6 +687,56 @@ BC_FIXTURE_TEST_CASE(functional_p2p__inventory_31800__unknown_block__get_headers
     BC_REQUIRE(proven->start_hashes.front() == genesis.hash());
 }
 
+// inv (in, 70012)
+// ----------------------------------------------------------------------------
+
+BC_FIXTURE_TEST_CASE(functional_p2p__inventory_70012__unknown_block__get_headers, p2p_compact_setup_fixture)
+{
+    BC_REQUIRE(handshake(network_node, level::bip130));
+    receive(get_headers::command);
+    send(headers{}, level::bip130);
+    receive(send_headers::command);
+
+    send(inventory{ { { inventory_item::type_id::block, header1()->hash() } } }, level::bip130);
+
+    const system::chain::block& genesis = config_.bitcoin.genesis_block;
+    const auto request = get_headers::deserialize(level::bip130, receive(get_headers::command));
+    BC_REQUIRE(request);
+    BC_REQUIRE(request->start_hashes.front() == genesis.hash());
+}
+
+// Only the last block announced is tested.
+BC_FIXTURE_TEST_CASE(functional_p2p__inventory_70012__known_last_block__not_requested, p2p_compact_setup_fixture)
+{
+    BC_REQUIRE(handshake(network_node, level::bip130));
+    receive(get_headers::command);
+    send(headers{}, level::bip130);
+    receive(send_headers::command);
+
+    const system::chain::block& genesis = config_.bitcoin.genesis_block;
+    send(inventory{ { { inventory_item::type_id::block, header1()->hash() }, { inventory_item::type_id::block, genesis.hash() } } }, level::bip130);
+    send(ping{ 42 }, level::bip130);
+
+    BC_REQUIRE(!received(get_headers::command, pong::command));
+}
+
+// A branch in progress is resumed above its top, so headers are not requested.
+BC_FIXTURE_TEST_CASE(functional_p2p__inventory_70012__unknown_block_synchronizing__not_requested, p2p_compact_setup_fixture)
+{
+    BC_REQUIRE(handshake(network_node, level::bip130));
+    receive(get_headers::command);
+    send(headers{}, level::bip130);
+    receive(send_headers::command);
+
+    send(headers{ { header1() } }, level::bip130);
+    receive(get_headers::command);
+
+    send(inventory{ { { inventory_item::type_id::block, header2()->hash() } } }, level::bip130);
+    send(ping{ 42 }, level::bip130);
+
+    BC_REQUIRE(!received(get_headers::command, pong::command));
+}
+
 // sendheaders (in, 70012)
 // ----------------------------------------------------------------------------
 

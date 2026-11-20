@@ -243,6 +243,26 @@ void full_node::put_hashes(const map_ptr& map,
     chaser_download_.put_hashes(map, std::move(handler));
 }
 
+void full_node::get_unfilled(header_t link, map_handler&& handler) NOEXCEPT
+{
+    chaser_download_.get_unfilled(link, std::move(handler));
+}
+
+bool full_node::reserve_compact() NOEXCEPT
+{
+    auto count = compact_peers_.load();
+    while (count < maximum_compact_peers)
+        if (compact_peers_.compare_exchange_weak(count, add1(count)))
+            return true;
+
+    return false;
+}
+
+void full_node::release_compact() NOEXCEPT
+{
+    --compact_peers_;
+}
+
 // Events.
 // ----------------------------------------------------------------------------
 
@@ -520,6 +540,17 @@ void full_node::estimate(size_t target, estimate_mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
     chaser_transaction_.estimate(target, mode, std::move(handler));
+}
+
+void full_node::get_confirmable_txs(confirmable_txs_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.get_confirmable_txs(std::move(handler));
+}
+
+void full_node::get_confirmable_fees(
+    confirmable_fees_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.get_confirmable_fees(std::move(handler));
 }
 
 void full_node::performance(object_key key, uint64_t speed,
