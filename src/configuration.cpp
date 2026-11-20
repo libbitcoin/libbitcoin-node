@@ -50,6 +50,9 @@ code configuration::initialize() NOEXCEPT
     if (node.provide_filters && node.limited_blocks)
         return error::filter_pruned;
 
+    if (node.pool.cutoff_rate_() > node.pool.minimum_fee_rate_())
+        return error::excessive_cutoff;
+
     // Disabled indexes are created empty.
     if (!silent)
         database.scan.buckets = 0;

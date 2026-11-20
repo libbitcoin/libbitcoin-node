@@ -141,7 +141,8 @@ enum error_t : uint8_t
     silent_unwitnessed,
     silent_pruned,
     filter_pruned,
-    filter_unindexed
+    filter_unindexed,
+    excessive_cutoff
 };
 
 // No current need for error_code equivalence mapping.

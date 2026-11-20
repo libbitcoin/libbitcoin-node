@@ -1180,8 +1180,8 @@ void chaser_transaction::do_build_template(
     database::tx_links links{};
     const auto start = now();
     const auto ec = archive().get_pool_template(links, projection,
-        block_limit(), settings.maximum_chunk_depth, settings.bytes_per_sigop,
-        settings.maximum_outcomes);
+        block_limit(), settings.maximum_chunk_depth, settings.cutoff_rate_(),
+        settings.bytes_per_sigop, settings.maximum_outcomes);
 
     report(pool_scan::template_, start);
     handler(ec, pool_.height, links);
@@ -1224,8 +1224,8 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
     query::pool_projection projection{};
     const auto start = now();
     const auto projected = query.get_pool_projection(projection, count,
-        limit, settings.maximum_chunk_depth, settings.bytes_per_sigop,
-        settings.maximum_outcomes);
+        limit, settings.maximum_chunk_depth, settings.cutoff_rate_(),
+        settings.bytes_per_sigop, settings.maximum_outcomes);
 
     report(pool_scan::projection, start);
     if (projected)
