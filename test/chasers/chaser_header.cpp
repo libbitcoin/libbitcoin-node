@@ -105,7 +105,8 @@ class chase_recorder
 {
 public:
     template <chase Kind>
-    using payload_t = std::remove_cvref_t<decltype(to_payload<Kind>(std::declval<const event_value&>()))>;
+    using payload_t = std::remove_cvref_t<decltype(to_payload<Kind>(
+        std::declval<const event_value&>()))>;
 
     bool subscribe(full_node& node)
     {
@@ -130,7 +131,11 @@ public:
     size_t count(chase kind) const
     {
         std::lock_guard lock{ mutex_ };
-        return std::count_if(events_.cbegin(), events_.cend(), [kind](const auto& value) NOEXCEPT { return to_chase(value) == kind; });
+        return std::count_if(events_.cbegin(), events_.cend(),
+            [kind](const auto& value) NOEXCEPT
+            {
+                return to_chase(value) == kind;
+            });
     }
 
     bool await(chase kind, size_t number=1) const
@@ -248,7 +253,8 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        header_.organize(header, [promise](const code& ec, size_t height) NOEXCEPT
+        header_.organize(header, [promise](const code& ec, 
+            size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
         });
@@ -262,7 +268,8 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        header_.organize(header, milestone, [promise](const code& ec, size_t height) NOEXCEPT
+        header_.organize(header, milestone, [promise](const code& ec,
+            size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
         });
@@ -276,7 +283,8 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        header_.organize_submitted(header, [promise](const code& ec, size_t height) NOEXCEPT
+        header_.organize_submitted(header, [promise](const code& ec,
+            size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
         });

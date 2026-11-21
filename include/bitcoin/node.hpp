@@ -70,10 +70,14 @@
 #include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
+#include <bitcoin/node/types/constants.hpp>
 #include <bitcoin/node/types/estimate_mode.hpp>
+#include <bitcoin/node/types/pool_event.hpp>
 #include <bitcoin/node/types/pool_scan.hpp>
+#include <bitcoin/node/types/relay_tier.hpp>
 #include <bitcoin/node/types/rolling_bloom_filter.hpp>
 #include <bitcoin/node/types/solo_spans.hpp>
+#include <bitcoin/node/types/type.hpp>
 #include <bitcoin/node/types/types.hpp>
 
 #endif

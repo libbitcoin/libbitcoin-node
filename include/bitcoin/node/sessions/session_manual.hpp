@@ -46,6 +46,12 @@ protected:
     {
         return network_settings().manual.request_mempool;
     }
+
+    /// Manual peers take relay slots first.
+    relay_tier relay_tier_() const NOEXCEPT override
+    {
+        return relay_tier::manual;
+    }
 };
 
 } // namespace node

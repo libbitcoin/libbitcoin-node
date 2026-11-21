@@ -211,12 +211,14 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
-    // Reserve every free relay slot.
-    void reserve_relays()
+    // Reserve every free relay slot of the tier, returning the count.
+    size_t reserve_relays(node::relay_tier tier=node::relay_tier::manual)
     {
-        auto slot = node_.reserve_relay();
-        while (slot < node::relay_slots)
-            slot = node_.reserve_relay();
+        size_t count{};
+        while (node_.reserve_relay(tier) < node::relay_slots)
+            ++count;
+
+        return count;
     }
 
     // Relay events recorded from subscription until the zero word marker.
@@ -687,6 +689,21 @@ struct chaser_transaction_pooling_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_reserves_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_reserves_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.manual_relay_slots = 2;
+            config.node.outbound_relay_slots = 3;
         })
     {
     }
@@ -1849,10 +1866,56 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__pooling_archived__dupli
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__reserve_relay__all_reserved__none, chaser_transaction_pooling_setup_fixture)
 {
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 1u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 1u);
     reserve_relays();
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), node::relay_slots);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), node::relay_slots);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reserve_relay__tiers__lowest_outside_reserves_above, chaser_transaction_reserves_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::inbound), 5u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::outbound), 2u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reserve_relay__inbound_exhausted__reserves_free, chaser_transaction_reserves_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(reserve_relays(node::relay_tier::inbound), 59u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::inbound), node::relay_slots);
+    BC_REQUIRE_EQUAL(reserve_relays(node::relay_tier::outbound), 3u);
+    BC_REQUIRE_EQUAL(reserve_relays(node::relay_tier::manual), 2u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reserve_relay__outbound_reserve_full__inbound_slot, chaser_transaction_reserves_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::outbound), 2u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::outbound), 3u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::outbound), 4u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::outbound), 5u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::inbound), 6u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reserve_relay__manual_reserve_full__outbound_slot, chaser_transaction_reserves_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 1u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 2u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::outbound), 3u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reserve_relay__outbound_exhausted__manual_reserve_free, chaser_transaction_reserves_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(reserve_relays(node::relay_tier::outbound), 62u);
+    BC_REQUIRE_EQUAL(reserve_relays(node::relay_tier::manual), 2u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__release_relay__inbound__reserved_again, chaser_transaction_reserves_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(reserve_relays(node::relay_tier::inbound), 59u);
+    node_.release_relay(7);
+    BC_REQUIRE(!get_confirmable_txs().first);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::inbound), 7u);
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__relay__no_slot__not_relayed, chaser_transaction_pooling_setup_fixture)
@@ -1866,8 +1929,8 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__two_slots__relayed_to_both, chas
 {
     const auto tx = spend(parent_value);
     const relayed expected{ { tx->hash(false), 0b11 } };
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 1u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 1u);
 
     const auto events = record();
     BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
@@ -1876,7 +1939,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__two_slots__relayed_to_both, chas
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__relay__test__not_relayed, chaser_transaction_pooling_setup_fixture)
 {
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
 
     const auto events = record();
     BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) }), true).first, node::error::success);
@@ -1887,8 +1950,8 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__origin__not_relayed_to_origin, c
 {
     const auto tx = spend(parent_value);
     const relayed expected{ { tx->hash(false), 0b10 } };
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 1u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 1u);
 
     const auto events = record();
     BC_REQUIRE_EQUAL(submit_announced(package({ tx }), 0).first, node::error::success);
@@ -1897,7 +1960,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__origin__not_relayed_to_origin, c
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__relay__below_rate__not_relayed, chaser_transaction_pooling_setup_fixture)
 {
-    const auto slot = node_.reserve_relay();
+    const auto slot = node_.reserve_relay(node::relay_tier::manual);
     node_.set_relay_rate(slot, 100'000);
 
     const auto events = record();
@@ -1912,7 +1975,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__child_pays_for_parent__both_in_o
     const auto low = spend(parent_value - 1'000);
     const auto high = spend(low->hash(false), parent_value - 21'000);
     const relayed expected{ { low->hash(false), 0b01 }, { high->hash(false), 0b01 } };
-    const auto slot = node_.reserve_relay();
+    const auto slot = node_.reserve_relay(node::relay_tier::manual);
     node_.set_relay_rate(slot, 100'000);
 
     const auto first = record();
@@ -1929,7 +1992,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__parent_held__child_alone, chaser
     const auto low = spend(parent_value - 1'000);
     const auto high = spend(low->hash(false), parent_value - 21'000);
     const relayed expected{ { high->hash(false), 0b01 } };
-    const auto slot = node_.reserve_relay();
+    const auto slot = node_.reserve_relay(node::relay_tier::manual);
     node_.set_relay_rate(slot, 100'000);
     BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
     node_.set_relayed(slot, { query_.to_tx(low->hash(false)) });
@@ -1943,7 +2006,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__rate_fall__swept, chaser_transac
 {
     const auto low = spend(parent_value - 1'000);
     const relayed expected{ { low->hash(false), 0b01 } };
-    const auto slot = node_.reserve_relay();
+    const auto slot = node_.reserve_relay(node::relay_tier::manual);
     node_.set_relay_rate(slot, 100'000);
     BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
 
@@ -1956,7 +2019,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__rate_fall__swept, chaser_transac
 BC_FIXTURE_TEST_CASE(chaser_transaction__relay__rate_rise__not_swept, chaser_transaction_pooling_setup_fixture)
 {
     const auto low = spend(parent_value - 1'000);
-    const auto slot = node_.reserve_relay();
+    const auto slot = node_.reserve_relay(node::relay_tier::manual);
     node_.set_relay_rate(slot, 100'000);
     BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
 
@@ -1970,11 +2033,11 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__release_relay__reserved_again__marks_cl
 {
     const auto tx = spend(parent_value);
     const relayed expected{ { tx->hash(false), 0b01 } };
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
     BC_REQUIRE_EQUAL(submit(package({ tx })).first, node::error::success);
     node_.release_relay(0);
     BC_REQUIRE(!get_confirmable_txs().first);
-    BC_REQUIRE_EQUAL(node_.reserve_relay(), 0u);
+    BC_REQUIRE_EQUAL(node_.reserve_relay(node::relay_tier::manual), 0u);
 
     const auto events = record();
     node_.set_relay_rate(0, 1);

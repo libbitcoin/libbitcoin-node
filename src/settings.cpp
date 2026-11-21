@@ -72,6 +72,8 @@ settings::settings() NOEXCEPT
     batch_verify{ 1'000'000 },
     batch_silent{ 1'000'000 },
     current_connections{ 10 },
+    manual_relay_slots{ max_uint16 },
+    outbound_relay_slots{ max_uint16 },
     ////snapshot_bytes{ 200'000'000'000 },
     ////snapshot_valid{ 250'000 },
     ////snapshot_confirm{ 500'000 },

@@ -49,7 +49,7 @@ public:
     virtual void organize_compact(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
-    /// Validate and organize a submitted header, prioritized (a tie wins).
+    /// Organize a submitted (proven) header, prioritized (a tie wins).
     virtual void organize_submitted(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
@@ -96,6 +96,9 @@ public:
 
     /// The memory pool of the session's peers is requested once relaying.
     virtual bool request_mempool() const NOEXCEPT;
+
+    /// The relay slot tier of the session's peers.
+    virtual relay_tier relay_tier_() const NOEXCEPT;
 
     /// Reserve (relay_slots if none) or release a relay slot.
     virtual size_t reserve_relay() NOEXCEPT;

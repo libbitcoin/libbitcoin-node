@@ -63,11 +63,11 @@ code configuration::initialize() NOEXCEPT
         database.filter_tx.buckets = 0;
     }
 
-    system::batched::accelerate(node.use_gpu);
+    using namespace system;
+    batched::accelerate(node.use_gpu);
 
     // Batch tables are unused when their batching cannot run.
-    const auto gpu = node.use_gpu && system::batched::compiled() &&
-        system::cuda_device();
+    const auto gpu = node.use_gpu && batched::compiled() && cuda_device();
 
     if (!node.batch_verify_enabled() || !(node.cpu_batch_verify || gpu))
     {
@@ -89,14 +89,40 @@ code configuration::initialize() NOEXCEPT
     if (bitcoin.forks.signet)
     {
         const auto challenge = bitcoin.signet_challenge.to_data(true);
-        const auto hash = system::bitcoin_hash(challenge);
-        network.identifier = system::from_little_endian<uint32_t>(hash);
+        const auto hash = bitcoin_hash(challenge);
+        network.identifier = from_little_endian<uint32_t>(hash);
     }
+
+    node.manual_relay_slots = possible_narrow_cast<uint16_t>(
+        manual_relay_slots());
+    node.outbound_relay_slots = possible_narrow_cast<uint16_t>(
+        outbound_relay_slots());
 
     bitcoin.initialize();
     database.initialize(bitcoin, node.limited_blocks, node.provide_filters,
         node.require_witness, node.silent_start_height);
     return network.initialize();
+}
+
+// Unset reserves default to the configured manual peers and outbound
+// connections (current connections once reduced).
+size_t configuration::manual_relay_slots() const NOEXCEPT
+{
+    const auto reserve = node.manual_relay_slots == max_uint16 ?
+        network.manual.peers.size() : node.manual_relay_slots;
+
+    return std::min(reserve, relay_slots);
+}
+
+size_t configuration::outbound_relay_slots() const NOEXCEPT
+{
+    const auto connections = is_zero(node.current_connections) ?
+        network.outbound.connections : node.current_connections;
+
+    const size_t reserve = node.outbound_relay_slots == max_uint16 ?
+        connections : node.outbound_relay_slots;
+
+    return std::min(reserve, relay_slots - manual_relay_slots());
 }
 
 } // namespace node

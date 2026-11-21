@@ -119,7 +119,6 @@ void chaser_header::organize_compact(const header::cptr& header,
     POST(do_organize, header, false, false, true, false, std::move(handler));
 }
 
-// The body is in hand, so as a compact block its download is deferred.
 void chaser_header::organize_submitted(const header::cptr& header,
     organize_handler&& handler) NOEXCEPT
 {
@@ -412,8 +411,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     handler(error::success, height);
 }
 
-// bitcoind's preciousblock, a manual tie break between equal work branches.
-// The preference is not retained, as the reorganized branch then wins ties.
+// Manual tie break between equal work branches, reorganized branch wins ties.
 void chaser_header::do_prioritize(const hash_digest& hash,
     const organize_handler& handler) NOEXCEPT
 {

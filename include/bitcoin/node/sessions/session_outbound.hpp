@@ -44,6 +44,12 @@ protected:
             node_settings().services_required());
     }
 
+    /// Outbound peers take relay slots after manual peers.
+    relay_tier relay_tier_() const NOEXCEPT override
+    {
+        return relay_tier::outbound;
+    }
+
 private:
     void handle_started(const code& ec,
         const network::result_handler& handler) NOEXCEPT;

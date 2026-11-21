@@ -214,10 +214,14 @@ include_bitcoin_node_typesdir = \
     ${includedir}/bitcoin/node/types
 
 include_bitcoin_node_types_HEADERS = \
+    ${srcdir}/../../include/bitcoin/node/types/constants.hpp \
     ${srcdir}/../../include/bitcoin/node/types/estimate_mode.hpp \
+    ${srcdir}/../../include/bitcoin/node/types/pool_event.hpp \
     ${srcdir}/../../include/bitcoin/node/types/pool_scan.hpp \
+    ${srcdir}/../../include/bitcoin/node/types/relay_tier.hpp \
     ${srcdir}/../../include/bitcoin/node/types/rolling_bloom_filter.hpp \
     ${srcdir}/../../include/bitcoin/node/types/solo_spans.hpp \
+    ${srcdir}/../../include/bitcoin/node/types/type.hpp \
     ${srcdir}/../../include/bitcoin/node/types/types.hpp
 
 # Tests.

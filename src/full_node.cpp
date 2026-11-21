@@ -269,9 +269,9 @@ void full_node::release_compact() NOEXCEPT
     --compact_peers_;
 }
 
-size_t full_node::reserve_relay() NOEXCEPT
+size_t full_node::reserve_relay(relay_tier tier) NOEXCEPT
 {
-    return chaser_transaction_.reserve_relay();
+    return chaser_transaction_.reserve_relay(tier);
 }
 
 void full_node::release_relay(size_t slot) NOEXCEPT

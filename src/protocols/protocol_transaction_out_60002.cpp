@@ -54,6 +54,7 @@ void protocol_transaction_out_60002::start() NOEXCEPT
 // Inbound (mempool).
 // ----------------------------------------------------------------------------
 
+// bip35: answered regardless of bloom filter service, unlike Core.
 bool protocol_transaction_out_60002::handle_receive_memory_pool(
     const code& ec, const memory_pool::cptr&) NOEXCEPT
 {

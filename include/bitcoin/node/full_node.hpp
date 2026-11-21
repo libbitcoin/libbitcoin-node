@@ -71,7 +71,7 @@ public:
     virtual void organize_compact(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
-    /// Validate and organize a submitted header, prioritized (a tie wins).
+    /// Organize a submitted (proven) header, prioritized (a tie wins).
     virtual void organize_submitted(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
@@ -127,7 +127,7 @@ public:
     virtual void release_compact() NOEXCEPT;
 
     /// Reserve (relay_slots if none) or release a relay slot.
-    virtual size_t reserve_relay() NOEXCEPT;
+    virtual size_t reserve_relay(relay_tier tier) NOEXCEPT;
     virtual void release_relay(size_t slot) NOEXCEPT;
 
     /// Set the fee rate of the relay slot's peer.

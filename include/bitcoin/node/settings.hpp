@@ -76,6 +76,8 @@ public:
     uint64_t batch_verify;
     uint64_t batch_silent;
     uint16_t current_connections;
+    uint16_t manual_relay_slots;
+    uint16_t outbound_relay_slots;
     uint32_t maximum_height;
     uint32_t maximum_concurrency;
     uint32_t silent_start_height;

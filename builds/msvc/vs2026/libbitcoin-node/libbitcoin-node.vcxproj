@@ -218,10 +218,14 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\constants.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\estimate_mode.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\pool_event.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\pool_scan.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\relay_tier.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\rolling_bloom_filter.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\solo_spans.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\type.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\types.hpp" />
   </ItemGroup>
   <ItemGroup>
