@@ -255,6 +255,13 @@ bool protocol_block_out_106::is_servable(const hash_digest& LOG_ONLY(hash),
         return false;
     }
 
+    if (query.is_pruned(link))
+    {
+        LOGV("Requested block " << encode_hash(hash) << " from ["
+            << opposite() << "] pruned.");
+        return false;
+    }
+
     return true;
 }
 
