@@ -279,5 +279,16 @@ object_key protocol::events_key() const NOEXCEPT
     return key_;
 }
 
+void protocol::notify(const code& ec, event_value value) const NOEXCEPT
+{
+    session_->notify(ec, value);
+}
+
+void protocol::notify_one(object_key key, const code& ec,
+    event_value value) const NOEXCEPT
+{
+    session_->notify_one(key, ec, value);
+}
+
 } // namespace node
 } // namespace libbitcoin

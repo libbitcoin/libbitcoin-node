@@ -181,6 +181,13 @@ protected:
     /// Get the subscription key (for notify_one).
     virtual object_key events_key() const NOEXCEPT;
 
+    /// Set a chaser event.
+    virtual void notify(const code& ec, event_value value) const NOEXCEPT;
+
+    /// Set a chaser event.
+    virtual void notify_one(object_key key, const code& ec,
+        event_value value) const NOEXCEPT;
+
 private:
     void handle_subscribed(const code& ec, object_key key) NOEXCEPT;
     void handle_subscribe(const code& ec, object_key key,
