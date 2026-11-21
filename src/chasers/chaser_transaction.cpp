@@ -931,9 +931,8 @@ static std::string describe_limit(const node::query& query,
 // the last prefix to clear, and clears when its coverage does.
 // It is then connected and admitted, and the next tx starts another. An
 // announced set is a batch, not a package, so a tx of it that is not accepted,
-// or that exceeds a pool limit, is passed over as if stored. Prevouts are
-// populated from the whole set, so a tx spending one of it not held (stored or
-// accepted before it) is not.
+// or that exceeds a pool limit, is passed over as if stored. A tx is accepted
+// only if each parent is confirmed, pooled, or accepted before it in the set.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     bool announced, size_t slot, const submit_handler& handler) NOEXCEPT
 {
@@ -995,8 +994,12 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         return std::ranges::all_of(*tx.inputs_ptr(), [&](const auto& in)
             NOEXCEPT
         {
-            return in->metadata.parent_tx != max_uint32 ||
-                held.contains(in->point().hash());
+            if (held.contains(in->point().hash()))
+                return true;
+
+            const database::tx_link parent{ in->metadata.parent_tx };
+            return !parent.is_terminal() &&
+                (query.is_confirmed_tx(parent) || query.is_pooled(parent));
         });
     };
 

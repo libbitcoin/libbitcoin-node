@@ -32,7 +32,7 @@ static const hash_digest missing_hash{ 0x42 };
 // The flags of the bip9 bit zero deployment.
 static constexpr auto deployed = chain::flags::bip68_rule | chain::flags::bip112_rule | chain::flags::bip113_rule;
 
-// An unconfirmed tx with an anyone-can-spend output.
+// A tx with an anyone-can-spend output.
 static const chain::transaction& parent() NOEXCEPT
 {
     const chain::point point{ one_hash, 0u };
@@ -107,9 +107,26 @@ static peer::inventory announcement(size_t count, uint8_t tag) NOEXCEPT
     return message;
 }
 
+// Block 1 of a coinbase and the parent.
+static const chain::block& parent_block() NOEXCEPT
+{
+    const system::settings bitcoin{ chain::selection::mainnet };
+    const auto& genesis = bitcoin.genesis_block.header();
+    const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
+    const chain::transaction coinbase{ 1u, chain::inputs{ null },
+        chain::outputs{ { 42u, chain::script{} } }, 1u };
+    const chain::header header{ 1u, genesis.hash(), null_hash,
+        add1(genesis.timestamp()), genesis.bits(), 1u };
+    static const chain::block instance{ header, { coinbase, parent() } };
+    return instance;
+}
+
+// The parent confirmed in block 1.
 static bool stored_parent(node::query& query) NOEXCEPT
 {
-    return query.set(parent());
+    const auto& block = parent_block();
+    return query.set(block, database::context{ deployed, 1, 0 }, {}, false, true) &&
+        query.push_confirmed(query.to_header(block.hash()), true);
 }
 
 // A tx pooled in a pooling store, as if relay was enabled before.
@@ -358,7 +375,10 @@ struct chaser_transaction_setup_fixture
     {
         const system::settings bitcoin{ chain::selection::mainnet };
         const auto& genesis = bitcoin.genesis_block;
-        const auto time = add1(genesis.header().timestamp());
+        const auto top = query_.get_top_confirmed();
+        const auto height = add1(top);
+        const auto time = genesis.header().timestamp() +
+            possible_narrow_cast<uint32_t>(height);
         const auto bits = genesis.header().bits();
         const chain::transaction coinbase
         {
@@ -369,14 +389,15 @@ struct chaser_transaction_setup_fixture
         };
         const chain::header header
         {
-            1u, genesis.hash(), null_hash, time, bits, 0u
+            1u, query_.get_top_confirmed_hash(), null_hash, time, bits, 0u
         };
         chain::transactions txs{ coinbase };
         if (tx)
             txs.push_back(*tx);
 
         const chain::block block{ header, txs };
-        if (!query_.set(block, database::context{ 0, 1, 0 }, {}, false, true))
+        const database::context context{ 0, possible_narrow_cast<uint32_t>(height), 0 };
+        if (!query_.set(block, context, {}, false, true))
             return {};
 
         const auto link = query_.to_header(block.hash());
@@ -1163,6 +1184,32 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__stored_parent_and_child__succes
     BC_REQUIRE(query_.is_tx(second->hash(false)));
 }
 
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__unpooled_unconfirmed_parent__missing_previous_output, chaser_transaction_pooling_setup_fixture)
+{
+    const auto stored = spend(parent_value - 1'000);
+    const auto child = spend(stored->hash(false), parent_value - 2'000);
+    BC_REQUIRE(query_.set(*stored));
+
+    const auto result = submit(package({ child }));
+    BC_REQUIRE_EQUAL(result.first, system::error::missing_previous_output);
+    BC_REQUIRE_EQUAL(result.second, zero);
+    BC_REQUIRE(!query_.is_pooled(query_.to_tx(child->hash(false))));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_announced__unpooled_unconfirmed_parent__missing_previous_output, chaser_transaction_pooling_setup_fixture)
+{
+    const auto stored = spend(parent_value - 1'000);
+    const auto child = spend(stored->hash(false), parent_value - 2'000);
+    const auto other = spend(parent_value - 3'000);
+    BC_REQUIRE(query_.set(*stored));
+
+    const auto result = submit_announced(package({ child, other }), node_.reserve_relay(node::relay_tier::manual));
+    BC_REQUIRE_EQUAL(result.first, system::error::missing_previous_output);
+    BC_REQUIRE_EQUAL(result.second, zero);
+    BC_REQUIRE(!query_.is_tx(child->hash(false)));
+    BC_REQUIRE(query_.is_tx(other->hash(false)));
+}
+
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__zero_fee_minimum_rate__insufficient_fee, chaser_transaction_fee_setup_fixture)
 {
     const auto result = submit(package({ spend(parent_value) }));
@@ -1281,7 +1328,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__build_template__empty_pool__empty_at_ne
 {
     const auto [ec, height, links] = build_template();
     BC_REQUIRE_EQUAL(ec, database::error::success);
-    BC_REQUIRE_EQUAL(height, 1u);
+    BC_REQUIRE_EQUAL(height, 2u);
     BC_REQUIRE(links.empty());
 }
 
@@ -1403,7 +1450,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_fees__pooled_tx__fee_an
     BC_REQUIRE_EQUAL(rates.size(), 1u);
     BC_REQUIRE_EQUAL(rates.front().fee, 1'000u);
     BC_REQUIRE_EQUAL(rates.front().bytes, tx->virtual_size());
-    BC_REQUIRE_EQUAL(rates.front().pooled_height, 1u);
+    BC_REQUIRE_EQUAL(rates.front().pooled_height, 2u);
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__get_confirmable_fees__relay_off_pooled_row__pooling_disabled, chaser_transaction_relay_off_setup_fixture)
@@ -1515,7 +1562,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__basic_after_block__no_arrival
     const auto second = spend(first->hash(false), parent_value - 3'000);
     const auto result = submit(package({ first, second }));
     const auto confirmed = !confirm().is_terminal();
-    const auto current = bumped(2);
+    const auto current = bumped(3);
     const auto [ec, rate] = estimate(1, node::estimate_mode::basic);
     BC_REQUIRE_EQUAL(result.first, node::error::success);
     BC_REQUIRE(confirmed);
@@ -1530,7 +1577,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__economical_after_block__arriv
     const auto second = spend(first->hash(false), parent_value - 3'000);
     const auto result = submit(package({ first, second }));
     const auto confirmed = !confirm().is_terminal();
-    const auto current = bumped(2);
+    const auto current = bumped(3);
     const auto [ec, rate] = estimate(1, node::estimate_mode::economical);
     BC_REQUIRE_EQUAL(result.first, node::error::success);
     BC_REQUIRE(confirmed);
@@ -1545,7 +1592,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__conservative_after_block__arr
     const auto second = spend(first->hash(false), parent_value - 3'000);
     const auto result = submit(package({ first, second }));
     const auto confirmed = !confirm().is_terminal();
-    const auto current = bumped(2);
+    const auto current = bumped(3);
     const auto [ec, rate] = estimate(1, node::estimate_mode::conservative);
     BC_REQUIRE_EQUAL(result.first, node::error::success);
     BC_REQUIRE(confirmed);
@@ -1560,7 +1607,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__geometric_after_block__arriva
     const auto second = spend(first->hash(false), parent_value - 3'000);
     const auto result = submit(package({ first, second }));
     const auto confirmed = !confirm().is_terminal();
-    const auto current = bumped(2);
+    const auto current = bumped(3);
     const auto [ec, rate] = estimate(1, node::estimate_mode::geometric);
     BC_REQUIRE_EQUAL(result.first, node::error::success);
     BC_REQUIRE(confirmed);
@@ -1575,7 +1622,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__pruned__arrivals_below_floor__not_count
     const auto second = spend(first->hash(false), parent_value - 3'000);
     const auto result = submit(package({ first, second }));
     const auto link = confirm();
-    const auto current = bumped(2);
+    const auto current = bumped(3);
     const auto counted = estimate(1, node::estimate_mode::economical);
     node_.notify(node::error::success, chases::pruned{ link });
     BC_REQUIRE_EQUAL(result.first, node::error::success);
@@ -1635,7 +1682,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__build_template__templat
 BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__reorganized__block_out_then_context, chaser_transaction_single_setup_fixture)
 {
     const auto block = confirm();
-    const auto raised = bumped(2);
+    const auto raised = bumped(3);
     const auto popped = query_.pop_confirmed();
     const auto events = reported(2, [&]()
     {
@@ -1662,7 +1709,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__row_of_later_height__insuf
 {
     constexpr auto insufficient = bit_or(pool::algorithm::absent, pool::algorithm::insufficient);
     const auto block = confirm();
-    const auto raised = bumped(2);
+    const auto raised = bumped(3);
     const auto tx = spend(parent_value - 1'000);
     const auto result = submit(package({ tx }));
     const auto link = query_.to_tx(tx->hash(false));

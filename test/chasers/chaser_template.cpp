@@ -24,7 +24,7 @@ using namespace system;
 
 static constexpr uint64_t parent_value = 100'000;
 
-// An unconfirmed tx with an anyone-can-spend output.
+// A tx with an anyone-can-spend output.
 static const chain::transaction& parent() NOEXCEPT
 {
     const chain::point point{ one_hash, 0u };
@@ -67,9 +67,26 @@ static chain::transactions_cptr package(
     return std::make_shared<const chain::transaction_cptrs>(txs);
 }
 
+// Block 1 of a coinbase and the parent.
+static const chain::block& parent_block() NOEXCEPT
+{
+    const system::settings bitcoin{ chain::selection::mainnet };
+    const auto& genesis = bitcoin.genesis_block.header();
+    const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
+    const chain::transaction coinbase{ 1u, chain::inputs{ null },
+        chain::outputs{ { 42u, chain::script{} } }, 1u };
+    const chain::header header{ 1u, genesis.hash(), null_hash,
+        add1(genesis.timestamp()), genesis.bits(), 1u };
+    static const chain::block instance{ header, { coinbase, parent() } };
+    return instance;
+}
+
+// The parent confirmed in block 1.
 static bool stored_parent(node::query& query) NOEXCEPT
 {
-    return query.set(parent());
+    const auto& block = parent_block();
+    return query.set(block, database::context{ 0, 1, 0 }, {}, false, true) &&
+        query.push_confirmed(query.to_header(block.hash()), true);
 }
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -145,7 +162,7 @@ BC_AUTO_TEST_CASE(chaser_template__get_template__started__empty)
 
 BC_AUTO_TEST_CASE(chaser_template__get_template__request__template_event_at_next_height)
 {
-    BC_REQUIRE_EQUAL(announced(), 1u);
+    BC_REQUIRE_EQUAL(announced(), 2u);
 }
 
 BC_AUTO_TEST_CASE(chaser_template__get_template__single__templated_at_next_height)
@@ -155,7 +172,7 @@ BC_AUTO_TEST_CASE(chaser_template__get_template__single__templated_at_next_heigh
     const auto [built, height, links] = get_template();
     BC_REQUIRE_EQUAL(ec, node::error::success);
     BC_REQUIRE_EQUAL(built, node::error::success);
-    BC_REQUIRE_EQUAL(height, 1u);
+    BC_REQUIRE_EQUAL(height, 2u);
     BC_REQUIRE(links == database::tx_links{ link(tx) });
 }
 
