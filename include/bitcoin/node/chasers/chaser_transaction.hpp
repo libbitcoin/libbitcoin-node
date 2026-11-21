@@ -22,6 +22,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <unordered_set>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -173,8 +174,40 @@ protected:
         const system::chain::context& ctx) NOEXCEPT;
 
 private:
+    /// A set under submission, its running set and outcome.
+    struct submission
+    {
+        system::chain::transactions_cptr txs;
+        size_t slot;
+        uint32_t time;
+        bool test;
+        bool announced;
+        std::vector<bool> stored{};
+        std::unordered_set<system::hash_digest> held{};
+        query::pool_graph graph{};
+        uint64_t bytes{};
+        uint64_t sigops{};
+        size_t given{};
+        size_t first{};
+        size_t passed{};
+        bool running{};
+        bool cleared{};
+        code failure{};
+    };
+
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
+
+    /// Submission steps.
+    void hold(submission& set) const NOEXCEPT;
+    bool spends_held(const submission& set,
+        const system::chain::transaction& tx) const NOEXCEPT;
+    void pass_over(submission& set, size_t index, const code& ec) NOEXCEPT;
+    void count(submission& set,
+        const system::chain::transaction& tx) const NOEXCEPT;
+    code extend(bool& covered, submission& set, size_t index) NOEXCEPT;
+    code restore(submission& set, size_t index) NOEXCEPT;
+    code clear(size_t& at, submission& set, size_t index) NOEXCEPT;
 
     code check(const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored, bool announced) NOEXCEPT;

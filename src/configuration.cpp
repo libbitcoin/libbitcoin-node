@@ -108,19 +108,22 @@ code configuration::initialize() NOEXCEPT
 // connections (current connections once reduced).
 size_t configuration::manual_relay_slots() const NOEXCEPT
 {
-    const auto reserve = node.manual_relay_slots == max_uint16 ?
-        network.manual.peers.size() : node.manual_relay_slots;
+    size_t reserve = node.manual_relay_slots;
+    if (reserve == max_uint16)
+        reserve = network.manual.peers.size();
 
     return std::min(reserve, relay_slots);
 }
 
 size_t configuration::outbound_relay_slots() const NOEXCEPT
 {
-    const auto connections = is_zero(node.current_connections) ?
-        network.outbound.connections : node.current_connections;
+    size_t connections = node.current_connections;
+    if (is_zero(connections))
+        connections = network.outbound.connections;
 
-    const size_t reserve = node.outbound_relay_slots == max_uint16 ?
-        connections : node.outbound_relay_slots;
+    size_t reserve = node.outbound_relay_slots;
+    if (reserve == max_uint16)
+        reserve = connections;
 
     return std::min(reserve, relay_slots - manual_relay_slots());
 }
