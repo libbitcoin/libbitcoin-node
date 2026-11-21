@@ -239,6 +239,16 @@ size_t p2p_setup_fixture::connect()
     return active_;
 }
 
+size_t p2p_setup_fixture::accept()
+{
+    network::io::acceptor acceptor{ io_, test::loopback() };
+    auto& peer = sockets_.emplace_back(io_);
+    node_.connect(network::config::endpoint{ acceptor.local_endpoint() });
+    REQUIRE_SUCCESS(acceptor, accept, peer);
+    active_ = sub1(sockets_.size());
+    return active_;
+}
+
 void p2p_setup_fixture::select(size_t peer)
 {
     active_ = peer;

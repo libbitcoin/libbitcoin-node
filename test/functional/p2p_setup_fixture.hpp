@@ -106,6 +106,9 @@ struct p2p_setup_fixture
     /// Connect another peer to the node, made the active peer.
     size_t connect();
 
+    /// Accept a manual connection from the node, made the active peer.
+    size_t accept();
+
     /// Make the peer at the index the active peer (the first is zero).
     void select(size_t peer);
 
