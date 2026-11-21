@@ -177,6 +177,12 @@ void full_node::organize_compact(const system::chain::header::cptr& header,
     chaser_header_.organize_compact(header, std::move(handler));
 }
 
+void full_node::organize_submitted(const system::chain::header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
+{
+    chaser_header_.organize_submitted(header, std::move(handler));
+}
+
 void full_node::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {

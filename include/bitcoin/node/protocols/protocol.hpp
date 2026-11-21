@@ -130,6 +130,10 @@ protected:
     virtual void organize_compact(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
+    /// Validate and organize a submitted header, prioritized (a tie wins).
+    virtual void organize_submitted(const system::chain::header::cptr& header,
+        organize_handler&& handler) NOEXCEPT;
+
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,
         organize_handler&& handler) NOEXCEPT;
@@ -176,6 +180,13 @@ protected:
 
     /// Get the subscription key (for notify_one).
     virtual object_key events_key() const NOEXCEPT;
+
+    /// Set a chaser event.
+    virtual void notify(const code& ec, event_value value) const NOEXCEPT;
+
+    /// Set a chaser event.
+    virtual void notify_one(object_key key, const code& ec,
+        event_value value) const NOEXCEPT;
 
 private:
     void handle_subscribed(const code& ec, object_key key) NOEXCEPT;

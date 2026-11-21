@@ -145,20 +145,6 @@ bool protocol_peer::was_announced(const system::hash_digest& hash) const NOEXCEP
     return channel_->was_announced(hash);
 }
 
-// Events notification.
-// ----------------------------------------------------------------------------
-
-void protocol_peer::notify(const code& ec, event_value value) const NOEXCEPT
-{
-    session_->notify(ec, value);
-}
-
-void protocol_peer::notify_one(object_key key, const code& ec,
-    event_value value) const NOEXCEPT
-{
-    session_->notify_one(key, ec, value);
-}
-
 // Compact blocks (bip152 version 2).
 // ----------------------------------------------------------------------------
 

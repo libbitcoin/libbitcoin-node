@@ -2799,6 +2799,28 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__request_mempool__inbound__not_req
     BC_REQUIRE(!received_before_pong(peer::memory_pool::command));
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__request_mempool__manual__requested_after_fee_filter, chaser_transaction_request_mempool_setup_fixture)
+{
+    accept();
+    BC_REQUIRE(handshake(config_.node.services_required(), peer::level::maximum_protocol, true));
+
+    const auto filter = peer::fee_filter::deserialize(node_version->value, await_before_pong(peer::fee_filter::command));
+    BC_REQUIRE(filter);
+    BC_REQUIRE_EQUAL(filter->minimum_fee, 0u);
+    BC_REQUIRE(received(peer::memory_pool::command, peer::pong::command));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__request_mempool__manual_disabled__not_requested, chaser_transaction_pooling_setup_fixture)
+{
+    accept();
+    BC_REQUIRE(handshake(config_.node.services_required(), peer::level::maximum_protocol, true));
+
+    const auto filter = peer::fee_filter::deserialize(node_version->value, await_before_pong(peer::fee_filter::command));
+    BC_REQUIRE(filter);
+    BC_REQUIRE_EQUAL(filter->minimum_fee, 0u);
+    BC_REQUIRE(!received(peer::memory_pool::command, peer::pong::command));
+}
+
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__memory_pool__disabled__no_inventory, chaser_transaction_pooling_setup_fixture)
 {
     const auto tx = spend(parent_value);

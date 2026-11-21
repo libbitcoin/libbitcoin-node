@@ -119,6 +119,16 @@ void chaser_header::organize_compact(const header::cptr& header,
     POST(do_organize, header, false, false, true, false, std::move(handler));
 }
 
+// The body is in hand, so as a compact block its download is deferred.
+void chaser_header::organize_submitted(const header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_organize, header, true, false, true, false, std::move(handler));
+}
+
 void chaser_header::prioritize(const hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {

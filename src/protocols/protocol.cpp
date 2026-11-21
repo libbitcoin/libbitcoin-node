@@ -171,6 +171,12 @@ void protocol::organize_compact(const system::chain::header::cptr& header,
     session_->organize_compact(header, std::move(handler));
 }
 
+void protocol::organize_submitted(const system::chain::header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
+{
+    session_->organize_submitted(header, std::move(handler));
+}
+
 void protocol::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {
@@ -271,6 +277,17 @@ void protocol::unsubscribe_chase() NOEXCEPT
 object_key protocol::events_key() const NOEXCEPT
 {
     return key_;
+}
+
+void protocol::notify(const code& ec, event_value value) const NOEXCEPT
+{
+    session_->notify(ec, value);
+}
+
+void protocol::notify_one(object_key key, const code& ec,
+    event_value value) const NOEXCEPT
+{
+    session_->notify_one(key, ec, value);
 }
 
 } // namespace node
