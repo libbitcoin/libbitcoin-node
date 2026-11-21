@@ -67,6 +67,8 @@ void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
     NOTIFY(fee_filter{ minimum }, handle_send, _1);
 
     // bip35: the reply follows the zero filter, so it is not filtered.
+    // Core drops a mempool sender unless it serves bloom filters or permits
+    // the sender, a restriction outside bip35 (whitelist this node there).
     if (relaying && !requested_ && request_mempool())
     {
         requested_ = true;
