@@ -862,9 +862,10 @@ void chaser_transaction::get_confirmable_fees(
 // A set is tested prefix by prefix. The running set is its unstored txs since
 // the last prefix to clear, and clears when its coverage does.
 // It is then connected and admitted, and the next tx starts another. An
-// announced set is a batch, not a package, so a tx of it that is not accepted
-// is passed over as if stored. Prevouts are populated from the whole set, so
-// a tx spending one of it not held (stored or accepted before it) is not.
+// announced set is a batch, not a package, so a tx of it that is not accepted,
+// or that exceeds a pool limit, is passed over as if stored. Prevouts are
+// populated from the whole set, so a tx spending one of it not held (stored or
+// accepted before it) is not.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     bool announced, size_t slot, const submit_handler& handler) NOEXCEPT
 {
@@ -931,6 +932,42 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         });
     };
 
+    const auto pass_over = [&](size_t index, const code& ec) NOEXCEPT
+    {
+        if (!failure)
+        {
+            failure = ec;
+            passed = index;
+        }
+
+        stored.at(index) = true;
+        held.erase(txs->at(index)->get_hash(false));
+    };
+
+    // The running set before the index, without any tx passed over.
+    const auto restore = [&](size_t index) NOEXCEPT
+    {
+        graph = {};
+        bytes = sigops = zero;
+        running = false;
+        for (auto at = first; at < index; ++at)
+        {
+            if (stored.at(at))
+                continue;
+
+            const auto& tx = *txs->at(at);
+            if (const auto ec = query.get_pool_candidate(graph, tx, ctx))
+                return ec;
+
+            const auto ops = tx.signature_operations(bip16, bip141);
+            bytes = ceilinged_add<uint64_t>(bytes, tx.virtual_size());
+            sigops = ceilinged_add<uint64_t>(sigops, ops);
+            running = true;
+        }
+
+        return code{};
+    };
+
     for (size_t index{}; index < txs->size(); ++index)
     {
         if (stored.at(index))
@@ -949,13 +986,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
                 return;
             }
 
-            if (!failure)
-            {
-                failure = ec;
-                passed = index;
-            }
-
-            stored.at(index) = true;
+            pass_over(index, ec);
             continue;
         }
 
@@ -975,29 +1006,47 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         sigops = ceilinged_add<uint64_t>(sigops, ops);
 
         // The running set is bounded by a block.
-        if (bytes > limit.size || sigops > limit.sigops)
-        {
-            handler(database::error::pool_limit, first);
-            return;
-        }
+        auto limited = bytes > limit.size || sigops > limit.sigops;
 
         bool covered{};
-        const auto start = now();
-        const auto coverage = query.get_pool_coverage(covered, graph, given,
-            rate, bytes_per_sigop, limit, settings.maximum_outcomes);
-
-        report(pool_scan::coverage, start);
-        if (coverage)
+        if (!limited)
         {
-            const auto limited = coverage == database::error::pool_limit;
-            handler(limited ? coverage : fault(coverage), first);
-            return;
+            const auto start = now();
+            const auto coverage = query.get_pool_coverage(covered, graph,
+                given, rate, bytes_per_sigop, limit, settings.maximum_outcomes);
+
+            report(pool_scan::coverage, start);
+            if (coverage && (coverage != database::error::pool_limit))
+            {
+                handler(fault(coverage), first);
+                return;
+            }
+
+            limited = coverage == database::error::pool_limit;
+            if (!limited && covered)
+                fire_span(events::pool_coverage_usecs, start);
+        }
+
+        if (limited)
+        {
+            if (!announced)
+            {
+                handler(database::error::pool_limit, first);
+                return;
+            }
+
+            pass_over(index, database::error::pool_limit);
+            if (const auto restored = restore(index))
+            {
+                handler(fault(restored), index);
+                return;
+            }
+
+            continue;
         }
 
         if (!covered)
             continue;
-
-        fire_span(events::pool_coverage_usecs, start);
 
         // Script validation is the most costly, so it follows the guards.
         const auto connecting = now();
