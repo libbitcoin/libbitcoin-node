@@ -271,6 +271,20 @@ struct chaser_header_setup_fixture
         return future.get();
     }
 
+    /// Organize a submitted header.
+    result organize_submitted(const system::chain::header::cptr& header)
+    {
+        const auto promise = std::make_shared<std::promise<result>>();
+        auto future = promise->get_future();
+        header_.organize_submitted(header, [promise](const code& ec, size_t height) NOEXCEPT
+        {
+            promise->set_value({ ec, height });
+        });
+
+        BC_REQUIRE(future.wait_for(await_limit) == std::future_status::ready);
+        return future.get();
+    }
+
     /// Prioritize a cached branch.
     result prioritize(const system::hash_digest& hash)
     {
@@ -894,6 +908,44 @@ BC_FIXTURE_TEST_CASE(chaser_header__organize_proven__sibling_branches_under_wind
     const auto purged = organize(make(genesis_hash(), 5), false);
     BC_REQUIRE_EQUAL(purged.first, error::success);
     BC_REQUIRE_EQUAL(purged.second, 1u);
+}
+
+// organize_submitted
+// ----------------------------------------------------------------------------
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_submitted__block1__compact_candidate, chaser_header_setup_fixture)
+{
+    const auto header = block1();
+    const auto result = organize_submitted(header);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 1u);
+    BC_REQUIRE(candidate(1, header->hash()));
+    BC_REQUIRE(query_.is_compact(query_.to_header(header->hash())));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize__tied_block1__cached, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+
+    const auto header = block1();
+    BC_REQUIRE_EQUAL(organize(header).first, error::success);
+    BC_REQUIRE(candidate(1, a1->hash()));
+    BC_REQUIRE(query_.to_header(header->hash()).is_terminal());
+}
+
+BC_FIXTURE_TEST_CASE(chaser_header__organize_submitted__tied_block1__reorganized, chaser_header_setup_fixture)
+{
+    const auto a1 = make(genesis_hash(), 1);
+    BC_REQUIRE_EQUAL(organize(a1, false).first, error::success);
+
+    const auto header = block1();
+    const auto result = organize_submitted(header);
+    BC_REQUIRE_EQUAL(result.first, error::success);
+    BC_REQUIRE_EQUAL(result.second, 1u);
+    BC_REQUIRE(candidate(1, header->hash()));
+    BC_REQUIRE(events_.await(chase::regressed));
+    BC_REQUIRE_EQUAL(events_.payload<chase::regressed>()->branch_point, 0u);
 }
 
 // prioritize

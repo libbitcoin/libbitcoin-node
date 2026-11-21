@@ -171,6 +171,12 @@ void protocol::organize_compact(const system::chain::header::cptr& header,
     session_->organize_compact(header, std::move(handler));
 }
 
+void protocol::organize_submitted(const system::chain::header::cptr& header,
+    organize_handler&& handler) NOEXCEPT
+{
+    session_->organize_submitted(header, std::move(handler));
+}
+
 void protocol::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {
