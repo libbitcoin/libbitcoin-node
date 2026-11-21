@@ -73,10 +73,18 @@ static const chain::block& parent_block() NOEXCEPT
     const system::settings bitcoin{ chain::selection::mainnet };
     const auto& genesis = bitcoin.genesis_block.header();
     const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
-    const chain::transaction coinbase{ 1u, chain::inputs{ null },
-        chain::outputs{ { 42u, chain::script{} } }, 1u };
-    const chain::header header{ 1u, genesis.hash(), null_hash,
-        add1(genesis.timestamp()), genesis.bits(), 1u };
+    const chain::output out{ 42u, chain::script{} };
+    const chain::transaction coinbase
+    {
+        1u, chain::inputs{ null }, chain::outputs{ out }, 1u
+    };
+
+    const auto timestamp = add1(genesis.timestamp());
+    const chain::header header
+    {
+        1u, genesis.hash(), null_hash, timestamp, genesis.bits(), 1u
+    };
+
     static const chain::block instance{ header, { coinbase, parent() } };
     return instance;
 }

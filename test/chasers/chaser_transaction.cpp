@@ -113,10 +113,18 @@ static const chain::block& parent_block() NOEXCEPT
     const system::settings bitcoin{ chain::selection::mainnet };
     const auto& genesis = bitcoin.genesis_block.header();
     const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
-    const chain::transaction coinbase{ 1u, chain::inputs{ null },
-        chain::outputs{ { 42u, chain::script{} } }, 1u };
-    const chain::header header{ 1u, genesis.hash(), null_hash,
-        add1(genesis.timestamp()), genesis.bits(), 1u };
+    const chain::output out{ 42u, chain::script{} };
+    const chain::transaction coinbase
+    {
+        1u, chain::inputs{ null }, chain::outputs{ out }, 1u
+    };
+
+    const auto timestamp = add1(genesis.timestamp());
+    const chain::header header
+    {
+        1u, genesis.hash(), null_hash, timestamp, genesis.bits(), 1u
+    };
+
     static const chain::block instance{ header, { coinbase, parent() } };
     return instance;
 }
@@ -125,7 +133,8 @@ static const chain::block& parent_block() NOEXCEPT
 static bool stored_parent(node::query& query) NOEXCEPT
 {
     const auto& block = parent_block();
-    return query.set(block, database::context{ deployed, 1, 0 }, {}, false, true) &&
+    const database::context context{ deployed, 1, 0 };
+    return query.set(block, context, {}, false, true) &&
         query.push_confirmed(query.to_header(block.hash()), true);
 }
 
@@ -396,7 +405,8 @@ struct chaser_transaction_setup_fixture
             txs.push_back(*tx);
 
         const chain::block block{ header, txs };
-        const database::context context{ 0, possible_narrow_cast<uint32_t>(height), 0 };
+        const auto at = possible_narrow_cast<uint32_t>(height);
+        const database::context context{ 0, at, 0 };
         if (!query_.set(block, context, {}, false, true))
             return {};
 
