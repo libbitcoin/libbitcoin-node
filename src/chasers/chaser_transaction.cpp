@@ -858,6 +858,74 @@ void chaser_transaction::get_confirmable_fees(
     POST(do_get_confirmable_fees, std::move(handler));
 }
 
+// The first measured component over a limit, its check, counts and members
+// (K candidate, otherwise the pooled wtxid).
+static std::string describe_limit(const node::query& query,
+    const node::query::pool_graph& graph, size_t given,
+    const pool::algorithm::totals_t& limit, size_t maximum_outcomes) NOEXCEPT
+{
+    using algorithm = pool::algorithm;
+    const auto& g = graph.graph;
+    const auto rows = g.table.cells.size();
+    const auto members = [&](const algorithm::component_t& component)
+        NOEXCEPT
+    {
+        std::ostringstream out{};
+        for (size_t at{}; at < component.count; ++at)
+        {
+            const auto row = component.rows[at];
+            if (row >= rows)
+            {
+                out << " K" << (row - rows);
+                continue;
+            }
+
+            out << " " << encode_hash(query.get_wtxid_key(
+                database::pool_link{ row }));
+        }
+
+        return out.str();
+    };
+
+    std::ostringstream out{};
+    for (auto at = given; at < graph.candidates.size(); ++at)
+    {
+        algorithm::component_t component{};
+        const auto candidate = graph.candidates.at(at);
+        if (!algorithm::collect(component, g, candidate))
+        {
+            out << "candidate " << at << " collect over "
+                << algorithm::maximum_members << " members:"
+                << members(component);
+            return out.str();
+        }
+
+        if (!algorithm::relate(component, g))
+        {
+            out << "candidate " << at << " relate over "
+                << algorithm::maximum_members << " contests, members "
+                << component.count << ":" << members(component);
+            return out.str();
+        }
+
+        algorithm::totals_t sum{};
+        const auto ancestry = is_zero(component.contests) ||
+            algorithm::ancestry(sum, g, component, limit);
+        const auto outcomes = algorithm::outcomes(component);
+        if (!ancestry || outcomes > maximum_outcomes)
+        {
+            out << "candidate " << at << (ancestry ? " outcomes " :
+                " ancestry ") << "members " << component.count
+                << " contests " << component.contests << " outcomes "
+                << outcomes << " size " << sum.size << " sigops "
+                << sum.sigops << ":" << members(component);
+            return out.str();
+        }
+    }
+
+    return "no component over a limit";
+}
+
 // private
 // A set is tested prefix by prefix. The running set is its unstored txs since
 // the last prefix to clear, and clears when its coverage does.
@@ -1029,6 +1097,12 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
         if (limited)
         {
+            LOGN("Pool limit [" << encode_hash(tx.get_hash(false)) << "] "
+                << (bytes > limit.size || sigops > limit.sigops ?
+                    std::string{ "running set over a block" } :
+                    describe_limit(query, graph, given, limit,
+                        settings.maximum_outcomes)));
+
             if (!announced)
             {
                 handler(database::error::pool_limit, first);
