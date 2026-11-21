@@ -84,6 +84,18 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction_compact.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction_query.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction_relay.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction_submit.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\chasers\chaser_validate.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>

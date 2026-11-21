@@ -65,6 +65,10 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/chasers/chaser_storage.cpp \
     ${srcdir}/../../src/chasers/chaser_template.cpp \
     ${srcdir}/../../src/chasers/chaser_transaction.cpp \
+    ${srcdir}/../../src/chasers/chaser_transaction_compact.cpp \
+    ${srcdir}/../../src/chasers/chaser_transaction_query.cpp \
+    ${srcdir}/../../src/chasers/chaser_transaction_relay.cpp \
+    ${srcdir}/../../src/chasers/chaser_transaction_submit.cpp \
     ${srcdir}/../../src/chasers/chaser_validate.cpp \
     ${srcdir}/../../src/chasers/chaser_validate_batch.cpp \
     ${srcdir}/../../src/chasers/chaser_validate_capture.cpp \
@@ -257,12 +261,17 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/chasers/chaser_header.cpp \
     ${srcdir}/../../test/chasers/chaser_template.cpp \
     ${srcdir}/../../test/chasers/chaser_transaction.cpp \
+    ${srcdir}/../../test/chasers/chaser_transaction_compact.cpp \
+    ${srcdir}/../../test/chasers/chaser_transaction_query.cpp \
+    ${srcdir}/../../test/chasers/chaser_transaction_relay.cpp \
+    ${srcdir}/../../test/chasers/chaser_transaction_submit.cpp \
     ${srcdir}/../../test/chasers/chaser_validate.cpp \
     ${srcdir}/../../test/functional/p2p.cpp \
     ${srcdir}/../../test/functional/p2p_compact.cpp \
     ${srcdir}/../../test/functional/p2p_setup_fixture.cpp \
     ${srcdir}/../../test/functional/p2p_witness.cpp \
     ${srcdir}/../../test/protocols/protocol.cpp \
+    ${srcdir}/../../test/protocols/protocol_transaction.cpp \
     ${srcdir}/../../test/sessions/session.cpp \
     ${srcdir}/../../test/types/rolling_bloom_filter.cpp \
     ${srcdir}/../../test/types/solo_spans.cpp
