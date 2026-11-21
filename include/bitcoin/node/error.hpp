@@ -65,7 +65,6 @@ enum error_t : uint8_t
     insufficient_fee,
     empty_package,
     duplicate_transaction,
-    excessive_backlog,
 
     /// fee estimation
     estimate_disabled,
