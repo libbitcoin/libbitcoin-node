@@ -133,9 +133,14 @@ bool session::request_mempool() const NOEXCEPT
     return false;
 }
 
+relay_tier session::relay_tier_() const NOEXCEPT
+{
+    return relay_tier::inbound;
+}
+
 size_t session::reserve_relay() NOEXCEPT
 {
-    return node_.reserve_relay();
+    return node_.reserve_relay(relay_tier_());
 }
 
 void session::release_relay(size_t slot) NOEXCEPT

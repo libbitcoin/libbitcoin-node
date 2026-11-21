@@ -87,8 +87,8 @@ public:
     /// Subscribe to pool scans (notified on the strand).
     virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
 
-    /// Reserve a free relay slot, relay_slots if none (thread safe).
-    virtual size_t reserve_relay() NOEXCEPT;
+    /// Reserve a free slot of the tier, relay_slots if none (thread safe).
+    virtual size_t reserve_relay(relay_tier tier) NOEXCEPT;
 
     /// Release the relay slot, free once cleared from the marks.
     virtual void release_relay(size_t slot) NOEXCEPT;
@@ -235,6 +235,8 @@ private:
     std::atomic_bool pooling_{};
     std::atomic<size_t> writers_{};
     std::atomic<uint64_t> reserved_{};
+    const uint64_t outbound_excluded_;
+    const uint64_t inbound_excluded_;
 
     // These are protected by strand.
     pool_subscriber subscriber_{};

@@ -55,11 +55,12 @@ public:
     /// Organize a proven header, milestone set if in milestone branch.
     virtual void organize(const system::chain::header::cptr& header,
         bool milestone, organize_handler&& handler) NOEXCEPT;
+
     /// Validate and organize an unproven header announced by compact block.
     virtual void organize_compact(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
-    /// Validate and organize a submitted header, prioritized (a tie wins).
+    /// Organize a submitted (proven) header, prioritized (a tie wins).
     virtual void organize_submitted(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 

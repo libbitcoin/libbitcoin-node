@@ -38,7 +38,12 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : chaser(node),
     scan_threadpool_(one, node.node_settings().thread_priority_()),
-    revalidation_threadpool_(one, node.node_settings().thread_priority_())
+    revalidation_threadpool_(one, node.node_settings().thread_priority_()),
+    outbound_excluded_(unmask_right<uint64_t>(
+        node.node_config().manual_relay_slots())),
+    inbound_excluded_(unmask_right<uint64_t>(
+        node.node_config().manual_relay_slots() +
+        node.node_config().outbound_relay_slots()))
 {
 }
 
@@ -90,15 +95,23 @@ void chaser_transaction::do_subscribe_pool(
 // relay slots
 // ----------------------------------------------------------------------------
 
-size_t chaser_transaction::reserve_relay() NOEXCEPT
+// A tier takes the lowest free slot outside the reserves of the tiers above.
+size_t chaser_transaction::reserve_relay(relay_tier tier) NOEXCEPT
 {
+    const auto excluded =
+        tier == relay_tier::inbound ? inbound_excluded_ :
+        tier == relay_tier::outbound ? outbound_excluded_ : uint64_t{};
+
     auto reserved = reserved_.load();
-    while (reserved != bit_all<uint64_t>)
+    auto blocked = bit_or(reserved, excluded);
+    while (blocked != bit_all<uint64_t>)
     {
-        const auto slot = right_ones(reserved);
+        const auto slot = right_ones(blocked);
         if (reserved_.compare_exchange_weak(reserved,
             set_right(reserved, slot)))
             return slot;
+
+        blocked = bit_or(reserved, excluded);
     }
 
     return relay_slots;

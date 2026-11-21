@@ -32,6 +32,49 @@ BC_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BC_REQUIRE_EQUAL(instance.bitcoin.first_version, 1u);
 }
 
+BC_AUTO_TEST_CASE(configuration__relay_slots__unset__manual_peers_and_current_connections)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.network.manual.peers.emplace_back("127.0.0.1:8333");
+    instance.network.manual.peers.emplace_back("127.0.0.2:8333");
+    BC_REQUIRE_EQUAL(instance.manual_relay_slots(), 2u);
+    BC_REQUIRE_EQUAL(instance.outbound_relay_slots(), 10u);
+}
+
+BC_AUTO_TEST_CASE(configuration__relay_slots__unset_no_current_connections__outbound_connections_limited)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.current_connections = 0;
+    BC_REQUIRE_EQUAL(instance.manual_relay_slots(), 0u);
+    BC_REQUIRE_EQUAL(instance.outbound_relay_slots(), 64u);
+}
+
+BC_AUTO_TEST_CASE(configuration__relay_slots__configured__configured)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.manual_relay_slots = 4;
+    instance.node.outbound_relay_slots = 20;
+    BC_REQUIRE_EQUAL(instance.manual_relay_slots(), 4u);
+    BC_REQUIRE_EQUAL(instance.outbound_relay_slots(), 20u);
+}
+
+BC_AUTO_TEST_CASE(configuration__relay_slots__excessive__limited)
+{
+    node::configuration instance(chain::selection::mainnet);
+    instance.node.manual_relay_slots = 60;
+    instance.node.outbound_relay_slots = 20;
+    BC_REQUIRE_EQUAL(instance.manual_relay_slots(), 60u);
+    BC_REQUIRE_EQUAL(instance.outbound_relay_slots(), 4u);
+}
+
+BC_AUTO_TEST_CASE(configuration__initialize__unset_relay_slots__derived)
+{
+    node::configuration instance(chain::selection::mainnet);
+    BC_REQUIRE(!instance.initialize());
+    BC_REQUIRE_EQUAL(instance.node.manual_relay_slots, 0_u16);
+    BC_REQUIRE_EQUAL(instance.node.outbound_relay_slots, 10_u16);
+}
+
 BC_AUTO_TEST_CASE(configuration__initialize__mainnet__success_peer_identifier_mainnet_magic)
 {
     node::configuration instance(chain::selection::mainnet);

@@ -19,9 +19,13 @@
 #ifndef LIBBITCOIN_NODE_TYPES_TYPES_HPP
 #define LIBBITCOIN_NODE_TYPES_TYPES_HPP
 
+#include <bitcoin/node/types/constants.hpp>
 #include <bitcoin/node/types/estimate_mode.hpp>
+#include <bitcoin/node/types/pool_event.hpp>
 #include <bitcoin/node/types/pool_scan.hpp>
+#include <bitcoin/node/types/relay_tier.hpp>
 #include <bitcoin/node/types/rolling_bloom_filter.hpp>
 #include <bitcoin/node/types/solo_spans.hpp>
+#include <bitcoin/node/types/type.hpp>
 
 #endif

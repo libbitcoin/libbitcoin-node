@@ -34,6 +34,10 @@ public:
     /// Read files and pack derived settings, must follow configuration parse.
     virtual code initialize() NOEXCEPT;
 
+    /// Relay slots reserved for manual peers, then for outbound peers.
+    virtual size_t manual_relay_slots() const NOEXCEPT;
+    virtual size_t outbound_relay_slots() const NOEXCEPT;
+
     /// Settings.
     system::settings bitcoin;
     database::settings database;
