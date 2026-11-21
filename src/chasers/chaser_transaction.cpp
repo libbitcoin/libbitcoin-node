@@ -98,9 +98,11 @@ void chaser_transaction::do_subscribe_pool(
 // A tier takes the lowest free slot outside the reserves of the tiers above.
 size_t chaser_transaction::reserve_relay(relay_tier tier) NOEXCEPT
 {
-    const auto excluded =
-        tier == relay_tier::inbound ? inbound_excluded_ :
-        tier == relay_tier::outbound ? outbound_excluded_ : uint64_t{};
+    uint64_t excluded{};
+    if (tier == relay_tier::outbound)
+        excluded = outbound_excluded_;
+    else if (tier == relay_tier::inbound)
+        excluded = inbound_excluded_;
 
     auto reserved = reserved_.load();
     auto blocked = bit_or(reserved, excluded);
@@ -1100,11 +1102,17 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
         if (limited)
         {
-            LOGN("Pool limit [" << encode_hash(tx.get_hash(false)) << "] "
-                << (bytes > limit.size || sigops > limit.sigops ?
-                    std::string{ "running set over a block" } :
-                    describe_limit(query, graph, given, limit,
-                        settings.maximum_outcomes)));
+            if (bytes > limit.size || sigops > limit.sigops)
+            {
+                LOGN("Pool limit [" << encode_hash(tx.get_hash(false))
+                    << "] running set over a block");
+            }
+            else
+            {
+                LOGN("Pool limit [" << encode_hash(tx.get_hash(false)) << "] "
+                    << describe_limit(query, graph, given, limit,
+                        settings.maximum_outcomes));
+            }
 
             if (!announced)
             {
