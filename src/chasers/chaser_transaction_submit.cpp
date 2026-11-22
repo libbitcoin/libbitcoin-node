@@ -245,16 +245,29 @@ void chaser_transaction::hold(submission& set) const NOEXCEPT
 bool chaser_transaction::spends_held(const submission& set,
     const chain::transaction& tx) const NOEXCEPT
 {
-    const auto& query = archive();
     return std::ranges::all_of(*tx.inputs_ptr(), [&](const auto& in) NOEXCEPT
     {
-        if (set.held.contains(in->point().hash()))
-            return true;
-
-        const database::tx_link parent{ in->metadata.parent_tx };
-        return !parent.is_terminal() &&
-            (query.is_confirmed_tx(parent) || query.is_pooled(parent));
+        return set.held.contains(in->point().hash()) || is_held(*in);
     });
+}
+
+// private
+bool chaser_transaction::spends_held(
+    const chain::transaction& tx) const NOEXCEPT
+{
+    return std::ranges::all_of(*tx.inputs_ptr(), [&](const auto& in) NOEXCEPT
+    {
+        return is_held(*in);
+    });
+}
+
+// private
+bool chaser_transaction::is_held(const chain::input& in) const NOEXCEPT
+{
+    const auto& query = archive();
+    const database::tx_link parent{ in.metadata.parent_tx };
+    return !parent.is_terminal() &&
+        (query.is_confirmed_tx(parent) || query.is_pooled(parent));
 }
 
 // private

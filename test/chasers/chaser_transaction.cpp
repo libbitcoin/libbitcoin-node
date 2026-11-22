@@ -273,6 +273,44 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__relative_spender_of_reconf
     BC_REQUIRE(unlocked);
 }
 
+// The block of a flags zero context is not pooled again when popped.
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__spender_of_unpooled_parent__out_until_reconfirmed, chaser_transaction_single_setup_fixture)
+{
+    constexpr auto insufficient = bit_or(pool::algorithm::absent, pool::algorithm::insufficient);
+    const auto first = spend(parent_value - 1'000);
+    const auto block = confirm(first);
+    const auto raised = bumped(3);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ second }));
+    const auto link = query_.to_tx(second->hash(false));
+    const auto before = cell(link);
+    const auto popped = query_.pop_confirmed();
+    const auto events = reported(3, [&]()
+    {
+        node_.notify(node::error::success, chases::reorganized{ block });
+    });
+
+    const auto unpooled = !query_.is_pooled(query_.to_tx(first->hash(false)));
+    const auto revalidated = cell(link);
+    const auto pushed = query_.push_confirmed(block, true);
+    node_.notify(node::error::success, chases::organized{ block });
+    const auto restored = celled(link, pool::algorithm::unlabeled);
+
+    BC_REQUIRE(!block.is_terminal());
+    BC_REQUIRE(raised);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(pool::algorithm::is_present(before));
+    BC_REQUIRE(popped);
+    BC_REQUIRE_EQUAL(events.size(), 3u);
+    BC_REQUIRE(events.at(0).scan == node::pool_scan::block_out);
+    BC_REQUIRE(events.at(1).scan == node::pool_scan::context);
+    BC_REQUIRE(events.at(2).scan == node::pool_scan::context);
+    BC_REQUIRE(unpooled);
+    BC_REQUIRE_EQUAL(revalidated, insufficient);
+    BC_REQUIRE(pushed);
+    BC_REQUIRE(restored);
+}
+
 BC_AUTO_TEST_SUITE_END()
 
 BC_AUTO_TEST_SUITE(chaser_transaction_scan_tests)

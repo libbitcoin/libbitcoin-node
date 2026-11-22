@@ -206,6 +206,8 @@ private:
     void hold(submission& set) const NOEXCEPT;
     bool spends_held(const submission& set,
         const system::chain::transaction& tx) const NOEXCEPT;
+    bool spends_held(const system::chain::transaction& tx) const NOEXCEPT;
+    bool is_held(const system::chain::input& in) const NOEXCEPT;
     void pass_over(submission& set, size_t index, const code& ec) NOEXCEPT;
     void count(submission& set,
         const system::chain::transaction& tx) const NOEXCEPT;

@@ -256,8 +256,8 @@ bool chaser_transaction::sweep() NOEXCEPT
 }
 
 // Rows left out by flags are revalidated once per change of flags, and rows
-// without a context once per change of the pool context, so a row that fails
-// is retried only under another context.
+// not validated once per change of the pool context, so a row that fails is
+// retried only under another context.
 void chaser_transaction::start_revalidation() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -273,13 +273,22 @@ void chaser_transaction::start_revalidation() NOEXCEPT
 
     auto& query = archive();
     database::tx_links links{};
+    database::tx_links unvalidated{};
     const auto ctx = database::context::from(pool_);
-    if (const auto ec = flagged ? query.get_pool_revalidation(links, ctx) :
-        query.get_pool_unvalidated(links))
+    code ec{};
+    if (flagged)
+        ec = query.get_pool_revalidation(links, ctx);
+
+    if (!ec)
+        ec = query.get_pool_unvalidated(unvalidated);
+
+    if (ec)
     {
         fault(ec);
         return;
     }
+
+    links.insert(links.end(), unvalidated.begin(), unvalidated.end());
 
     revalidated_flags_ = pool_.flags;
     retried_ = pool_;
@@ -309,7 +318,7 @@ void chaser_transaction::do_revalidate(const database::tx_links& links,
             const auto at = sign_cast<size_t>(offset);
             const auto tx = query.get_transaction(link, true);
             passed.at(at) = to_int<uint8_t>(tx && !accept(*tx, ctx) &&
-                !tx->connect(ctx));
+                spends_held(*tx) && !tx->connect(ctx));
         });
 
     POST(do_revalidated, links, std::move(passed), ctx);
