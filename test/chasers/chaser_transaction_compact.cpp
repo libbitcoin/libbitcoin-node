@@ -31,9 +31,9 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__invalid_tx_link__integr
     BC_REQUIRE(!query_.is_associated(link));
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__pooled, chaser_transaction_header_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__pooled, chaser_transaction_child_header_setup_fixture)
 {
-    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto link = query_.to_header(child_header().hash());
     const auto tx = spend(parent_value);
     BC_REQUIRE(query_.set(*tx));
 
@@ -45,6 +45,42 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__poo
     BC_REQUIRE(query_.is_associated(link));
     BC_REQUIRE(query_.is_pooled(stored));
     BC_REQUIRE_EQUAL(query_.to_tx(tx->hash(false)), stored);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__unstored_tx__archived_and_pooled, chaser_transaction_child_header_setup_fixture)
+{
+    const auto link = query_.to_header(child_header().hash());
+    const auto tx = spend(parent_value);
+    const auto result = submit_compact(package({ tx }), { database::tx_link{ 0 }, database::tx_link::terminal }, link);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_associated(link));
+    BC_REQUIRE(query_.is_pooled(query_.to_tx(tx->hash(false))));
+}
+
+// The parent is archived, but neither confirmed nor pooled.
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_spender_of_unpooled_parent__not_pooled, chaser_transaction_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto tx = spend(parent_value);
+    BC_REQUIRE(query_.set(*tx));
+
+    const auto stored = query_.to_tx(tx->hash(false));
+    const auto result = submit_compact(package({ tx }), { database::tx_link{ 0 }, database::tx_link::terminal }, link);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_associated(link));
+    BC_REQUIRE(!query_.is_pooled(stored));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__unstored_spender_of_unpooled_parent__archived_not_pooled, chaser_transaction_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    const auto tx = spend(parent_value);
+    const auto result = submit_compact(package({ tx }), { database::tx_link{ 0 }, database::tx_link::terminal }, link);
+    const auto stored = query_.to_tx(tx->hash(false));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_associated(link));
+    BC_REQUIRE(!stored.is_terminal());
+    BC_REQUIRE(!query_.is_pooled(stored));
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_coinbase__archived_again, chaser_transaction_header_setup_fixture)

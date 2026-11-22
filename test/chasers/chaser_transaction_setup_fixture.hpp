@@ -162,6 +162,28 @@ inline bool stored_header(node::query& query) NOEXCEPT
     return query.set(parent()) && query.set(header1, context1, work1, false);
 }
 
+// The header of a block 2 above the parent block.
+inline const chain::header& child_header() NOEXCEPT
+{
+    const auto& header1 = parent_block().header();
+    static const chain::header instance
+    {
+        1u, header1.hash(), null_hash, add1(header1.timestamp()),
+        header1.bits(), 2u
+    };
+
+    return instance;
+}
+
+// The parent confirmed in block 1, block 2 archived as a header without txs.
+inline bool stored_child_header(node::query& query) NOEXCEPT
+{
+    const auto& header1 = parent_block().header();
+    const database::context context2{ deployed, 2, header1.timestamp() };
+    return stored_parent(query) &&
+        query.set(child_header(), context2, {}, false);
+}
+
 // Block 1 of a coinbase and a spend of the parent.
 inline const chain::block& reorganized_block() NOEXCEPT
 {
@@ -886,6 +908,19 @@ struct chaser_transaction_header_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
         }, stored_header)
+    {
+    }
+};
+
+struct chaser_transaction_child_header_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_child_header_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+        }, stored_child_header)
     {
     }
 };

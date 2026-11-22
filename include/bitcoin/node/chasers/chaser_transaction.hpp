@@ -221,7 +221,7 @@ private:
         const system::chain::context& ctx) NOEXCEPT;
     code admit(database::tx_link& out, const system::chain::transaction& tx,
         uint32_t time) NOEXCEPT;
-    code validate(const system::chain::transaction& tx,
+    code validate(bool& guarded, const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
     database::tx_link to_stored(
         const system::chain::transaction& tx) const NOEXCEPT;
