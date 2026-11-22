@@ -223,6 +223,7 @@ code chaser_transaction::fill(database::tx_link& out,
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
             return fault(error::transaction6);
 
+        ++generation_;
         notify(error::success, chases::transaction{ out });
         broadcast(tx);
         return error::success;
@@ -251,6 +252,7 @@ code chaser_transaction::fill(database::tx_link& out,
     if (!coinbase)
     {
         fire(events::tx_archived, to_rate(tx));
+        ++generation_;
         notify(error::success, chases::transaction{ out });
         broadcast(tx);
     }

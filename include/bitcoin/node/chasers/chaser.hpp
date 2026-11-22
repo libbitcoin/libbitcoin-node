@@ -100,6 +100,9 @@ protected:
     /// Build a template of pooled txs, parents first, and its height.
     virtual void request_template(template_handler&& handler) NOEXCEPT;
 
+    /// Count of changes to the pool.
+    virtual uint64_t pool_generation() const NOEXCEPT;
+
     /// Events.
     /// -----------------------------------------------------------------------
 

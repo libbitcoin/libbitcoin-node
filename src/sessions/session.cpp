@@ -202,9 +202,19 @@ void session::unsubscribe_chase(object_key key) NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void session::get_template(template_handler&& handler) NOEXCEPT
+void session::get_template(block_template_handler&& handler) NOEXCEPT
 {
     node_.get_template(std::move(handler));
+}
+
+void session::demand_template(bool demand) NOEXCEPT
+{
+    node_.demand_template(demand);
+}
+
+uint64_t session::template_generation() const NOEXCEPT
+{
+    return node_.template_generation();
 }
 
 void session::estimate(size_t target, estimate_mode mode,

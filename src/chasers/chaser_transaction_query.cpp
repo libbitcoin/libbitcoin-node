@@ -82,6 +82,11 @@ uint64_t chaser_transaction::arriving(const query::pool_arrivals& arrivals,
     }
 }
 
+uint64_t chaser_transaction::pool_generation() const NOEXCEPT
+{
+    return generation_.load(std::memory_order_relaxed);
+}
+
 void chaser_transaction::build_template(template_handler&& handler) NOEXCEPT
 {
     if (closed())

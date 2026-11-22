@@ -486,6 +486,7 @@ code chaser_transaction::admit(database::tx_link& link,
         return fault(error::transaction6);
 
     fire(events::tx_archived, to_rate(tx));
+    ++generation_;
     notify(error::success, chases::transaction{ link });
     broadcast(tx);
     return error::success;

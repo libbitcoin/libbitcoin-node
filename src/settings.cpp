@@ -39,6 +39,8 @@ settings::transaction_pool::transaction_pool() NOEXCEPT
     estimate_room{ 1'000 },
     maximum_requests{ 500'000 },
     request_timeout_seconds{ 60 },
+    template_interval_seconds{ 30 },
+    template_fee_increase{ 0 },
     thread_priority{ true }
 {
 }
@@ -68,6 +70,12 @@ network::steady_clock::duration
 settings::transaction_pool::request_timeout() const NOEXCEPT
 {
     return network::seconds(request_timeout_seconds);
+}
+
+network::steady_clock::duration
+settings::transaction_pool::template_interval() const NOEXCEPT
+{
+    return network::seconds(template_interval_seconds);
 }
 
 network::processing_priority

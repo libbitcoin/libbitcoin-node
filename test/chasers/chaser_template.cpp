@@ -104,12 +104,13 @@ struct chaser_template_setup_fixture
 {
     using built = std::tuple<code, size_t, database::tx_links>;
 
-    inline chaser_template_setup_fixture()
-      : p2p_setup_fixture(stored_parent, [](configuration& config)
+    inline chaser_template_setup_fixture(uint64_t increase=zero)
+      : p2p_setup_fixture(stored_parent, [=](configuration& config)
         {
             using deployment = chain::chain_state::deployment;
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
+            config.node.pool.template_fee_increase = increase;
             constexpr auto always = deployment::always_active;
             config.bitcoin.bip9_bit0_deployment.start = always;
         })
@@ -128,19 +129,35 @@ struct chaser_template_setup_fixture
         return promise.get_future().get();
     }
 
-    built get_template()
+    // The template held upon request, null if none.
+    node::block_template::cptr held()
     {
-        std::promise<built> promise{};
-        node_.get_template([&](const code& ec, size_t height,
-            const database::tx_links& links) NOEXCEPT
+        std::promise<node::block_template::cptr> promise{};
+        node_.get_template([&](const code&,
+            const node::block_template::cptr& held) NOEXCEPT
         {
-            promise.set_value({ ec, height, links });
+            promise.set_value(held);
         });
 
         return promise.get_future().get();
     }
 
-    // The links of a template built upon request.
+    built get_template()
+    {
+        std::promise<built> promise{};
+        node_.get_template([&](const code& ec,
+            const node::block_template::cptr& held) NOEXCEPT
+        {
+            if (held)
+                promise.set_value({ ec, held->height, held->links });
+            else
+                promise.set_value({ ec, zero, {} });
+        });
+
+        return promise.get_future().get();
+    }
+
+    // The links of the template held upon request.
     database::tx_links requested()
     {
         return std::get<2>(get_template());
@@ -157,6 +174,16 @@ struct chaser_template_setup_fixture
     database::tx_link link(const chain::transaction::cptr& tx)
     {
         return query_.to_tx(tx->hash(false));
+    }
+};
+
+// A template is replaced only by fees of more than a thousand over its own.
+struct chaser_template_increase_setup_fixture
+  : chaser_template_setup_fixture
+{
+    inline chaser_template_increase_setup_fixture()
+      : chaser_template_setup_fixture(1'000)
+    {
     }
 };
 
@@ -226,6 +253,61 @@ BC_AUTO_TEST_CASE(chaser_template__get_template__child_of_losing_rival__rival_on
     BC_REQUIRE_EQUAL(first_ec, node::error::success);
     BC_REQUIRE_EQUAL(second_ec, node::error::success);
     BC_REQUIRE(requested() == database::tx_links{ link(second) });
+}
+
+BC_AUTO_TEST_CASE(chaser_template__get_template__first__sequence_one)
+{
+    BC_REQUIRE_EQUAL(node_.template_generation(), 0u);
+    BC_REQUIRE_EQUAL(held()->sequence, 1u);
+    BC_REQUIRE_EQUAL(node_.template_generation(), 1u);
+}
+
+BC_AUTO_TEST_CASE(chaser_template__get_template__pool_unchanged__same_template)
+{
+    const auto first = held();
+    BC_REQUIRE(held() == first);
+}
+
+BC_AUTO_TEST_CASE(chaser_template__get_template__fee_pooled__replaced_with_fees)
+{
+    const auto first = held();
+    const auto ec = submit(package({ spend(parent_value - 500u) }));
+    const auto second = held();
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(first->fees, 0u);
+    BC_REQUIRE_EQUAL(second->sequence, 2u);
+    BC_REQUIRE_EQUAL(second->fees, 500u);
+}
+
+BC_AUTO_TEST_CASE(chaser_template__get_template__empty__null_commitment_no_branch)
+{
+    const auto empty = held();
+    BC_REQUIRE(empty->branch.empty());
+    BC_REQUIRE_EQUAL(empty->commitment, sha256::double_hash(null_hash, null_hash));
+}
+
+BC_AUTO_TEST_CASE(chaser_template__get_template__single__branch_of_txid)
+{
+    const auto tx = spend(parent_value);
+    const auto ec = submit(package({ tx }));
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE(held()->branch == hashes{ tx->hash(false) });
+}
+
+BC_FIXTURE_TEST_CASE(chaser_template__get_template__fees_at_increase__not_replaced, chaser_template_increase_setup_fixture)
+{
+    const auto first = held();
+    const auto ec = submit(package({ spend(parent_value - 1'000u) }));
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE(held() == first);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_template__get_template__fees_over_increase__replaced, chaser_template_increase_setup_fixture)
+{
+    const auto first = held();
+    const auto ec = submit(package({ spend(parent_value - 1'001u) }));
+    BC_REQUIRE_EQUAL(ec, node::error::success);
+    BC_REQUIRE_EQUAL(held()->sequence, 2u);
 }
 
 BC_AUTO_TEST_SUITE_END()

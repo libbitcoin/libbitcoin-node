@@ -84,6 +84,9 @@ public:
     virtual void get_confirmable_fees(
         confirmable_fees_handler&& handler) NOEXCEPT;
 
+    /// Count of changes to the pool (thread safe).
+    virtual uint64_t pool_generation() const NOEXCEPT;
+
     /// Subscribe to pool scans (notified on the strand).
     virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
 
@@ -303,6 +306,7 @@ private:
     std::atomic_bool pooling_{};
     std::atomic<size_t> writers_{};
     std::atomic<uint64_t> reserved_{};
+    std::atomic<uint64_t> generation_{};
     const uint64_t outbound_excluded_;
     const uint64_t inbound_excluded_;
 

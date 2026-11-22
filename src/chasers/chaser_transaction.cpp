@@ -479,6 +479,7 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
     }
 
     top_ = link;
+    ++generation_;
     do_bump();
 }
 
@@ -570,6 +571,7 @@ bool chaser_transaction::repool(header_t link) NOEXCEPT
             return false;
         }
 
+        ++generation_;
         notify(error::success, chases::transaction{ fk });
         broadcast(*tx);
     }
