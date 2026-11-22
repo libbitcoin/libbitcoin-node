@@ -276,6 +276,14 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
+    // Reserve a relay slot of the tier and start relay to it.
+    size_t reserve_relaying(node::relay_tier tier=node::relay_tier::manual)
+    {
+        const auto slot = node_.reserve_relay(tier);
+        node_.activate_relay(slot);
+        return slot;
+    }
+
     // Reserve every free relay slot of the tier, returning the count.
     size_t reserve_relays(node::relay_tier tier=node::relay_tier::manual)
     {

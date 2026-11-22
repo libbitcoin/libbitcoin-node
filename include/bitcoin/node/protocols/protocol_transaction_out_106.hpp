@@ -63,6 +63,7 @@ protected:
 
     /// Handle chaser events.
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
+    void subscribed(const code& ec, object_key key) NOEXCEPT override;
 
     /// Announce the relayed tx if the channel's slot is in the word.
     virtual bool do_announce(transaction_t link, uint64_t slots) NOEXCEPT;

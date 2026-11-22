@@ -45,7 +45,17 @@ void protocol_transaction_out_70013::start() NOEXCEPT
 
     SUBSCRIBE_CHANNEL(fee_filter, handle_receive_fee_filter, _1, _2);
     protocol_transaction_out_70001::start();
-    do_send_fee_filter();
+}
+
+// The peer is told what to send once relay to it is started.
+void protocol_transaction_out_70013::subscribed(const code& ec,
+    object_key key) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    protocol_transaction_out_70001::subscribed(ec, key);
+    if (!stopped(ec))
+        do_send_fee_filter();
 }
 
 // Outbound (feefilter).

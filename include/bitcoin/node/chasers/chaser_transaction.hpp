@@ -91,6 +91,9 @@ public:
     /// Reserve a free slot of the tier, relay_slots if none (thread safe).
     virtual size_t reserve_relay(relay_tier tier) NOEXCEPT;
 
+    /// Start relay to the slot, once its channel is notified of relay.
+    virtual void activate_relay(size_t slot) NOEXCEPT;
+
     /// Release the relay slot, free once cleared from the marks.
     virtual void release_relay(size_t slot) NOEXCEPT;
 
@@ -139,11 +142,15 @@ protected:
     virtual void do_subscribe_pool(const pool_notifier& handler) NOEXCEPT;
 
     /// Relay slot management.
+    virtual void do_activate_relay(size_t slot) NOEXCEPT;
     virtual void do_release_relay(size_t slot) NOEXCEPT;
     virtual void do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT;
     virtual void do_set_relayed(size_t slot,
         const database::tx_links& links) NOEXCEPT;
     virtual void do_relay_pool(size_t slot) NOEXCEPT;
+
+    /// Sweep the pool to one slot owed a sweep, then post for the next.
+    virtual void do_sweep_relay() NOEXCEPT;
 
     /// Apply the organized block to the pool index, then bump.
     virtual void do_organized(header_t link) NOEXCEPT;
@@ -242,6 +249,13 @@ private:
     /// slot lacks, where that clears the slot's rate.
     bool sweep_relay(size_t slot) NOEXCEPT;
 
+    /// Owe the slot a sweep, made at once unless it was swept since the last
+    /// block, and otherwise after the next.
+    void owe_relay(size_t slot) NOEXCEPT;
+
+    /// The relaying slots owed a sweep and not swept since the last block.
+    uint64_t sweepable() const NOEXCEPT;
+
     /// The marks of the pool row, grown with the table.
     uint64_t& marks(size_t row) NOEXCEPT;
 
@@ -300,6 +314,10 @@ private:
     system::chain::context retried_{};
     std::vector<uint64_t> marks_{};
     std::array<uint64_t, relay_slots> rates_{};
+    uint64_t relaying_{};
+    uint64_t owed_{};
+    uint64_t swept_{};
+    bool sweeping_{};
 };
 
 } // namespace node

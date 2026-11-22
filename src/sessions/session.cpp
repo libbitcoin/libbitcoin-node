@@ -143,6 +143,11 @@ size_t session::reserve_relay() NOEXCEPT
     return node_.reserve_relay(relay_tier_());
 }
 
+void session::activate_relay(size_t slot) NOEXCEPT
+{
+    node_.activate_relay(slot);
+}
+
 void session::release_relay(size_t slot) NOEXCEPT
 {
     node_.release_relay(slot);

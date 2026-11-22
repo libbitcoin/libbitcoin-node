@@ -236,8 +236,16 @@ void chaser_transaction::hold(submission& set) const NOEXCEPT
         set.stored.at(index) = !tx.is_coinbase() && !link.is_terminal() &&
             (query.is_pooled(link) || query.is_confirmed_tx(link));
 
-        if (set.stored.at(index))
-            set.held.insert(tx.get_hash(false));
+        if (!set.stored.at(index))
+            continue;
+
+        set.held.insert(tx.get_hash(false));
+        if (set.slot >= relay_slots)
+            continue;
+
+        const auto row = query.to_pool_row(link);
+        if (!row.is_terminal())
+            set_right_into(marks(row.value), set.slot);
     }
 }
 
@@ -409,7 +417,7 @@ code chaser_transaction::clear(size_t& at, submission& set,
         set.cleared = true;
     }
 
-    if (!admitted.empty() && !relay(admitted, set.slot, reserved_.load()))
+    if (!admitted.empty() && !relay(admitted, set.slot, relaying_))
     {
         at = set.first;
         return fault(database::error::integrity);

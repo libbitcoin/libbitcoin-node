@@ -55,6 +55,21 @@ void protocol_transaction_out_106::start() NOEXCEPT
     protocol_peer::start();
 }
 
+// The slot is relayed to once the channel is notified of relay.
+void protocol_transaction_out_106::subscribed(const code& ec,
+    object_key) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+    {
+        unsubscribe_chase();
+        return;
+    }
+
+    activate_relay();
+}
+
 void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());

@@ -61,6 +61,14 @@ size_t chaser_transaction::reserve_relay(relay_tier tier) NOEXCEPT
     return relay_slots;
 }
 
+void chaser_transaction::activate_relay(size_t slot) NOEXCEPT
+{
+    if (closed() || slot >= relay_slots)
+        return;
+
+    POST(do_activate_relay, slot);
+}
+
 void chaser_transaction::release_relay(size_t slot) NOEXCEPT
 {
     if (closed() || slot >= relay_slots)
@@ -94,6 +102,16 @@ void chaser_transaction::relay_pool(size_t slot) NOEXCEPT
     POST(do_relay_pool, slot);
 }
 
+// A slot is relayed to only once its channel is notified of relay, as a tx
+// relayed to it before then is marked held by a peer that is not sent it.
+void chaser_transaction::do_activate_relay(size_t slot) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    set_right_into(relaying_, slot);
+    if (!sweeping_)
+        do_sweep_relay();
+}
+
 void chaser_transaction::do_release_relay(size_t slot) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -101,6 +119,9 @@ void chaser_transaction::do_release_relay(size_t slot) NOEXCEPT
         set_right_into(mark, slot, false);
 
     rates_.at(slot) = zero;
+    set_right_into(relaying_, slot, false);
+    set_right_into(owed_, slot, false);
+    set_right_into(swept_, slot, false);
     reserved_.fetch_and(bit_not(bit_right<uint64_t>(slot)));
 }
 
@@ -110,15 +131,56 @@ void chaser_transaction::do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
     BC_ASSERT(stranded());
     const auto prior = rates_.at(slot);
     rates_.at(slot) = rate;
-    if (rate < prior && pooling_ && !sweep_relay(slot))
-        fault(database::error::integrity);
+    if (rate < prior)
+        owe_relay(slot);
 }
 
 void chaser_transaction::do_relay_pool(size_t slot) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (pooling_ && !sweep_relay(slot))
+    owe_relay(slot);
+}
+
+// private
+// A sweep is a scan of the pool at a peer's request, so a slot is swept once
+// between blocks, and a later request is met after the next block.
+void chaser_transaction::owe_relay(size_t slot) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    set_right_into(owed_, slot);
+    if (!sweeping_)
+        do_sweep_relay();
+}
+
+// private
+uint64_t chaser_transaction::sweepable() const NOEXCEPT
+{
+    return bit_and(bit_and(owed_, relaying_), bit_not(swept_));
+}
+
+// One slot is swept in a turn of the strand, so other work is not held up by
+// the sweeps of many slots.
+void chaser_transaction::do_sweep_relay() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    sweeping_ = false;
+    if (closed() || !pooling_ || is_zero(sweepable()))
+        return;
+
+    const auto slot = right_zeros(sweepable());
+    set_right_into(owed_, slot, false);
+    set_right_into(swept_, slot);
+    if (!sweep_relay(slot))
+    {
         fault(database::error::integrity);
+        return;
+    }
+
+    if (is_zero(sweepable()))
+        return;
+
+    sweeping_ = true;
+    POST(do_sweep_relay);
 }
 
 // private

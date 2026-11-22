@@ -198,6 +198,11 @@ void chaser_transaction::do_bump() NOEXCEPT
             // Rows that arrived while the pool was closed are not in it.
             if (!opened)
                 floor_ = std::max(floor_, pool_.height);
+
+            // Sweeps deferred to the block are now made.
+            swept_ = {};
+            if (!sweeping_)
+                do_sweep_relay();
         }
     }
 

@@ -45,6 +45,7 @@ public:
 protected:
     /// Handle chaser events.
     bool handle_chase(const code& ec, event_value value) NOEXCEPT override;
+    void subscribed(const code& ec, object_key key) NOEXCEPT override;
 
     /// Capture the peer's minimum fee rate for announcements.
     virtual bool handle_receive_fee_filter(const code& ec,
