@@ -55,8 +55,43 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 code chaser_transaction::start() NOEXCEPT
 {
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
-    POST(do_bump);
+    POST(do_start);
     return error::success;
+}
+
+// Index is rebuilt at open, so only blocks popped since pool top reorganize.
+void chaser_transaction::do_start() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    do_bump();
+    if (closed() || !is_indexing())
+        return;
+
+    auto& query = archive();
+    auto link = query.get_pool_top();
+    while (!link.is_terminal() && !query.is_confirmed_block(link))
+    {
+        if (!unvalidate(link))
+        {
+            fault(error::transaction10);
+            return;
+        }
+
+        if (pooling_ && !repool(link))
+            return;
+
+        link = query.to_parent(link);
+    }
+
+    const auto top = query.to_top_confirmed();
+    if (query.get_pool_top() != top && !query.set_pool_top(top))
+    {
+        fault(error::transaction10);
+        return;
+    }
+
+    if (!sweep())
+        fault(error::transaction11);
 }
 
 void chaser_transaction::stopping(const code& ec) NOEXCEPT
@@ -457,8 +492,6 @@ void chaser_transaction::do_block(header_t link) NOEXCEPT
     notify(error::success, chases::block_settled{ link });
 }
 
-// Pooled in block order under block context,
-// excluding any confirmed (by another block).
 void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -468,10 +501,9 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
     auto& query = archive();
     if (is_indexing())
     {
-        size_t count{};
         const auto start = now();
         const auto applied = query.set_pool_block(link, false) &&
-            query.set_pool_unvalidated(count, link);
+            unvalidate(link);
 
         report(pool_scan::block_out, start);
         if (!applied)
@@ -479,26 +511,43 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
             fault(error::transaction10);
             return;
         }
-
-        unvalidated_ = unvalidated_ || is_nonzero(count);
-        due_ = due_ || is_nonzero(count);
     }
 
     top_ = query.to_parent(link);
     do_bump();
-    if (!pooling_)
-        return;
+    if (pooling_ && repool(link) && !sweep())
+        fault(error::transaction11);
+}
 
+// Block's parent becomes pool top with spenders set.
+bool chaser_transaction::unvalidate(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    size_t count{};
+    if (!archive().set_pool_unvalidated(count, link))
+        return false;
+
+    unvalidated_ = unvalidated_ || is_nonzero(count);
+    due_ = due_ || is_nonzero(count);
+    return true;
+}
+
+// Pooled in block order under block context,
+// excluding any confirmed (by another block).
+bool chaser_transaction::repool(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
     chain::context ctx{};
     const auto txs = query.to_transactions(link);
     if (txs.empty() || !query.get_context(ctx, link))
     {
         fault(error::transaction7);
-        return;
+        return false;
     }
 
     if (!reusable(ctx))
-        return;
+        return true;
 
     // The coinbase is never pooled.
     for (auto it = std::next(txs.cbegin()); it != txs.cend(); ++it)
@@ -511,22 +560,21 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         if (!tx || !query.populate_with_metadata(*tx))
         {
             fault(error::transaction7);
-            return;
+            return false;
         }
 
         // Block txs are already silent indexed.
         if (!set_pooled(fk, *tx, ctx))
         {
             fault(error::transaction2);
-            return;
+            return false;
         }
 
         notify(error::success, chases::transaction{ fk });
         broadcast(*tx);
     }
 
-    if (!sweep())
-        fault(error::transaction11);
+    return true;
 }
 
 // Rows confirmed by the pruned block are not retained by the prune.
