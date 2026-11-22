@@ -110,7 +110,8 @@ struct chaser_template_setup_fixture
             using deployment = chain::chain_state::deployment;
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
+            constexpr auto always = deployment::always_active;
+            config.bitcoin.bip9_bit0_deployment.start = always;
         })
     {
         subscribe();

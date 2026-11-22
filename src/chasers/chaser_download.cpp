@@ -548,8 +548,8 @@ size_t chaser_download::set_unassociated() NOEXCEPT
     const auto previous = requested_;
     const auto step = ceilinged_add(position(), maximum_concurrency_);
     const auto span = std::min(step, maximum_height_);
-    auto stop = position() < bypass_height_ ?
-        std::min(span, bypass_height_) : span;
+    const auto bypass_span = std::min(span, bypass_height_);
+    auto stop = position() < bypass_height_ ? bypass_span : span;
     size_t count{};
 
     // Defer download of a current compact top block, awaiting its fill.

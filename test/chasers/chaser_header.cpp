@@ -71,7 +71,8 @@ static uint256_t work(size_t count)
 
 static uint32_t now()
 {
-    return system::possible_narrow_and_sign_cast<uint32_t>(network::zulu_time());
+    const auto zulu = network::zulu_time();
+    return system::possible_narrow_and_sign_cast<uint32_t>(zulu);
 }
 
 // A node that runs its network without starting its own chasers.
@@ -297,10 +298,12 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<result>>();
         auto future = promise->get_future();
-        header_.prioritize(hash, [promise](const code& ec, size_t height) NOEXCEPT
+        const auto handler = [promise](const code& ec, size_t height) NOEXCEPT
         {
             promise->set_value({ ec, height });
-        });
+        };
+
+        header_.prioritize(hash, handler);
 
         BC_REQUIRE(future.wait_for(await_limit) == std::future_status::ready);
         return future.get();
@@ -311,10 +314,12 @@ struct chaser_header_setup_fixture
     {
         const auto promise = std::make_shared<std::promise<void>>();
         auto future = promise->get_future();
-        header_.get_minimum_work([promise](const code&, const uint256_t&) NOEXCEPT
+        const auto handler = [promise](const code&, const uint256_t&) NOEXCEPT
         {
             promise->set_value();
-        });
+        };
+
+        header_.get_minimum_work(handler);
 
         BC_REQUIRE(future.wait_for(await_limit) == std::future_status::ready);
     }

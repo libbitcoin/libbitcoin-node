@@ -676,30 +676,35 @@ struct validate_current_overspent_fixture
     }
 };
 
+static void validate_captured(configuration& config)
+{
+    config.bitcoin.checkpoints.clear();
+    config.node.batch_verify = 1;
+    config.node.cpu_batch_verify = true;
+    validate_silent_batched(config);
+}
+
 struct validate_captured_fixture
   : validate_setup_fixture
 {
     validate_captured_fixture()
-      : validate_setup_fixture(validate_matured_candidates, [](configuration& config)
-        {
-            config.bitcoin.checkpoints.clear();
-            config.node.batch_verify = 1;
-            config.node.cpu_batch_verify = true;
-            validate_silent_batched(config);
-        })
+      : validate_setup_fixture(validate_matured_candidates, validate_captured)
     {
     }
 };
+
+static void validate_silent_bypass(configuration& config)
+{
+    validate_silent_batched(config);
+    config.node.maximum_height = 2;
+}
 
 struct validate_silent_bypass_fixture
   : validate_setup_fixture
 {
     validate_silent_bypass_fixture()
-      : validate_setup_fixture(validate_silent_candidates, [](configuration& config)
-        {
-            validate_silent_batched(config);
-            config.node.maximum_height = 2;
-        })
+      : validate_setup_fixture(validate_silent_candidates,
+            validate_silent_bypass)
     {
     }
 };

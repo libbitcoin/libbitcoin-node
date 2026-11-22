@@ -182,10 +182,11 @@ code chaser_validate::purge_batch(bool bank) NOEXCEPT
     auto& query = archive();
 
     // Purge prevalids before signatures.
-    return query.purge_prevalids(bank) &&
-        query.purge_ecdsa_signatures(bank) &&
-        query.purge_schnorr_signatures(bank) ?
-        error::success : error::batch4;
+    const auto purged = query.purge_prevalids(bank)
+        && query.purge_ecdsa_signatures(bank)
+        && query.purge_schnorr_signatures(bank);
+
+    return purged ? error::success : error::batch4;
 }
 
 bool chaser_validate::mark_invalids(header_links& prevalids,

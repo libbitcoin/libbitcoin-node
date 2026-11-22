@@ -270,7 +270,8 @@ struct p2p_compact_setup_fixture
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             using deployment = system::chain::chain_state::deployment;
-            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
+            constexpr auto always = deployment::always_active;
+            config.bitcoin.bip9_bit0_deployment.start = always;
             config.network.enable_relay = relay;
             config.network.enable_compact = true;
             config.node.currency_window_minutes = currency_window;

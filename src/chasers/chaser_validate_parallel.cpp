@@ -239,8 +239,8 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
         return error::success;
 
     // Store codes are faults, consensus codes imply block invalidity.
-    return database::error::error_category::contains(ec) ?
-        error::validate11 : ec;
+    const auto store_code = database::error::error_category::contains(ec);
+    return store_code ? error::validate11 : ec;
 }
 
 // A pooled block is valid and SP indexed, so produce only for client filters.

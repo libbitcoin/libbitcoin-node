@@ -368,7 +368,8 @@ class chase_recorder
 {
 public:
     template <chase Kind>
-    using payload_t = std::remove_cvref_t<decltype(to_payload<Kind>(std::declval<const event_value&>()))>;
+    using payload_t = std::remove_cvref_t<decltype(to_payload<Kind>(
+        std::declval<const event_value&>()))>;
 
     bool subscribe(full_node& node)
     {
@@ -384,18 +385,25 @@ public:
             subscribed->set_value();
         });
 
-        return subscription.wait_for(std::chrono::seconds(10)) == std::future_status::ready;
+        const auto status = subscription.wait_for(std::chrono::seconds(10));
+        return status == std::future_status::ready;
     }
 
     size_t count(chase kind) const
     {
         std::lock_guard lock{ mutex_ };
-        return std::count_if(events_.cbegin(), events_.cend(), [kind](const auto& value) NOEXCEPT { return to_chase(value) == kind; });
+        const auto is_kind = [kind](const auto& value) NOEXCEPT
+        {
+            return to_chase(value) == kind;
+        };
+
+        return std::count_if(events_.cbegin(), events_.cend(), is_kind);
     }
 
     bool await(chase kind, size_t number=1) const
     {
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        const auto timeout = std::chrono::seconds(10);
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
         while (count(kind) < number)
         {
             if (std::chrono::steady_clock::now() > deadline)
@@ -603,7 +611,9 @@ struct confirm_setup_fixture
     {
         std::promise<void> posted{};
         network::io::post(strand, [&]() NOEXCEPT { posted.set_value(); });
-        BC_REQUIRE(posted.get_future().wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+        auto completion = posted.get_future();
+        const auto status = completion.wait_for(std::chrono::seconds(10));
+        BC_REQUIRE(status == std::future_status::ready);
     }
 
     /// Complete event dispatch and the chaser work it posted.

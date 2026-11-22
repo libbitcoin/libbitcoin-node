@@ -449,7 +449,8 @@ bool chaser_confirm::set_organized(const header_link& link,
     if (confirmed_height == maximum_height_)
     {
         maximum_height_ = zero;
-        LOG_ONLY(const hh_mm_ss elapsed{ seconds{ zulu_time() - start_time() } };)
+        LOG_ONLY(const auto duration = zulu_time() - start_time();)
+        LOG_ONLY(const hh_mm_ss elapsed{ seconds{ duration } };)
         LOGN("Organized maximum height [" << confirmed_height << "] in "
             << std::format("{:02}:{:02}:{:02}", elapsed.hours().count(),
                 elapsed.minutes().count(), elapsed.seconds().count()) << ".");

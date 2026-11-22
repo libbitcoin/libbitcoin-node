@@ -34,7 +34,8 @@ constexpr uint64_t parent_value = 100'000;
 const hash_digest missing_hash{ 0x42 };
 
 // The flags of the bip9 bit zero deployment.
-constexpr auto deployed = chain::flags::bip68_rule | chain::flags::bip112_rule | chain::flags::bip113_rule;
+constexpr auto deployed = chain::flags::bip68_rule | chain::flags::bip112_rule
+    | chain::flags::bip113_rule;
 
 // A tx with an anyone-can-spend output.
 inline const chain::transaction& parent() NOEXCEPT
@@ -205,12 +206,22 @@ inline const chain::block& reorganized_block() NOEXCEPT
     const system::settings bitcoin{ chain::selection::mainnet };
     const auto& genesis = bitcoin.genesis_block.header();
     const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
-    const chain::transaction coinbase{ 1u, chain::inputs{ null },
-        chain::outputs{ { 42u, chain::script{} } }, 0u };
-    const chain::header header{ 1u, genesis.hash(), null_hash,
-        add1(genesis.timestamp()), genesis.bits(), 0u };
-    static const chain::block instance{ header,
-        { coinbase, *spend(parent_value) } };
+    const chain::transaction coinbase
+    {
+        1u,
+        chain::inputs{ null },
+        chain::outputs{ { 42u, chain::script{} } },
+        0u
+    };
+    const chain::header header
+    {
+        1u, genesis.hash(), null_hash, add1(genesis.timestamp()),
+        genesis.bits(), 0u
+    };
+    static const chain::block instance
+    {
+        header, { coinbase, *spend(parent_value) }
+    };
     return instance;
 }
 
@@ -247,7 +258,8 @@ struct chaser_transaction_setup_fixture
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             using deployment = chain::chain_state::deployment;
-            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
+            constexpr auto always = deployment::always_active;
+            config.bitcoin.bip9_bit0_deployment.start = always;
             if (configure)
                 configure(config);
         })
@@ -974,7 +986,8 @@ struct chaser_transaction_relative_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            constexpr auto always = chain::chain_state::deployment::always_active;
+            using deployment = chain::chain_state::deployment;
+            constexpr auto always = deployment::always_active;
             config.bitcoin.bip9_bit0_deployment.start = always;
         })
     {

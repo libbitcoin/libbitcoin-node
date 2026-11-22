@@ -288,9 +288,9 @@ bool chaser_transaction::relay(const database::tx_links& links,
     for (size_t slot{}; slot < relay_slots; ++slot)
     {
         const auto size = sizes.at(slot);
-        if (!is_zero(size) && size <= limit &&
-            ceilinged_multiply(fees.at(slot), 1'000_u64) >=
-            ceilinged_multiply(rates_.at(slot), size))
+        const auto paid = ceilinged_multiply(fees.at(slot), 1'000_u64);
+        const auto owed = ceilinged_multiply(rates_.at(slot), size);
+        if (!is_zero(size) && size <= limit && paid >= owed)
             set_right_into(clears, slot);
     }
 

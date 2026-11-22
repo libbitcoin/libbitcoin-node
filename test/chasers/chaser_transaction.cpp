@@ -471,40 +471,48 @@ struct scan_stale_fixture
     }
 };
 
+static bool stored_scan_complete(node::query& query) NOEXCEPT
+{
+    return stored_scan(query)
+        && query.set_scan_start(0, 42)
+        && query.set_scan_start(1, 43);
+}
+
 struct scan_complete_fixture
   : chaser_transaction_scan_setup_fixture
 {
     inline scan_complete_fixture()
-      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
-        {
-            return stored_scan(query)
-                && query.set_scan_start(0, 42)
-                && query.set_scan_start(1, 43);
-        })
+      : chaser_transaction_scan_setup_fixture(false, true,
+            stored_scan_complete)
     {
     }
 };
+
+static bool stored_scan_partial(node::query& query) NOEXCEPT
+{
+    return stored_scan(query) && query.set_scan_start(1, 43);
+}
 
 struct scan_partial_fixture
   : chaser_transaction_scan_setup_fixture
 {
     inline scan_partial_fixture()
-      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
-        {
-            return stored_scan(query) && query.set_scan_start(1, 43);
-        })
+      : chaser_transaction_scan_setup_fixture(false, true, stored_scan_partial)
     {
     }
 };
+
+static bool stored_scan_unextended(node::query& query) NOEXCEPT
+{
+    return stored_scan(query) && query.set_scan_start(0, 0);
+}
 
 struct scan_unextended_fixture
   : chaser_transaction_scan_setup_fixture
 {
     inline scan_unextended_fixture()
-      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
-        {
-            return stored_scan(query) && query.set_scan_start(0, 0);
-        })
+      : chaser_transaction_scan_setup_fixture(false, true,
+            stored_scan_unextended)
     {
     }
 };

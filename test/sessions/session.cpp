@@ -256,7 +256,8 @@ struct session_broadcast_setup_fixture
         };
 
         // The race completes upon release of the last message reference.
-        broadcaster->broadcast<diagnostics>(std::make_shared<diagnostics>(std::make_shared<diagnostics::race>(handler), collect, group), 0);
+        broadcaster->broadcast<diagnostics>(std::make_shared<diagnostics>(
+            std::make_shared<diagnostics::race>(handler), collect, group), 0);
         return promise.get_future().get();
     }
 

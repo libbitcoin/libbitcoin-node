@@ -136,7 +136,8 @@ inline size_t read(Stream& stream, const Buffers& buffers) NOEXCEPT
 // A loopback endpoint (an ephemeral port by default).
 inline network::io::endpoint loopback(uint16_t port=0) NOEXCEPT
 {
-    return { system::ip::address{ system::ip::ipv4{ { 127, 0, 0, 1 } } }, port };
+    const system::ip::address address{ system::ip::ipv4{ { 127, 0, 0, 1 } } };
+    return { address, port };
 }
 
 // A loopback endpoint on an ephemeral port with no socket bound to it.

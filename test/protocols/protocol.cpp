@@ -34,11 +34,12 @@ static chain::header descendant(uint32_t timestamp)
 // Unfiltered children of genesis, each archived at the height of its timestamp.
 static bool unfiltered(node::query& query)
 {
-    return query.set(descendant(1), database::context{ 0, 1, 0 }, {}, false) &&
-        query.set(descendant(999), database::context{ 0, 999, 0 }, {}, false) &&
-        query.set(descendant(1000), database::context{ 0, 1000, 0 }, {}, false) &&
-        query.set(descendant(1999), database::context{ 0, 1999, 0 }, {}, false) &&
-        query.set(descendant(2000), database::context{ 0, 2000, 0 }, {}, false);
+    using context = database::context;
+    return query.set(descendant(1), context{ 0, 1, 0 }, {}, false)
+        && query.set(descendant(999), context{ 0, 999, 0 }, {}, false)
+        && query.set(descendant(1000), context{ 0, 1000, 0 }, {}, false)
+        && query.set(descendant(1999), context{ 0, 1999, 0 }, {}, false)
+        && query.set(descendant(2000), context{ 0, 2000, 0 }, {}, false);
 }
 
 // Block 1 confirmed, with block 2 a candidate header above it.
