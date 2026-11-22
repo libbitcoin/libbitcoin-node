@@ -234,7 +234,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay_pool__slot_not_started__swept_whe
     BC_REQUIRE(recorded(owed).empty());
 
     const auto started = record();
-    node_.activate_relay(slot);
+    node_.activate_relay(slot, relays_->key);
     BC_REQUIRE(!get_confirmable_txs().first);
     BC_REQUIRE(recorded(started) == expected);
 }

@@ -23,6 +23,7 @@
 #include "../functional/p2p_setup_fixture.hpp"
 #include <chrono>
 #include <future>
+#include <mutex>
 #include <thread>
 
 using namespace system;
@@ -279,8 +280,9 @@ struct chaser_transaction_setup_fixture
     // Reserve a relay slot of the tier and start relay to it.
     size_t reserve_relaying(node::relay_tier tier=node::relay_tier::manual)
     {
+        recording();
         const auto slot = node_.reserve_relay(tier);
-        node_.activate_relay(slot);
+        node_.activate_relay(slot, relays_->key);
         return slot;
     }
 
@@ -294,15 +296,21 @@ struct chaser_transaction_setup_fixture
         return count;
     }
 
-    // Relay events recorded from subscription until the zero word marker.
+    // Relay events of fixture subscription, zero word marker completes wait.
     struct relays
     {
+        std::mutex mutex{};
         std::vector<chases::relay> events{};
-        std::promise<void> ended{};
+        std::shared_ptr<std::promise<void>> marked{};
+        object_key key{};
     };
 
-    std::shared_ptr<relays> record()
+    // Subscribe recorder (once).
+    void recording()
     {
+        if (relays_)
+            return;
+
         const auto out = std::make_shared<relays>();
         std::promise<void> subscribed{};
         node_.subscribe_chase([out](const code&, event_value value) NOEXCEPT
@@ -311,33 +319,57 @@ struct chaser_transaction_setup_fixture
                 return true;
 
             const auto& relay = to_payload<chase::relay>(value);
-            if (is_zero(relay.slots))
+            std::unique_lock lock{ out->mutex };
+            if (is_nonzero(relay.slots))
             {
-                out->ended.set_value();
-                return false;
+                out->events.push_back(relay);
+                return true;
             }
 
-            out->events.push_back(relay);
+            if (out->marked)
+                out->marked->set_value();
+
+            out->marked.reset();
             return true;
-        }, [&](const code&, object_key) NOEXCEPT
+        }, [&](const code&, object_key key) NOEXCEPT
         {
+            out->key = key;
             subscribed.set_value();
         });
 
         subscribed.get_future().wait();
-        return out;
+        relays_ = out;
     }
 
-    // The recorded relay events as tx hash and slots, ending the record.
-    using relayed = std::vector<std::pair<hash_digest, uint64_t>>;
-    relayed recorded(const std::shared_ptr<relays>& record)
+    // Count of relay events recorded, once those notified have arrived.
+    size_t record()
     {
-        node_.notify(node::error::success, chases::relay{ 0, 0 });
-        record->ended.get_future().wait();
+        recording();
+        const auto marked = std::make_shared<std::promise<void>>();
+        auto arrived = marked->get_future();
+        {
+            std::unique_lock lock{ relays_->mutex };
+            relays_->marked = marked;
+        }
 
+        node_.notify(node::error::success, chases::relay{ 0, 0 });
+        arrived.wait();
+        std::unique_lock lock{ relays_->mutex };
+        return relays_->events.size();
+    }
+
+    // Relay events since record, as tx hash and slots.
+    using relayed = std::vector<std::pair<hash_digest, uint64_t>>;
+    relayed recorded(size_t from)
+    {
+        const auto to = record();
         relayed out{};
-        for (const auto& event: record->events)
+        std::unique_lock lock{ relays_->mutex };
+        for (auto at = from; at < to; ++at)
+        {
+            const auto& event = relays_->events.at(at);
             out.emplace_back(query_.get_tx_key(event.link), event.slots);
+        }
 
         return out;
     }
@@ -629,6 +661,8 @@ struct chaser_transaction_setup_fixture
         BC_REQUIRE(done.get());
         return shared->values;
     }
+
+    std::shared_ptr<relays> relays_{};
 
     // The pool cell of the tx (absent if it has no row).
     uint32_t cell(const database::tx_link& link)

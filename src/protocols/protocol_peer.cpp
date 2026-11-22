@@ -80,9 +80,9 @@ bool protocol_peer::reserve_relay() NOEXCEPT
     return slot < relay_slots;
 }
 
-void protocol_peer::activate_relay() NOEXCEPT
+void protocol_peer::activate_relay(object_key key) NOEXCEPT
 {
-    session_->activate_relay(channel_->relay_slot());
+    session_->activate_relay(channel_->relay_slot(), key);
 }
 
 void protocol_peer::release_relay() NOEXCEPT

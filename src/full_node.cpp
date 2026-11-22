@@ -274,9 +274,9 @@ size_t full_node::reserve_relay(relay_tier tier) NOEXCEPT
     return chaser_transaction_.reserve_relay(tier);
 }
 
-void full_node::activate_relay(size_t slot) NOEXCEPT
+void full_node::activate_relay(size_t slot, object_key key) NOEXCEPT
 {
-    chaser_transaction_.activate_relay(slot);
+    chaser_transaction_.activate_relay(slot, key);
 }
 
 void full_node::release_relay(size_t slot) NOEXCEPT

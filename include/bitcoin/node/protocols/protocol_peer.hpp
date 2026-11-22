@@ -82,7 +82,7 @@ protected:
     /// Reserve, activate or release the channel's relay slot, reserve false
     /// if none is free.
     virtual bool reserve_relay() NOEXCEPT;
-    virtual void activate_relay() NOEXCEPT;
+    virtual void activate_relay(object_key key) NOEXCEPT;
     virtual void release_relay() NOEXCEPT;
 
     /// The channel's relay slot, relay_slots if none.

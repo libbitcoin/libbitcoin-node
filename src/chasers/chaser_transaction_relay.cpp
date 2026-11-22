@@ -61,12 +61,12 @@ size_t chaser_transaction::reserve_relay(relay_tier tier) NOEXCEPT
     return relay_slots;
 }
 
-void chaser_transaction::activate_relay(size_t slot) NOEXCEPT
+void chaser_transaction::activate_relay(size_t slot, object_key key) NOEXCEPT
 {
     if (closed() || slot >= relay_slots)
         return;
 
-    POST(do_activate_relay, slot);
+    POST(do_activate_relay, slot, key);
 }
 
 void chaser_transaction::release_relay(size_t slot) NOEXCEPT
@@ -104,9 +104,11 @@ void chaser_transaction::relay_pool(size_t slot) NOEXCEPT
 
 // A slot is relayed to only once its channel is notified of relay, as a tx
 // relayed to it before then is marked held by a peer that is not sent it.
-void chaser_transaction::do_activate_relay(size_t slot) NOEXCEPT
+void chaser_transaction::do_activate_relay(size_t slot,
+    object_key key) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    keys_.at(slot) = key;
     set_right_into(relaying_, slot);
     if (!sweeping_)
         do_sweep_relay();
@@ -119,6 +121,7 @@ void chaser_transaction::do_release_relay(size_t slot) NOEXCEPT
         set_right_into(mark, slot, false);
 
     rates_.at(slot) = zero;
+    keys_.at(slot) = {};
     set_right_into(relaying_, slot, false);
     set_right_into(owed_, slot, false);
     set_right_into(swept_, slot, false);
@@ -198,7 +201,7 @@ bool chaser_transaction::sweep_relay(size_t slot) NOEXCEPT
         if (row.is_terminal() || get_right(marks(row.value), slot))
             continue;
 
-        if (!relay({ link }, relay_slots, word))
+        if (!relay({ link }, relay_slots, word, keys_.at(slot)))
             return false;
     }
 
@@ -219,8 +222,9 @@ void chaser_transaction::do_set_relayed(size_t slot,
 }
 
 // private
+// Relay events go to every channel, or with a key only to its own.
 bool chaser_transaction::relay(const database::tx_links& links,
-    size_t origin, uint64_t slots) NOEXCEPT
+    size_t origin, uint64_t slots, object_key key) NOEXCEPT
 {
     BC_ASSERT(stranded());
     using algorithm = pool::algorithm;
@@ -301,7 +305,11 @@ bool chaser_transaction::relay(const database::tx_links& links,
             continue;
 
         mark = bit_or(mark, word);
-        notify(error::success, chases::relay{ row.link.value, word });
+        const chases::relay event{ row.link.value, word };
+        if (is_zero(key))
+            notify(error::success, event);
+        else
+            notify_one(key, error::success, event);
     }
 
     return true;

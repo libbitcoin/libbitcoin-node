@@ -91,8 +91,8 @@ public:
     /// Reserve a free slot of the tier, relay_slots if none (thread safe).
     virtual size_t reserve_relay(relay_tier tier) NOEXCEPT;
 
-    /// Start relay to the slot, once its channel is notified of relay.
-    virtual void activate_relay(size_t slot) NOEXCEPT;
+    /// Start relay to slot, its channel notified by events key.
+    virtual void activate_relay(size_t slot, object_key key) NOEXCEPT;
 
     /// Release the relay slot, free once cleared from the marks.
     virtual void release_relay(size_t slot) NOEXCEPT;
@@ -142,7 +142,7 @@ protected:
     virtual void do_subscribe_pool(const pool_notifier& handler) NOEXCEPT;
 
     /// Relay slot management.
-    virtual void do_activate_relay(size_t slot) NOEXCEPT;
+    virtual void do_activate_relay(size_t slot, object_key key) NOEXCEPT;
     virtual void do_release_relay(size_t slot) NOEXCEPT;
     virtual void do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT;
     virtual void do_set_relayed(size_t slot,
@@ -246,7 +246,7 @@ private:
     /// Relay the txs with their unconfirmed ancestry, marked held by origin,
     /// to each of the slots whose rate the sum of the rows it lacks clears.
     bool relay(const database::tx_links& links, size_t origin,
-        uint64_t slots) NOEXCEPT;
+        uint64_t slots, object_key key={}) NOEXCEPT;
 
     /// Relay the confirmable txs in row order, each with the ancestry the
     /// slot lacks, where that clears the slot's rate.
@@ -316,6 +316,7 @@ private:
     system::chain::context retried_{};
     std::vector<uint64_t> marks_{};
     std::array<uint64_t, relay_slots> rates_{};
+    std::array<object_key, relay_slots> keys_{};
     uint64_t relaying_{};
     uint64_t owed_{};
     uint64_t swept_{};
