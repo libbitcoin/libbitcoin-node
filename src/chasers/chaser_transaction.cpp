@@ -271,7 +271,7 @@ void chaser_transaction::start_revalidation() NOEXCEPT
     if (revalidating_)
         return;
 
-    const auto flagged = pool_.flags != revalidated_flags_;
+    const auto flagged = pool_.flags != retried_.flags;
     const auto moved = unvalidated_ || pool_.height != retried_.height ||
         pool_.median_time_past != retried_.median_time_past;
 
@@ -297,7 +297,6 @@ void chaser_transaction::start_revalidation() NOEXCEPT
 
     links.insert(links.end(), unvalidated.begin(), unvalidated.end());
 
-    revalidated_flags_ = pool_.flags;
     retried_ = pool_;
     unvalidated_ = false;
     if (links.empty())
@@ -352,7 +351,7 @@ void chaser_transaction::do_revalidated(const database::tx_links& links,
 
     if (unvalidated_ || !is_sufficient(ctx))
     {
-        revalidated_flags_ = {};
+        retried_.flags = {};
         unvalidated_ = true;
         due_ = true;
         if (!sweep())
@@ -451,7 +450,7 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
 }
 
 // The block was organized before it was announced, so its transition has
-// been applied, and its prevout cache is no longer required by the pool.
+// been applied.
 void chaser_transaction::do_block(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());

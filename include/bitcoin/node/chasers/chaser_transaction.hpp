@@ -310,7 +310,6 @@ private:
     time_point estimated_{};
     query::pool_projection projection_{};
     query::pool_arrivals arrivals_{};
-    uint32_t revalidated_flags_{};
     system::chain::context retried_{};
     std::vector<uint64_t> marks_{};
     std::array<uint64_t, relay_slots> rates_{};
