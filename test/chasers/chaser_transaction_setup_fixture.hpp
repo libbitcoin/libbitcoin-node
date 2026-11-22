@@ -418,8 +418,18 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
-    // Confirm a block of a coinbase, and the tx if any, above genesis.
+    // Confirm a block of a coinbase, and the tx if any, and notify of it.
     database::header_link confirm(const chain::transaction::cptr& tx={})
+    {
+        const auto link = push(tx);
+        if (!link.is_terminal())
+            node_.notify(node::error::success, chases::organized{ link });
+
+        return link;
+    }
+
+    // Confirm a block of a coinbase, and the tx if any, in the store only.
+    database::header_link push(const chain::transaction::cptr& tx={})
     {
         const system::settings bitcoin{ chain::selection::mainnet };
         const auto& genesis = bitcoin.genesis_block;
@@ -453,7 +463,6 @@ struct chaser_transaction_setup_fixture
         if (!query_.push_candidate(link) || !query_.push_confirmed(link, true))
             return {};
 
-        node_.notify(node::error::success, chases::organized{ link });
         return link;
     }
 

@@ -155,8 +155,10 @@ void chaser_transaction::do_bump() NOEXCEPT
     auto& query = archive();
     if (network_settings().enable_relay)
     {
+        // The context is of the block the index was last applied through, as
+        // the store's top may be above it.
         size_t height{};
-        const auto top = query.to_top_confirmed();
+        const auto top = top_.is_terminal() ? query.to_top_confirmed() : top_;
         if (!query.get_height(height, top))
         {
             fault(error::transaction9);
@@ -439,6 +441,7 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
         fire(events::pool_rows, query.pool_records());
     }
 
+    top_ = link;
     do_bump();
 }
 
@@ -480,6 +483,7 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         due_ = due_ || is_nonzero(count);
     }
 
+    top_ = query.to_parent(link);
     do_bump();
     if (!pooling_)
         return;

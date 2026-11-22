@@ -182,6 +182,22 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__pooled_tx__pool_rows_fired, 
     BC_REQUIRE_EQUAL(rows.front(), 1u);
 }
 
+// The second block is confirmed before the first is applied to the pool.
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__store_ahead__context_of_applied_block, chaser_transaction_pooling_setup_fixture)
+{
+    const auto first = push();
+    const auto second = push();
+    node_.notify(node::error::success, chases::organized{ first });
+    const auto applied = bumped(3);
+    node_.notify(node::error::success, chases::organized{ second });
+    const auto followed = bumped(4);
+
+    BC_REQUIRE(!first.is_terminal());
+    BC_REQUIRE(!second.is_terminal());
+    BC_REQUIRE(applied);
+    BC_REQUIRE(followed);
+}
+
 // The subscription completes after the chaser is notified of the block.
 BC_FIXTURE_TEST_CASE(chaser_transaction__organized__relay_off__pool_rows_not_fired, chaser_transaction_relay_off_setup_fixture)
 {
