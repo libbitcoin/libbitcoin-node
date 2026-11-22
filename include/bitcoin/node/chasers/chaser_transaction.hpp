@@ -234,6 +234,9 @@ private:
         const system::chain::transaction& tx) const NOEXCEPT;
     code fill(database::tx_link& out, const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
+    bool set_pooled(const database::tx_link& link,
+        const system::chain::transaction& tx,
+        const system::chain::context& ctx) NOEXCEPT;
     code unconfirmable(const database::header_link& link, size_t height,
         const code& ec) NOEXCEPT;
     void broadcast(const system::chain::transaction& tx) const NOEXCEPT;

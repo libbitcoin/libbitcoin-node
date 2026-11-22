@@ -216,17 +216,13 @@ code chaser_transaction::fill(database::tx_link& out,
         if (!guarded)
             return error::success;
 
-        const auto admit = now();
-        const auto admitted = query.set_pooled(out, tx, ctx, ctx.timestamp);
-        report(pool_scan::admission, admit);
-        if (!admitted)
+        if (!set_pooled(out, tx, ctx))
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
             return fault(error::transaction6);
 
-        due_ = due_ || !is_sufficient(ctx);
         notify(error::success, chases::transaction{ out });
         broadcast(tx);
         return error::success;
@@ -244,18 +240,8 @@ code chaser_transaction::fill(database::tx_link& out,
     const auto coinbase = tx.is_coinbase();
     if (!pooled && !coinbase)
     {
-        if (guarded && reusable(ctx))
-        {
-            const auto admit = now();
-            const auto admitted = query.set_pooled(out, tx, ctx,
-                ctx.timestamp);
-
-            report(pool_scan::admission, admit);
-            if (!admitted)
-                return fault(error::transaction2);
-
-            due_ = due_ || !is_sufficient(ctx);
-        }
+        if (guarded && reusable(ctx) && !set_pooled(out, tx, ctx))
+            return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
@@ -270,6 +256,17 @@ code chaser_transaction::fill(database::tx_link& out,
     }
 
     return error::success;
+}
+
+// Pooled at the block's time, a sweep due if its context does not suffice.
+bool chaser_transaction::set_pooled(const database::tx_link& link,
+    const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
+{
+    const auto start = now();
+    const auto pooled = archive().set_pooled(link, tx, ctx, ctx.timestamp);
+    report(pool_scan::admission, start);
+    due_ = due_ || (pooled && !is_sufficient(ctx));
+    return pooled;
 }
 
 // An identified block with an invalid tx is invalid.

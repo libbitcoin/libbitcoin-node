@@ -518,16 +518,12 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         }
 
         // Block txs are already silent indexed.
-        const auto admit = now();
-        const auto pooled = query.set_pooled(fk, *tx, ctx, ctx.timestamp);
-        report(pool_scan::admission, admit);
-        if (!pooled)
+        if (!set_pooled(fk, *tx, ctx))
         {
             fault(error::transaction2);
             return;
         }
 
-        due_ = due_ || !is_sufficient(ctx);
         notify(error::success, chases::transaction{ fk });
         broadcast(*tx);
     }
