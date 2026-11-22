@@ -145,6 +145,7 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
 void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
+    estimating_ = false;
     const auto opened = pooling_.load();
     pooling_ = false;
     if (closed() || !is_current_chain(true))
@@ -523,6 +524,7 @@ void chaser_transaction::do_pruned(header_t link) NOEXCEPT
     }
 
     floor_ = std::max(floor_, add1(height));
+    estimating_ = false;
 }
 
 // utility

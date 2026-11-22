@@ -288,6 +288,11 @@ private:
     bool scanning_{};
     bool revalidating_{};
     bool unvalidated_{};
+    bool estimating_{};
+    bool arrived_{};
+    time_point estimated_{};
+    query::pool_projection projection_{};
+    query::pool_arrivals arrivals_{};
     uint32_t revalidated_flags_{};
     system::chain::context retried_{};
     std::vector<uint64_t> marks_{};

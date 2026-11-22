@@ -245,7 +245,46 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__after_template__continued, ch
     BC_REQUIRE_EQUAL(after.second, 0u);
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__pool_written__projected_again, chaser_transaction_single_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__pool_written_projection_held__unchanged, chaser_transaction_held_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto first_result = submit(package({ first }));
+    const auto before = estimate(0);
+    const auto second_result = submit(package({ second }));
+    const auto after = estimate(0);
+    const auto deeper = estimate(1);
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(before.first, node::error::success);
+    BC_REQUIRE_EQUAL(before.second, 0u);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(after.first, node::error::success);
+    BC_REQUIRE_EQUAL(after.second, 0u);
+    BC_REQUIRE_EQUAL(deeper.first, node::error::success);
+    BC_REQUIRE_EQUAL(deeper.second, 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__block_organized_projection_held__projected_again, chaser_transaction_held_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto first_result = submit(package({ first }));
+    const auto before = estimate(0);
+    const auto second_result = submit(package({ second }));
+    const auto confirmed = !confirm().is_terminal();
+    const auto current = bumped(3);
+    const auto after = estimate(0);
+    BC_REQUIRE_EQUAL(first_result.first, node::error::success);
+    BC_REQUIRE_EQUAL(before.first, node::error::success);
+    BC_REQUIRE_EQUAL(before.second, 0u);
+    BC_REQUIRE_EQUAL(second_result.first, node::error::success);
+    BC_REQUIRE(confirmed);
+    BC_REQUIRE(current);
+    BC_REQUIRE_EQUAL(after.first, node::error::success);
+    BC_REQUIRE_EQUAL(after.second, 16'394u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__pool_written__projected_again, chaser_transaction_live_setup_fixture)
 {
     const auto first = spend(parent_value - 1'000);
     const auto second = spend(first->hash(false), parent_value - 3'000);

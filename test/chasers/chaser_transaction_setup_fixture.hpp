@@ -800,6 +800,38 @@ struct chaser_transaction_single_setup_fixture
     }
 };
 
+// Estimates of a held projection, never expired by age.
+struct chaser_transaction_held_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_held_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_cache_seconds = max_uint16;
+        })
+    {
+    }
+};
+
+// Estimates of the pool as it is, no projection held.
+struct chaser_transaction_live_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_live_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_cache_seconds = 0;
+        })
+    {
+    }
+};
+
 struct chaser_transaction_no_witness_setup_fixture
   : chaser_transaction_setup_fixture
 {
