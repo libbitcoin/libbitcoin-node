@@ -210,7 +210,7 @@ private:
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
 
     /// Submission steps.
-    void hold(submission& set) const NOEXCEPT;
+    void hold(submission& set) NOEXCEPT;
     bool spends_held(const submission& set,
         const system::chain::transaction& tx) const NOEXCEPT;
     bool spends_held(const system::chain::transaction& tx) const NOEXCEPT;

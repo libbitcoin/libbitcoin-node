@@ -224,8 +224,9 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 }
 
 // private
-// A tx of the set is stored if pooled or confirmed (other than a coinbase).
-void chaser_transaction::hold(submission& set) const NOEXCEPT
+// A tx of the set is stored if pooled or confirmed (other than a coinbase),
+// and if pooled is held by the peer that sent it.
+void chaser_transaction::hold(submission& set) NOEXCEPT
 {
     const auto& query = archive();
     set.stored.resize(set.txs->size());

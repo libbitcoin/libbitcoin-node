@@ -135,13 +135,17 @@ get_data protocol_transaction_in_106::create_get_data(
     for (const auto& item: message.view(inventory_type()))
     {
         // The peer has the tx, so it is not announced back to it.
+        const auto repeated = was_announced(item.hash);
         set_announced(item.hash);
 
-        // A known tx is held by the peer, and a tx is requested once.
+        // A known tx is held by the peer (a pooled one is marked so, once),
+        // and a tx is requested once.
         const request slot{ sequence, set.hashes.size() };
         if (const auto link = to_known(item.hash); !link.is_terminal())
         {
-            known.push_back(link);
+            if (!repeated && archive().is_pooled(link))
+                known.push_back(link);
+
             continue;
         }
 

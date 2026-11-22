@@ -239,6 +239,21 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay_pool__slot_not_started__swept_whe
     BC_REQUIRE(recorded(started) == expected);
 }
 
+// A pooled tx that its peer sends again is held by that peer.
+BC_FIXTURE_TEST_CASE(chaser_transaction__relay__pooled_tx_sent_by_peer__not_swept_to_it, chaser_transaction_pooling_setup_fixture)
+{
+    const auto low = spend(parent_value - 1'000);
+    const auto slot = reserve_relaying();
+    node_.set_relay_rate(slot, 100'000);
+    BC_REQUIRE_EQUAL(submit(package({ low })).first, node::error::success);
+    BC_REQUIRE_EQUAL(submit_announced(package({ low }), slot).first, node::error::duplicate_transaction);
+
+    const auto events = record();
+    node_.set_relay_rate(slot, 10'000);
+    BC_REQUIRE(!get_confirmable_txs().first);
+    BC_REQUIRE(recorded(events).empty());
+}
+
 BC_FIXTURE_TEST_CASE(chaser_transaction__release_relay__reserved_again__marks_cleared, chaser_transaction_pooling_setup_fixture)
 {
     const auto tx = spend(parent_value);
