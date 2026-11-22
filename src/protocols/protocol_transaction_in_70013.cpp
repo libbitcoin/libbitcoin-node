@@ -44,7 +44,7 @@ void protocol_transaction_in_70013::do_handle_submit(const code& ec,
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    if (ec == error::pooling_disabled)
+    if (ec == error::pooling_disabled && !is_current_chain(true))
     {
         LOGR("Tx from [" << opposite() << "] " << ec.message());
         fire(events::tx_dropped, count);
