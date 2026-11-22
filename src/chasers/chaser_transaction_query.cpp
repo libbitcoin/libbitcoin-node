@@ -182,13 +182,28 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
     const auto& settings = node_settings().pool;
     const auto count = add1(target);
     const auto limit = block_limit();
-    query::pool_projection projection{};
     const auto start = now();
-    const auto projected = query.get_pool_projection(projection, count,
-        limit, settings.maximum_chunk_depth, settings.cutoff_rate_(),
-        settings.bytes_per_sigop, settings.maximum_outcomes);
+
+    // Targets estimated while the projection is held are of one pool.
+    const auto held = estimating_ &&
+        (start - estimated_) < settings.estimate_cache();
+
+    if (!held)
+    {
+        projection_ = {};
+        arrived_ = false;
+        estimated_ = start;
+    }
+
+    const auto projected = held ?
+        query.get_pool_continuation(projection_, count, limit,
+            settings.maximum_chunk_depth, settings.bytes_per_sigop) :
+        query.get_pool_projection(projection_, count, limit,
+            settings.maximum_chunk_depth, settings.cutoff_rate_(),
+            settings.bytes_per_sigop, settings.maximum_outcomes);
 
     report(pool_scan::projection, start);
+    estimating_ = !projected;
     if (projected)
     {
         handler(fault(projected), {});
@@ -196,27 +211,29 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
     }
 
     // Arrivals are whole from the floor to the height of the open interval.
-    query::pool_arrivals arrivals{};
-    if (mode != estimate_mode::basic)
+    if (mode != estimate_mode::basic && !arrived_)
     {
         const auto whole = floored_subtract(pool_.height, floor_);
         const auto heights = std::min(whole, conservative_estimate_window);
-        if (const auto ec = query.get_pool_arrivals(arrivals, pool_.height,
+        if (const auto ec = query.get_pool_arrivals(arrivals_, pool_.height,
             heights, settings.bytes_per_sigop))
         {
+            estimating_ = false;
             handler(fault(ec), {});
             return;
         }
+
+        arrived_ = true;
     }
 
     const auto arrive = [&](uint64_t rate) NOEXCEPT
     {
-        return arriving(arrivals, rate, mode);
+        return arriving(arrivals_, rate, mode);
     };
 
     using algorithm = pool::algorithm;
     const auto space = limit.size;
-    const auto rate = algorithm::estimate(projection, count, space, arrive);
+    const auto rate = algorithm::estimate(projection_, count, space, arrive);
     if (rate == max_uint64)
     {
         handler(error::estimate_false, {});

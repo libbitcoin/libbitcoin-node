@@ -196,11 +196,12 @@ void chaser_transaction::do_archive_block(
     handler(query.set_code(*block, link, strong, bypass, height, prune));
 }
 
-// The stored tx, or validated and archived, pooled under the block context.
-// Each block archives its own coinbase.
+// The stored tx, or validated and archived, pooled under the block context if
+// guarded. Each block archives its own coinbase.
 code chaser_transaction::fill(database::tx_link& out,
     const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
 {
+    bool guarded{};
     auto& query = archive();
     out = tx.is_coinbase() ? database::tx_link{} : to_stored(tx);
     if (!out.is_terminal())
@@ -209,26 +210,25 @@ code chaser_transaction::fill(database::tx_link& out,
             query.is_pooled(out) || query.is_confirmed_tx(out))
             return error::success;
 
-        if (const auto ec = validate(tx, ctx))
+        if (const auto ec = validate(guarded, tx, ctx))
             return ec;
 
-        const auto admit = now();
-        const auto admitted = query.set_pooled(out, tx, ctx, ctx.timestamp);
-        report(pool_scan::admission, admit);
-        if (!admitted)
+        if (!guarded)
+            return error::success;
+
+        if (!set_pooled(out, tx, ctx))
             return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
             return fault(error::transaction6);
 
-        due_ = due_ || !is_sufficient(ctx);
         notify(error::success, chases::transaction{ out });
         broadcast(tx);
         return error::success;
     }
 
-    if (const auto ec = validate(tx, ctx))
+    if (const auto ec = validate(guarded, tx, ctx))
         return ec;
 
     bool pooled{};
@@ -240,18 +240,8 @@ code chaser_transaction::fill(database::tx_link& out,
     const auto coinbase = tx.is_coinbase();
     if (!pooled && !coinbase)
     {
-        if (reusable(ctx))
-        {
-            const auto admit = now();
-            const auto admitted = query.set_pooled(out, tx, ctx,
-                ctx.timestamp);
-
-            report(pool_scan::admission, admit);
-            if (!admitted)
-                return fault(error::transaction2);
-
-            due_ = due_ || !is_sufficient(ctx);
-        }
+        if (guarded && reusable(ctx) && !set_pooled(out, tx, ctx))
+            return fault(error::transaction2);
 
         if (ctx.height >= query.silent_start_height() &&
             ctx.is_enabled(flags::bip341_rule) && !query.set_silent(out, tx))
@@ -266,6 +256,17 @@ code chaser_transaction::fill(database::tx_link& out,
     }
 
     return error::success;
+}
+
+// Pooled at the block's time, a sweep due if its context does not suffice.
+bool chaser_transaction::set_pooled(const database::tx_link& link,
+    const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
+{
+    const auto start = now();
+    const auto pooled = archive().set_pooled(link, tx, ctx, ctx.timestamp);
+    report(pool_scan::admission, start);
+    due_ = due_ || (pooled && !is_sufficient(ctx));
+    return pooled;
 }
 
 // An identified block with an invalid tx is invalid.
@@ -285,19 +286,29 @@ code chaser_transaction::unconfirmable(const database::header_link& link,
 // ----------------------------------------------------------------------------
 
 // A block tx is under proof of work, so it is not subject to policy (fee
-// rate, guards) and may conflict with unconfirmed txs.
-code chaser_transaction::validate(const chain::transaction& tx,
+// rate, guards) and may conflict with unconfirmed txs. It is guarded if it
+// also passes the guards of admission, which a pooled tx must.
+code chaser_transaction::validate(bool& guarded, const chain::transaction& tx,
     const chain::context& ctx) NOEXCEPT
 {
+    guarded = false;
     code ec{};
     if (!ec) ec = tx.check();
     if (!ec) ec = tx.check(ctx);
     if (ec || tx.is_coinbase())
         return ec;
 
-    archive().populate_with_metadata(tx);
+    archive().populate_with_metadata(tx, true, true);
     ec = tx.accept(ctx);
     if (!ec) ec = tx.connect(ctx);
+    if (ec)
+        return ec;
+
+    const auto guard = tx.confirm_guard(ctx);
+    guarded = !tx.check_guard() && !tx.check_guard(ctx) &&
+        !tx.accept_guard(ctx) && spends_held(tx) &&
+        (!guard || guard == system::error::double_spend);
+
     return ec;
 }
 

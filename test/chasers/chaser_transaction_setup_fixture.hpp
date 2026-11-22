@@ -72,6 +72,20 @@ inline chain::transaction::cptr spend(uint64_t value) NOEXCEPT
     return spend(parent().hash(false), value);
 }
 
+// A spend of the parent to an output of one sigop.
+inline chain::transaction::cptr spend_signed(uint64_t value) NOEXCEPT
+{
+    const chain::point point{ parent().hash(false), 0u };
+    const chain::operations ops{ { chain::opcode::checksig } };
+    return std::make_shared<const chain::transaction>(chain::transaction
+    {
+        1u,
+        chain::inputs{ { point, chain::script{}, max_uint32 } },
+        chain::outputs{ { value, chain::script{ ops } } },
+        0u
+    });
+}
+
 inline chain::transaction::cptr spend_relative(const hash_digest& hash,
     uint64_t value, uint32_t sequence) NOEXCEPT
 {
@@ -162,6 +176,28 @@ inline bool stored_header(node::query& query) NOEXCEPT
     return query.set(parent()) && query.set(header1, context1, work1, false);
 }
 
+// The header of a block 2 above the parent block.
+inline const chain::header& child_header() NOEXCEPT
+{
+    const auto& header1 = parent_block().header();
+    static const chain::header instance
+    {
+        1u, header1.hash(), null_hash, add1(header1.timestamp()),
+        header1.bits(), 2u
+    };
+
+    return instance;
+}
+
+// The parent confirmed in block 1, block 2 archived as a header without txs.
+inline bool stored_child_header(node::query& query) NOEXCEPT
+{
+    const auto& header1 = parent_block().header();
+    const database::context context2{ deployed, 2, header1.timestamp() };
+    return stored_parent(query) &&
+        query.set(child_header(), context2, {}, false);
+}
+
 // Block 1 of a coinbase and a spend of the parent.
 inline const chain::block& reorganized_block() NOEXCEPT
 {
@@ -238,6 +274,14 @@ struct chaser_transaction_setup_fixture
 
         node_.submit_announced(txs, slot, handler);
         return promise.get_future().get();
+    }
+
+    // Reserve a relay slot of the tier and start relay to it.
+    size_t reserve_relaying(node::relay_tier tier=node::relay_tier::manual)
+    {
+        const auto slot = node_.reserve_relay(tier);
+        node_.activate_relay(slot);
+        return slot;
     }
 
     // Reserve every free relay slot of the tier, returning the count.
@@ -382,8 +426,18 @@ struct chaser_transaction_setup_fixture
         return promise.get_future().get();
     }
 
-    // Confirm a block of a coinbase, and the tx if any, above genesis.
+    // Confirm a block of a coinbase, and the tx if any, and notify of it.
     database::header_link confirm(const chain::transaction::cptr& tx={})
+    {
+        const auto link = push(tx);
+        if (!link.is_terminal())
+            node_.notify(node::error::success, chases::organized{ link });
+
+        return link;
+    }
+
+    // Confirm a block of a coinbase, and the tx if any, in the store only.
+    database::header_link push(const chain::transaction::cptr& tx={})
     {
         const system::settings bitcoin{ chain::selection::mainnet };
         const auto& genesis = bitcoin.genesis_block;
@@ -417,7 +471,6 @@ struct chaser_transaction_setup_fixture
         if (!query_.push_candidate(link) || !query_.push_confirmed(link, true))
             return {};
 
-        node_.notify(node::error::success, chases::organized{ link });
         return link;
     }
 
@@ -785,6 +838,21 @@ struct chaser_transaction_reserve_setup_fixture
     }
 };
 
+// The coinbase is declared to count every sigop of a block.
+struct chaser_transaction_sigops_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_sigops_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_sigops = 80'000;
+        })
+    {
+    }
+};
+
 // A block holds one test tx (61 of its 80 virtual bytes).
 struct chaser_transaction_single_setup_fixture
   : chaser_transaction_setup_fixture
@@ -795,6 +863,38 @@ struct chaser_transaction_single_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 3'999'348;
+        })
+    {
+    }
+};
+
+// Estimates of a held projection, never expired by age.
+struct chaser_transaction_held_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_held_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_cache_seconds = max_uint16;
+        })
+    {
+    }
+};
+
+// Estimates of the pool as it is, no projection held.
+struct chaser_transaction_live_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_live_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_cache_seconds = 0;
         })
     {
     }
@@ -854,6 +954,19 @@ struct chaser_transaction_header_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
         }, stored_header)
+    {
+    }
+};
+
+struct chaser_transaction_child_header_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_child_header_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+        }, stored_child_header)
     {
     }
 };

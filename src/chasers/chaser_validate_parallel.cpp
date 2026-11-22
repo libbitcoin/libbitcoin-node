@@ -233,7 +233,7 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     const auto ec = archive().validate_pooled(link, ctx, subsidy_interval_,
-        initial_subsidy_);
+        initial_subsidy_, signet_challenge_);
 
     pooled = !ec;
     if (!ec || ec == database::error::unvalidated)

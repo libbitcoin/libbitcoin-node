@@ -43,14 +43,31 @@ void protocol_transaction_out_106::start() NOEXCEPT
     if (started())
         return;
 
-    // A channel with no relay slot is relayed nothing.
-    reserve_relay();
+    // A channel with no relay slot is relayed nothing, and stopping has
+    // already been called for one stopped before its protocols attach.
+    if (!stopped())
+        reserve_relay();
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_chase(BIND(handle_chase, _1, _2));
 
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol_peer::start();
+}
+
+// The slot is relayed to once the channel is notified of relay.
+void protocol_transaction_out_106::subscribed(const code& ec,
+    object_key) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+    {
+        unsubscribe_chase();
+        return;
+    }
+
+    activate_relay();
 }
 
 void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT

@@ -224,8 +224,9 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 }
 
 // private
-// A tx of the set is stored if pooled or confirmed (other than a coinbase).
-void chaser_transaction::hold(submission& set) const NOEXCEPT
+// A tx of the set is stored if pooled or confirmed (other than a coinbase),
+// and if pooled is held by the peer that sent it.
+void chaser_transaction::hold(submission& set) NOEXCEPT
 {
     const auto& query = archive();
     set.stored.resize(set.txs->size());
@@ -236,8 +237,16 @@ void chaser_transaction::hold(submission& set) const NOEXCEPT
         set.stored.at(index) = !tx.is_coinbase() && !link.is_terminal() &&
             (query.is_pooled(link) || query.is_confirmed_tx(link));
 
-        if (set.stored.at(index))
-            set.held.insert(tx.get_hash(false));
+        if (!set.stored.at(index))
+            continue;
+
+        set.held.insert(tx.get_hash(false));
+        if (set.slot >= relay_slots)
+            continue;
+
+        const auto row = query.to_pool_row(link);
+        if (!row.is_terminal())
+            set_right_into(marks(row.value), set.slot);
     }
 }
 
@@ -245,16 +254,29 @@ void chaser_transaction::hold(submission& set) const NOEXCEPT
 bool chaser_transaction::spends_held(const submission& set,
     const chain::transaction& tx) const NOEXCEPT
 {
-    const auto& query = archive();
     return std::ranges::all_of(*tx.inputs_ptr(), [&](const auto& in) NOEXCEPT
     {
-        if (set.held.contains(in->point().hash()))
-            return true;
-
-        const database::tx_link parent{ in->metadata.parent_tx };
-        return !parent.is_terminal() &&
-            (query.is_confirmed_tx(parent) || query.is_pooled(parent));
+        return set.held.contains(in->point().hash()) || is_held(*in);
     });
+}
+
+// private
+bool chaser_transaction::spends_held(
+    const chain::transaction& tx) const NOEXCEPT
+{
+    return std::ranges::all_of(*tx.inputs_ptr(), [&](const auto& in) NOEXCEPT
+    {
+        return is_held(*in);
+    });
+}
+
+// private
+bool chaser_transaction::is_held(const chain::input& in) const NOEXCEPT
+{
+    const auto& query = archive();
+    const database::tx_link parent{ in.metadata.parent_tx };
+    return !parent.is_terminal() &&
+        (query.is_confirmed_tx(parent) || query.is_pooled(parent));
 }
 
 // private
@@ -396,7 +418,7 @@ code chaser_transaction::clear(size_t& at, submission& set,
         set.cleared = true;
     }
 
-    if (!admitted.empty() && !relay(admitted, set.slot, reserved_.load()))
+    if (!admitted.empty() && !relay(admitted, set.slot, relaying_))
     {
         at = set.first;
         return fault(database::error::integrity);
@@ -442,11 +464,24 @@ code chaser_transaction::admit(database::tx_link& link,
 
     if (!query.is_pooled(link))
     {
+        size_t repooled{};
         const auto start = now();
-        const auto admitted = query.set_pooled(link, tx, pool_, time);
+        const auto admitted = query.set_pooled(repooled, link, tx,
+            database::context::from(pool_), time);
+
         report(pool_scan::admission, start);
         if (!admitted)
             return fault(error::transaction2);
+
+        // A spender pooled again keeps its context, which may not suffice,
+        // and one not validated for want of this parent may now pass.
+        if (is_nonzero(repooled))
+        {
+            due_ = true;
+            unvalidated_ = true;
+            if (!sweep())
+                return fault(error::transaction11);
+        }
     }
 
     if (!archived && query.silent_enabled() && !query.set_silent(link, tx))

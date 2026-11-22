@@ -247,6 +247,18 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_announced__conflict_over_block__
     BC_REQUIRE(query_.is_tx(child->hash(false)));
 }
 
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__over_reserved_sigops__pool_limit, chaser_transaction_sigops_setup_fixture)
+{
+    const auto result = submit(package({ spend_signed(parent_value - 1'000) }));
+    BC_REQUIRE_EQUAL(result.first, database::error::pool_limit);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__no_sigops_reserved_sigops__success, chaser_transaction_sigops_setup_fixture)
+{
+    const auto result = submit(package({ spend(parent_value - 1'000) }));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+}
+
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__over_block__pool_limit_not_archived, chaser_transaction_reserve_setup_fixture)
 {
     const auto tx = spend(parent_value - 1'000);

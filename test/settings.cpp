@@ -215,7 +215,10 @@ BC_AUTO_TEST_CASE(settings__pool__default__expected)
     BC_REQUIRE_EQUAL(pool.maximum_outcomes, 1'024_u32);
     BC_REQUIRE_EQUAL(pool.bytes_per_sigop, 20_u32);
     BC_REQUIRE_EQUAL(pool.coinbase_weight, 2'000_u32);
+    BC_REQUIRE_EQUAL(pool.coinbase_sigops, 400_u32);
     BC_REQUIRE_EQUAL(pool.maximum_chunk_depth, 25_u32);
+    BC_REQUIRE_EQUAL(pool.estimate_cache_seconds, 7_u16);
+    BC_REQUIRE(pool.estimate_cache() == steady_clock::duration(seconds(7)));
     BC_REQUIRE(pool.thread_priority);
     BC_REQUIRE(pool.thread_priority_() == network::processing_priority::high);
 }
