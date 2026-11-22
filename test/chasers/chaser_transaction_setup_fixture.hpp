@@ -897,6 +897,23 @@ struct chaser_transaction_single_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 1;
+        })
+    {
+    }
+};
+
+// Block holds one test tx, estimate requires room for two.
+struct chaser_transaction_room_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_room_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 122;
         })
     {
     }
@@ -912,6 +929,7 @@ struct chaser_transaction_held_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 1;
             config.node.pool.estimate_cache_seconds = max_uint16;
         })
     {
@@ -928,6 +946,7 @@ struct chaser_transaction_live_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 1;
             config.node.pool.estimate_cache_seconds = 0;
         })
     {

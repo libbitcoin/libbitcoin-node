@@ -36,6 +36,7 @@ settings::transaction_pool::transaction_pool() NOEXCEPT
     coinbase_sigops{ 400 },
     maximum_chunk_depth{ 25 },
     estimate_cache_seconds{ 7 },
+    estimate_room{ 1'000 },
     thread_priority{ true }
 {
 }
