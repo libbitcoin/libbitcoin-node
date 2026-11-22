@@ -39,7 +39,11 @@ public:
       : node::protocol_peer(session, channel),
         network::tracker<protocol_transaction_in_106>(session->log),
         tx_type_(session->node_settings().require_witness ?
-            type_id::witness_tx : type_id::transaction)
+            type_id::witness_tx : type_id::transaction),
+        maximum_requests_(system::possible_wide_cast<size_t>(
+            session->node_settings().pool.maximum_requests)),
+        request_timer_(system::emplace_shared<network::deadline>(session->log,
+            channel->strand(), session->node_settings().pool.request_timeout()))
     {
     }
 
@@ -96,8 +100,17 @@ private:
     {
         size_t set{};
         size_t slot{};
+        size_t id{};
     };
 
+    /// Requested tx, in order of request.
+    struct pending
+    {
+        system::hash_digest hash{};
+        size_t id{};
+    };
+
+    using duration = network::deadline::duration;
     using requests = std::unordered_map<system::hash_digest, request>;
 
     network::messages::peer::get_data create_get_data(
@@ -109,13 +122,24 @@ private:
     /// Submit the first set as it stands.
     void flush() NOEXCEPT;
 
-    // This is thread safe.
+    /// Drop answered requests from order, timing oldest from when it is so.
+    void settle() NOEXCEPT;
+    bool is_answered(const pending& entry) const NOEXCEPT;
+    void start_request_timer(const duration& span) NOEXCEPT;
+    void handle_request_timer(const code& ec) NOEXCEPT;
+
+    // These are thread safe.
     const type_id tx_type_;
+    const size_t maximum_requests_;
 
     // These are protected by strand.
     requests requested_{};
     std::deque<announcement> sets_{};
+    std::deque<pending> order_{};
+    network::steady_clock::time_point oldest_{};
     size_t first_{};
+    size_t next_{};
+    network::deadline::ptr request_timer_;
 };
 
 } // namespace node

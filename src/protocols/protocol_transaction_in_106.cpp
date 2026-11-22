@@ -58,6 +58,7 @@ void protocol_transaction_in_106::stopping(const code& ec) NOEXCEPT
     if (!requested_.empty())
         fire(events::tx_unserved, requested_.size());
 
+    request_timer_->stop();
     protocol_peer::stopping(ec);
 }
 
@@ -113,9 +114,24 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
     if (silenced())
         return true;
 
+    const auto idle = order_.empty();
     const auto getter = create_get_data(*message);
     if (getter.items.empty())
         return true;
+
+    if (requested_.size() > maximum_requests_)
+    {
+        LOGR("Excess tx requests (" << requested_.size() << ") of ["
+            << opposite() << "].");
+        stop(error::stalled_channel);
+        return false;
+    }
+
+    if (idle)
+    {
+        oldest_ = network::steady_clock::now();
+        start_request_timer(request_timer_->timeout());
+    }
 
     LOGP("Requested (" << getter.items.size() << ") txs from ["
         << opposite() << "].");
@@ -143,7 +159,7 @@ get_data protocol_transaction_in_106::create_get_data(
         set_announced(item.hash);
 
         // Known tx is held by peer (pooled marked once), tx requested once.
-        const request slot{ sequence, set.hashes.size() };
+        const request slot{ sequence, set.hashes.size(), next_ };
         if (const auto link = to_known(item.hash); !link.is_terminal())
         {
             if (!repeated && archive().is_pooled(link))
@@ -155,6 +171,7 @@ get_data protocol_transaction_in_106::create_get_data(
         if (!requested_.emplace(item.hash, slot).second)
             continue;
 
+        order_.push_back({ item.hash, next_++ });
         getter.items.emplace_back(get_data_type(), item.hash);
         set.hashes.push_back(item.hash);
     }
@@ -171,6 +188,73 @@ get_data protocol_transaction_in_106::create_get_data(
 
     getter.items.shrink_to_fit();
     return getter;
+}
+
+// request timeout
+// ----------------------------------------------------------------------------
+
+// private
+bool protocol_transaction_in_106::is_answered(
+    const pending& entry) const NOEXCEPT
+{
+    const auto it = requested_.find(entry.hash);
+    return it == requested_.end() || it->second.id != entry.id;
+}
+
+// private
+void protocol_transaction_in_106::settle() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    const auto size = order_.size();
+    while (!order_.empty() && is_answered(order_.front()))
+        order_.pop_front();
+
+    if (order_.size() != size)
+        oldest_ = network::steady_clock::now();
+}
+
+// private
+void protocol_transaction_in_106::start_request_timer(
+    const duration& span) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (is_nonzero(request_timer_->timeout().count()))
+        request_timer_->start(BIND(handle_request_timer, _1), span);
+}
+
+// private
+// Timer is not reset by an answer, so expiry is tested against oldest.
+void protocol_transaction_in_106::handle_request_timer(
+    const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped() || ec == network::error::operation_canceled ||
+        ec == network::error::service_stopped)
+        return;
+
+    if (ec)
+    {
+        LOGF("Tx request timer failure, " << ec.message());
+        stop(ec);
+        return;
+    }
+
+    if (order_.empty())
+        return;
+
+    const auto timeout = request_timer_->timeout();
+    const auto elapsed = network::steady_clock::now() - oldest_;
+    if (elapsed < timeout)
+    {
+        start_request_timer(timeout - elapsed);
+        return;
+    }
+
+    LOGR("Tx request timeout of [" << opposite() << "].");
+    stop(error::stalled_channel);
 }
 
 // accept transaction
@@ -232,6 +316,7 @@ bool protocol_transaction_in_106::set_not_found(
 
     const auto at = it->second;
     requested_.erase(it);
+    settle();
     if (at.set == late)
         return true;
 
@@ -264,6 +349,7 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
 
     const auto at = it->second;
     requested_.erase(it);
+    settle();
     if (at.set == late)
     {
         submit_announced(to_shared(chain::transaction_cptrs{ tx }),

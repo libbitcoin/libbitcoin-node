@@ -826,6 +826,35 @@ struct chaser_transaction_pooling_setup_fixture
     }
 };
 
+struct chaser_transaction_requests_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_requests_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.maximum_requests = 2;
+            config.node.pool.request_timeout_seconds = 0;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_request_timeout_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_request_timeout_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.request_timeout_seconds = 1;
+        })
+    {
+    }
+};
+
 struct chaser_transaction_reserves_setup_fixture
   : chaser_transaction_setup_fixture
 {
