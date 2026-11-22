@@ -47,6 +47,21 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__poo
     BC_REQUIRE_EQUAL(query_.to_tx(tx->hash(false)), stored);
 }
 
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_coinbase__archived_again, chaser_transaction_header_setup_fixture)
+{
+    const auto& block1 = p2p_compact_setup_fixture::block1();
+    const auto link = query_.to_header(block1.hash());
+    const auto coinbase = block1.transactions_ptr()->front();
+    BC_REQUIRE(query_.set(*coinbase));
+
+    const auto stored = query_.to_tx(coinbase->hash(false));
+    const auto result = submit_compact(package({ coinbase }), { database::tx_link::terminal }, link);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_associated(link));
+    BC_REQUIRE_EQUAL(query_.to_duplicates(coinbase->hash(false)).size(), 2u);
+    BC_REQUIRE(query_.to_tx(coinbase->hash(false)) != stored);
+}
+
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__not_pooling__pooling_disabled, chaser_transaction_closed_header_setup_fixture)
 {
     const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());

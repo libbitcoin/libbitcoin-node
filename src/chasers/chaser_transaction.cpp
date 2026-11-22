@@ -34,8 +34,11 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
+// Independent threadpool and strand (base class strand uses network pool).
 chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : chaser(node),
+    transaction_threadpool_(one, node.node_settings().pool.thread_priority_()),
+    transaction_strand_(transaction_threadpool_.service().get_executor()),
     scan_threadpool_(one, node.node_settings().thread_priority_()),
     revalidation_threadpool_(one, node.node_settings().thread_priority_()),
     outbound_excluded_(unmask_right<uint64_t>(
@@ -61,13 +64,15 @@ void chaser_transaction::stopping(const code& ec) NOEXCEPT
     stopping_.store(true);
     scan_threadpool_.stop();
     revalidation_threadpool_.stop();
+    transaction_threadpool_.stop();
     chaser::stopping(ec);
 }
 
 // The strand is no longer running when the chaser is stopped.
 void chaser_transaction::stop() NOEXCEPT
 {
-    if (!scan_threadpool_.join() || !revalidation_threadpool_.join())
+    if (!scan_threadpool_.join() || !revalidation_threadpool_.join() ||
+        !transaction_threadpool_.join())
     {
         BC_ASSERT_MSG(false, "failed to join threadpool");
         std::abort();
@@ -249,23 +254,35 @@ bool chaser_transaction::sweep() NOEXCEPT
     return applied;
 }
 
-// Rows left out by flags are revalidated once per change of flags, so a row
-// that fails is not retried until the flags change again.
+// Rows left out by flags are revalidated once per change of flags, and rows
+// without a context once per change of the pool context, so a row that fails
+// is retried only under another context.
 void chaser_transaction::start_revalidation() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (revalidating_ || pool_.flags == revalidated_flags_)
+    if (revalidating_)
         return;
 
+    const auto flagged = pool_.flags != revalidated_flags_;
+    const auto moved = unvalidated_ || pool_.height != retried_.height ||
+        pool_.median_time_past != retried_.median_time_past;
+
+    if (!flagged && !moved)
+        return;
+
+    auto& query = archive();
     database::tx_links links{};
     const auto ctx = database::context::from(pool_);
-    if (const auto ec = archive().get_pool_revalidation(links, ctx))
+    if (const auto ec = flagged ? query.get_pool_revalidation(links, ctx) :
+        query.get_pool_unvalidated(links))
     {
         fault(ec);
         return;
     }
 
     revalidated_flags_ = pool_.flags;
+    retried_ = pool_;
+    unvalidated_ = false;
     if (links.empty())
         return;
 
@@ -274,6 +291,8 @@ void chaser_transaction::start_revalidation() NOEXCEPT
         BIND(do_revalidate, std::move(links), pool_));
 }
 
+// Revalidation is admission under the context, as confirmation of what a row
+// spends may differ from when it was pooled.
 void chaser_transaction::do_revalidate(const database::tx_links& links,
     const chain::context& ctx) NOEXCEPT
 {
@@ -288,13 +307,15 @@ void chaser_transaction::do_revalidate(const database::tx_links& links,
             const auto offset = std::distance(links.data(), &link);
             const auto at = sign_cast<size_t>(offset);
             const auto tx = query.get_transaction(link, true);
-            passed.at(at) = to_int<uint8_t>(tx && !validate(*tx, ctx));
+            passed.at(at) = to_int<uint8_t>(tx && !accept(*tx, ctx) &&
+                !tx->connect(ctx));
         });
 
     POST(do_revalidated, links, std::move(passed), ctx);
 }
 
-// The pool context may have moved under the revalidation.
+// The pool context may have moved under the revalidation, and a reorganization
+// under it may have unvalidated a row that it passed.
 void chaser_transaction::do_revalidated(const database::tx_links& links,
     const data_chunk& passed, const chain::context& ctx) NOEXCEPT
 {
@@ -303,9 +324,14 @@ void chaser_transaction::do_revalidated(const database::tx_links& links,
     if (closed())
         return;
 
-    if (!is_sufficient(ctx))
+    if (unvalidated_ || !is_sufficient(ctx))
     {
         revalidated_flags_ = {};
+        unvalidated_ = true;
+        due_ = true;
+        if (!sweep())
+            fault(error::transaction11);
+
         return;
     }
 
@@ -418,14 +444,20 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
     auto& query = archive();
     if (is_indexing())
     {
+        size_t count{};
         const auto start = now();
-        const auto applied = query.set_pool_block(link, false);
+        const auto applied = query.set_pool_block(link, false) &&
+            query.set_pool_unvalidated(count, link);
+
         report(pool_scan::block_out, start);
         if (!applied)
         {
             fault(error::transaction10);
             return;
         }
+
+        unvalidated_ = unvalidated_ || is_nonzero(count);
+        due_ = due_ || is_nonzero(count);
     }
 
     do_bump();
@@ -602,6 +634,19 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
         possible_narrow_cast<uint32_t>(weight / light_weight_factor),
         possible_narrow_cast<uint32_t>(sigops)
     };
+}
+
+// Overrides due to independent priority thread pool
+// ----------------------------------------------------------------------------
+
+network::io::strand& chaser_transaction::strand() NOEXCEPT
+{
+    return transaction_strand_;
+}
+
+bool chaser_transaction::stranded() const NOEXCEPT
+{
+    return transaction_strand_.running_in_this_thread();
 }
 
 BC_POP_WARNING()

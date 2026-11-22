@@ -173,6 +173,10 @@ protected:
         const system::data_chunk& passed,
         const system::chain::context& ctx) NOEXCEPT;
 
+    // Override base class strand because it sits on the network thread pool.
+    network::io::strand& strand() NOEXCEPT override;
+    bool stranded() const NOEXCEPT override;
+
 private:
     /// A set under submission, its running set and outcome.
     struct submission
@@ -211,7 +215,8 @@ private:
 
     code check(const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored, bool announced) NOEXCEPT;
-    code accept(const system::chain::transaction& tx) NOEXCEPT;
+    code accept(const system::chain::transaction& tx,
+        const system::chain::context& ctx) NOEXCEPT;
     code admit(database::tx_link& out, const system::chain::transaction& tx,
         uint32_t time) NOEXCEPT;
     code validate(const system::chain::transaction& tx,
@@ -261,7 +266,11 @@ private:
     /// Fire the event with the microseconds since the start.
     void fire_span(events event, const time_point& start) NOEXCEPT;
 
+    // This is not thread safe.
+    network::threadpool transaction_threadpool_;
+
     // These are thread safe.
+    network::io::strand transaction_strand_;
     network::threadpool scan_threadpool_;
     network::threadpool revalidation_threadpool_;
     stopper stopping_{};
@@ -278,7 +287,9 @@ private:
     bool due_{ true };
     bool scanning_{};
     bool revalidating_{};
+    bool unvalidated_{};
     uint32_t revalidated_flags_{};
+    system::chain::context retried_{};
     std::vector<uint64_t> marks_{};
     std::array<uint64_t, relay_slots> rates_{};
 };

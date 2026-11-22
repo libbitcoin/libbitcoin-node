@@ -234,6 +234,45 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__unpooled_block_tx__pooled,
     BC_REQUIRE_EQUAL(record.time, block.header().timestamp());
 }
 
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__relative_spender_of_reconfirmed_parent__revalidated, chaser_transaction_relative_setup_fixture)
+{
+    constexpr auto insufficient = bit_or(pool::algorithm::absent, pool::algorithm::insufficient);
+    const auto block2 = confirm();
+    const auto raised = bumped(3);
+    const auto tx = spend_relative(parent().hash(false), parent_value - 1'000, 2);
+    const auto result = submit(package({ tx }));
+    const auto link = query_.to_tx(tx->hash(false));
+    const auto before = cell(link);
+    const auto popped2 = query_.pop_confirmed();
+    node_.notify(node::error::success, chases::reorganized{ block2 });
+    const auto lowered2 = bumped(2);
+    const auto block1 = query_.to_header(parent_block().hash());
+    const auto popped1 = query_.pop_confirmed();
+    node_.notify(node::error::success, chases::reorganized{ block1 });
+    const auto lowered1 = bumped(1);
+    const auto other1 = confirm();
+    const auto other2 = confirm(to_shared<chain::transaction>(parent()));
+    const auto regained = bumped(3);
+    const auto locked = cell(link);
+    const auto other3 = confirm();
+    const auto unlocked = celled(link, pool::algorithm::unlabeled);
+
+    BC_REQUIRE(!block2.is_terminal());
+    BC_REQUIRE(raised);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(pool::algorithm::is_present(before));
+    BC_REQUIRE(popped2);
+    BC_REQUIRE(lowered2);
+    BC_REQUIRE(popped1);
+    BC_REQUIRE(lowered1);
+    BC_REQUIRE(!other1.is_terminal());
+    BC_REQUIRE(!other2.is_terminal());
+    BC_REQUIRE(regained);
+    BC_REQUIRE_EQUAL(locked, insufficient);
+    BC_REQUIRE(!other3.is_terminal());
+    BC_REQUIRE(unlocked);
+}
+
 BC_AUTO_TEST_SUITE_END()
 
 BC_AUTO_TEST_SUITE(chaser_transaction_scan_tests)

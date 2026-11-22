@@ -46,10 +46,12 @@ public:
         uint32_t bytes_per_sigop;
         uint32_t coinbase_weight;
         uint32_t maximum_chunk_depth;
+        bool thread_priority;
 
         /// Helpers.
         virtual uint64_t minimum_fee_rate_() const NOEXCEPT;
         virtual uint64_t cutoff_rate_() const NOEXCEPT;
+        virtual network::processing_priority thread_priority_() const NOEXCEPT;
     };
 
     /// The network of the defaults.

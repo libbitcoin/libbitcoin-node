@@ -162,7 +162,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             continue;
 
         const auto& tx = *txs->at(index);
-        auto ec = accept(tx);
+        auto ec = accept(tx, pool_);
         if (!ec && !spends_held(set, tx))
             ec = system::error::missing_previous_output;
 
@@ -458,7 +458,8 @@ code chaser_transaction::admit(database::tx_link& link,
     return error::success;
 }
 
-code chaser_transaction::accept(const chain::transaction& tx) NOEXCEPT
+code chaser_transaction::accept(const chain::transaction& tx,
+    const chain::context& ctx) NOEXCEPT
 {
     code ec{};
 
@@ -466,15 +467,15 @@ code chaser_transaction::accept(const chain::transaction& tx) NOEXCEPT
     // Guards ensure tx does not violate presumed block consensus rules.
     // These are DoS guards when validating a tx outside of a block.
     if (!ec) ec = tx.check();
-    if (!ec) ec = tx.check(pool_);
+    if (!ec) ec = tx.check(ctx);
     if (!ec) ec = tx.check_guard();
-    if (!ec) ec = tx.check_guard(pool_);
+    if (!ec) ec = tx.check_guard(ctx);
 
     // Store population follows all checks that do not require it.
     if (!ec) archive().populate_with_metadata(tx, true, true);
-    if (!ec) ec = tx.accept(pool_);
-    if (!ec) ec = tx.accept_guard(pool_);
-    if (!ec) ec = tx.confirm_guard(pool_);
+    if (!ec) ec = tx.accept(ctx);
+    if (!ec) ec = tx.accept_guard(ctx);
+    if (!ec) ec = tx.confirm_guard(ctx);
 
     // An unconfirmed conflict is admitted by coverage.
     return ec == system::error::double_spend ? error::success : ec;

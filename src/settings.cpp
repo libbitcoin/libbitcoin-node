@@ -33,7 +33,8 @@ settings::transaction_pool::transaction_pool() NOEXCEPT
     maximum_outcomes{ 1'024 },
     bytes_per_sigop{ 20 },
     coinbase_weight{ 2'000 },
-    maximum_chunk_depth{ 25 }
+    maximum_chunk_depth{ 25 },
+    thread_priority{ true }
 {
 }
 
@@ -50,6 +51,13 @@ uint64_t settings::transaction_pool::cutoff_rate_() const NOEXCEPT
 {
     return to_ceilinged_integer<uint64_t>(cutoff_rate *
         chain::satoshi_per_bitcoin);
+}
+
+network::processing_priority
+settings::transaction_pool::thread_priority_() const NOEXCEPT
+{
+    return thread_priority ? network::processing_priority::high :
+        network::processing_priority::medium;
 }
 
 settings::settings() NOEXCEPT
