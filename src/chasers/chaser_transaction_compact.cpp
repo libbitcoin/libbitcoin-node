@@ -197,14 +197,15 @@ void chaser_transaction::do_archive_block(
 }
 
 // The stored tx, or validated and archived, pooled under the block context.
+// Each block archives its own coinbase.
 code chaser_transaction::fill(database::tx_link& out,
     const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
-    out = to_stored(tx);
+    out = tx.is_coinbase() ? database::tx_link{} : to_stored(tx);
     if (!out.is_terminal())
     {
-        if (tx.is_coinbase() || !query.is_pooling() || !reusable(ctx) ||
+        if (!query.is_pooling() || !reusable(ctx) ||
             query.is_pooled(out) || query.is_confirmed_tx(out))
             return error::success;
 
