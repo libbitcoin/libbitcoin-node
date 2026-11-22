@@ -53,11 +53,11 @@ enum class chase
     /// Issued by 'confirm' and handled by 'snapshot'.
     snap,
 
-    /// Chaser directed to attempt start from its current position.
+    /// Chaser directed to attempt start from current position.
     /// Issued by 'organize' and handled by 'download', 'validate', 'confirm'.
     bump,
 
-    /// Channels (all) directed to stop with the given code.
+    /// Channels (all) directed to stop with given code.
     /// Issued by 'full_node' and handled by 'observer'.
     suspend,
 
@@ -85,14 +85,14 @@ enum class chase
     /// Issued by 'download' and handled by 'block_in_31800'.
     purge,
 
-    /// Channels (all) directed to write work count to the log.
+    /// Channels (all) directed to write work count to log.
     /// Issued by 'executor' and handled by 'block_in_31800'.
     report,
 
     /// Candidate Chain.
     /// -----------------------------------------------------------------------
 
-    /// A new candidate branch exists from given branch point.
+    /// New candidate branch exists from given branch point.
     /// Issued by 'header' and handled by 'download'.
     headers,
 
@@ -100,7 +100,7 @@ enum class chase
     /// Issued by 'download' and handled by 'block_in_31800'.
     download,
 
-    /// The candidate chain has been reorganized (branched below its top).
+    /// Candidate chain has been reorganized (branched below its top).
     /// Issued by 'organize' and handled by 'download', 'validate', 'confirm'.
     regressed,
 
@@ -111,81 +111,81 @@ enum class chase
     /// Check/Identify.
     /// -----------------------------------------------------------------------
 
-    /// A block has been downloaded, checked and stored.
+    /// Block has been downloaded, checked and stored.
     /// Issued by 'block_in_31800', handled by 'download', 'validate'.
     /// Populate is bypassed for checkpoint/milestone blocks.
     checked,
 
-    /// A downloaded block has failed check.
+    /// Downloaded block has failed check.
     /// Issued by 'block_in_31800', 'transaction' and handled by 'organize'.
     unchecked,
 
-    /// A downloaded window is completed by check.
+    /// Downloaded window is completed by check.
     /// Issued by 'download' and handled by 'validate'.
     windowed,
 
     /// Accept/Connect.
     /// -----------------------------------------------------------------------
 
-    /// A branch has become valid.
+    /// Branch has become valid.
     /// Issued by 'validate' and handled by 'download', 'confirm'.
     valid,
 
-    /// A checked block has failed validation.
+    /// Checked block has failed validation.
     /// Issued by 'validate' and handled by 'organize'.
     unvalid,
 
     /// Confirm (block).
     /// -----------------------------------------------------------------------
 
-    /// A connected block has become confirmable.
+    /// Connected block has become confirmable.
     /// Issued by 'confirm' and handled by none.
     confirmable,
 
-    /// A connected block has failed confirmability.
+    /// Connected block has failed confirmability.
     /// Issued by 'confirm' and handled by 'organize'.
     unconfirmable,
 
     /// Confirm (chain).
     /// -----------------------------------------------------------------------
 
-    /// A current block has been organized.
+    /// Current block has been organized.
     /// Issued by 'confirm' and handled by 'transaction',
     /// 'protocol_header/block_out'.
     block,
 
-    /// A current block has been settled in the pool.
+    /// Current block has been settled in pool.
     /// Issued by 'transaction' and handled by 'snapshot'.
     block_settled,
 
-    /// The store has been pruned (once, following the first settled block).
+    /// Store has been pruned (once, following first settled block).
     /// Issued by 'snapshot' and handled by 'transaction'.
     pruned,
 
-    /// The confirmed chain is no longer current.
+    /// Confirmed chain is no longer current.
     /// Issued by 'confirm' and handled by 'protocol_transaction_out'.
     stale,
 
-    /// A confirmable block has been confirmed.
+    /// Confirmable block has been confirmed.
     /// Issued by 'confirm' and handled by 'transaction'.
     organized,
 
-    /// A previously confirmed block has been unconfirmed.
+    /// Previously confirmed block has been unconfirmed.
     /// Issued by 'confirm' and handled by 'transaction'.
     reorganized,
 
     /// Mining.
     /// -----------------------------------------------------------------------
 
-    /// A transaction has been added to the pool.
+    /// Transaction has been added to pool.
     /// Issued by 'transaction' and handled by [clients].
     transaction,
 
-    /// A pooled transaction has been relayed to a word of slots, in order.
+    /// Pooled transaction has been relayed to word of slots, in order.
     /// Issued by 'transaction' and handled by 'protocol_transaction_out'.
     relay,
 
-    /// A candidate block (template) has been created, upon request.
+    /// Candidate block (template) has been created, upon request.
     /// Issued by 'template' and handled by [miners].
     template_,
 

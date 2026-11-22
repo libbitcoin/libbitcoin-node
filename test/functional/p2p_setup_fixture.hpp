@@ -58,8 +58,8 @@ private:
     network::acceptor::ptr acceptor_{};
 };
 
-// Runs a real full node accepting on loopback, with the test acting as the
-// remote peer over a raw blocking socket (framing via peer messages).
+// Runs real full node accepting on loopback, test acting as remote peer over
+// raw blocking socket (framing via peer messages).
 struct p2p_setup_fixture
 {
     DELETE_COPY_MOVE(p2p_setup_fixture);
@@ -91,8 +91,7 @@ struct p2p_setup_fixture
     /// Read framed messages until the command (true) or the terminal.
     bool received(const std::string& command, const std::string& terminal);
 
-    /// Read framed messages, true if the node drops the connection before
-    /// sending the command.
+    /// Read framed messages, true if node drops connection before command sent.
     bool dropped(const std::string& command);
 
     /// Perform the version handshake, retains the node's version message.
@@ -233,9 +232,9 @@ struct p2p_limited_setup_fixture
     }
 };
 
-// A header is archived before its block is associated, so the header link
-// resolves while the block remains absent from the archive. This is the
-// steady state of headers-first synchronization.
+// Header archived before its block is associated, so header link resolves
+// while block remains absent from archive.
+// Steady state of headers-first synchronization.
 struct p2p_unassociated_setup_fixture
   : p2p_setup_fixture
 {
@@ -253,9 +252,9 @@ struct p2p_unassociated_setup_fixture
     }
 };
 
-// A node with compact blocks enabled and a chain that is always current.
-// A candidate above the confirmed top precludes the store prune, which
-// suspends the network (dropping the test peer) when the chain coalesces.
+// Node with compact blocks enabled and chain always current. Candidate above
+// confirmed top precludes store prune, which suspends network (dropping test
+// peer) when chain coalesces.
 struct p2p_compact_setup_fixture
   : p2p_setup_fixture
 {

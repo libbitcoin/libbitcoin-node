@@ -327,8 +327,8 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__spender_of_unpooled_parent
     BC_REQUIRE(restored);
 }
 
-// The spender is pooled again after its parent, which is admitted and not
-// confirmed, and its context is swept before it is revalidated.
+// Spender pooled again after parent (admitted, not confirmed),
+// its context swept before revalidation.
 BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__parent_submitted__spender_swept_then_revalidated, chaser_transaction_single_setup_fixture)
 {
     const auto first = spend(parent_value - 1'000);

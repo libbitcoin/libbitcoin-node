@@ -240,8 +240,8 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     chain::transaction::cptr ptr{};
     auto witness = false;
 
-    // Drain unservable items, skipping non-tx inventory. The derived protocol
-    // accumulates them if it reports them, and otherwise stops the channel.
+    // Drain unservable items, skipping non-tx inventory. Derived protocol
+    // accumulates them if it reports them, and otherwise stops channel.
     for (; index < message->items.size(); ++index)
     {
         const auto& item = message->items.at(index);
@@ -257,9 +257,9 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
             return;
         }
 
-        // Tx could be always queried with witness and therefore safely cached.
-        // If can then be serialized according to channel configuration, however
-        // that is currently fixed to witness as available in the object.
+        // Tx could always be queried with witness and therefore safely cached.
+        // It can then be serialized according to channel configuration, however
+        // that is fixed to witness as available in object.
         ptr = query.get_transaction(to_transaction(item), witness);
         if (ptr)
             break;

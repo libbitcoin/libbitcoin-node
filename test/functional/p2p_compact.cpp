@@ -325,9 +325,9 @@ BC_AUTO_TEST_CASE(functional_p2p_compact__compact_block__short_id_mismatch__stop
     BC_REQUIRE(dropped(pong::command));
 }
 
-// An unidentified fill leaves evidence, resolved against the archived block.
-// Block 2 remains an unassociated candidate, so the chain never coalesces
-// (which would prune the store, suspending the network).
+// Unidentified fill leaves evidence, resolved against archived block.
+// Block 2 remains unassociated candidate, so chain never coalesces
+// (which would prune store, suspending network).
 BC_FIXTURE_TEST_CASE(functional_p2p_compact__compact_block__unidentified_then_archived__stopped, p2p_compact_candidate_setup_fixture)
 {
     BC_REQUIRE(handshake(full_node));

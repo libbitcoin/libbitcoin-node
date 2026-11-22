@@ -58,8 +58,8 @@ public:
     virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
-    /// Interface for a protocol to obtain the block of a compact block that
-    /// it did not fill, as work for its own channel (empty if issued before).
+    /// Interface for protocol to obtain block of compact block it did not fill,
+    /// as work for its own channel (empty if issued before).
     virtual void get_unfilled(header_t link, map_handler&& handler) NOEXCEPT;
 
 protected:

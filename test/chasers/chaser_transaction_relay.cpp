@@ -135,8 +135,8 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__relay__below_rate__not_relayed, chaser_
     BC_REQUIRE(recorded(events).empty());
 }
 
-// The parent (1,000 satoshis on 60 vbytes) is below the rate, the child
-// (20,000) clears it with the parent.
+// Parent (1,000 satoshis on 60 vbytes) below rate,
+// child (20,000) clears it with parent.
 BC_FIXTURE_TEST_CASE(chaser_transaction__relay__child_pays_for_parent__both_in_order, chaser_transaction_pooling_setup_fixture)
 {
     const auto low = spend(parent_value - 1'000);

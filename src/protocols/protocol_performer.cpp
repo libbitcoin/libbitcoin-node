@@ -93,7 +93,7 @@ void protocol_performer::send_performance(uint64_t rate) NOEXCEPT
 
     if (enabled_)
     {
-        // Must come first as this takes priority as per configuration.
+        // Must come first, as it takes priority per configuration.
         // Shared performance manager detects slow and stalled channels.
         if (deviation_)
         {

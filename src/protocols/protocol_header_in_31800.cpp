@@ -131,12 +131,11 @@ void protocol_header_in_31800::synchronize(const headers& message,
         return;
     }
 
-    // A message that does not extend the branch restarts from the parent of
-    // its first header. A single header with an unknown parent is an
-    // announcement from a peer that is ahead, so headers are requested from
-    // the top candidate. Multiple headers with an unknown parent are a
-    // response from a peer that does not connect to our locator, so the
-    // peer is dropped.
+    // Message that does not extend branch restarts from parent of its first
+    // header. Single header with unknown parent is an announcement from a peer
+    // that is ahead, so headers are requested from top candidate. Multiple
+    // headers with unknown parent are a response from a peer that does not
+    // connect to locator, so peer is dropped.
     const auto& first = ptrs.front()->previous_block_hash();
     if ((!state_ || first != state_->hash()) && !restart(first))
     {
@@ -253,8 +252,8 @@ void protocol_header_in_31800::collect(const headers& message,
             LOGP("Archived headers to [" << encode_hash(previous_) << ":"
                 << height_ << "] from [" << opposite() << "].");
 
-            // Resume synchronization above the proven top (state_ retained),
-            // which is independent of when the organizer archives it.
+            // Resume synchronization above proven top (state_ retained), which
+            // is independent of when organizer archives it.
             samples_.clear();
             milestone_ = zero;
             archiving_ = false;
@@ -391,8 +390,8 @@ void protocol_header_in_31800::handle_organize(const code& ec,
         << "] from [" << opposite() << "] " << ec.message());
 }
 
-// This could be the end of a catch-up sequence, or a singleton announcement.
-// The distinction is ultimately arbitrary, but this signals peer completeness.
+// Could be end of a catch-up sequence, or a singleton announcement.
+// Distinction is ultimately arbitrary, but this signals peer completeness.
 void protocol_header_in_31800::complete() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -419,7 +418,7 @@ void protocol_header_in_31800::resynchronize() NOEXCEPT
 
 // Inbound (inv).
 // ----------------------------------------------------------------------------
-// Handle announcement by requesting headers if the last announced is missing.
+// Handle announcement by requesting headers if last announced is missing.
 
 bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
@@ -449,9 +448,9 @@ bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
 
 get_headers protocol_header_in_31800::create_get_headers() const NOEXCEPT
 {
-    // Header sync is from the archived (strong) candidate chain.
-    // Until the header tree is current the candidate chain remains empty.
-    // So all channels will fully sync from the top candidate at their startup.
+    // Header sync is from archived (strong) candidate chain.
+    // Until header tree is current, candidate chain remains empty.
+    // So all channels fully sync from top candidate at their startup.
     const auto& query = archive();
     const auto index = get_headers::heights(query.get_top_candidate());
     return create_get_headers(query.get_candidate_hashes(index));

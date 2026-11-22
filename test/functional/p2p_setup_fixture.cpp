@@ -162,8 +162,8 @@ object_key p2p_setup_fixture::subscribe()
     return subscribed.get_future().get();
 }
 
-// The state is shared, as the subscription may outlive the call. Either end
-// of the subscription (the event or a stop code) completes the wait.
+// State shared, as subscription may outlive call. Either end of subscription
+// (event or stop code) completes wait.
 uint64_t p2p_setup_fixture::fired_value(uint8_t event,
     const std::function<void()>& act)
 {

@@ -37,8 +37,8 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 // submit
 // ----------------------------------------------------------------------------
 
-// The first measured component over a limit, its check, counts and members
-// (K candidate, otherwise the pooled wtxid).
+// First measured component over a limit, its check, counts and members
+// (K candidate, otherwise pooled wtxid).
 static std::string describe_limit(const node::query& query,
     const node::query::pool_graph& graph, size_t given,
     const pool::algorithm::totals_t& limit, size_t maximum_outcomes) NOEXCEPT
@@ -124,12 +124,12 @@ void chaser_transaction::submit_announced(const transactions_cptr& txs,
 }
 
 // private
-// A set is tested prefix by prefix. The running set is its unstored txs since
-// the last prefix to clear, and clears when its coverage does.
-// It is then connected and admitted, and the next tx starts another. An
-// announced set is a batch, not a package, so a tx of it that is not accepted,
-// or that exceeds a pool limit, is passed over as if stored. A tx is accepted
-// only if each parent is confirmed, pooled, or accepted before it in the set.
+// Set is tested prefix by prefix. Running set is its unstored txs since last
+// prefix to clear, and clears when its coverage does. It is then connected
+// and admitted, and next tx starts another. Announced set is a batch, not a
+// package, so a tx of it not accepted, or exceeding a pool limit, is passed
+// over as if stored. A tx is accepted only if each parent is confirmed,
+// pooled, or accepted before it in set.
 void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     bool announced, size_t slot, const submit_handler& handler) NOEXCEPT
 {
@@ -304,7 +304,7 @@ void chaser_transaction::count(submission& set,
 }
 
 // private
-// The running set is bounded by a block, and its coverage by the pool limits.
+// Running set is bounded by a block, and its coverage by pool limits.
 code chaser_transaction::extend(bool& covered, submission& set,
     size_t index) NOEXCEPT
 {
@@ -354,7 +354,7 @@ code chaser_transaction::extend(bool& covered, submission& set,
 }
 
 // private
-// The running set before the index, without any tx passed over.
+// Running set before index, without any tx passed over.
 code chaser_transaction::restore(submission& set, size_t index) NOEXCEPT
 {
     auto& query = archive();
@@ -379,8 +379,8 @@ code chaser_transaction::restore(submission& set, size_t index) NOEXCEPT
 }
 
 // private
-// Script validation is the most costly, so it follows the guards. In a test
-// the cleared txs are not pooled, so remain given candidates.
+// Script validation is most costly, so it follows guards. In a test, cleared
+// txs are not pooled, so remain given candidates.
 code chaser_transaction::clear(size_t& at, submission& set,
     size_t index) NOEXCEPT
 {
@@ -431,8 +431,8 @@ code chaser_transaction::clear(size_t& at, submission& set,
 // validation
 // ----------------------------------------------------------------------------
 
-// A tx of an announced set that precedes its parent is not accepted, and
-// its txs that spend one point are rivals.
+// Tx of announced set preceding its parent is not accepted, and its txs that
+// spend one point are rivals.
 code chaser_transaction::check(const transaction_cptrs& txs,
     const std::vector<bool>& stored, bool announced) NOEXCEPT
 {

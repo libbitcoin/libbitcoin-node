@@ -720,8 +720,8 @@ struct validate_noncandidates_fixture
     }
 };
 
-// Commits a prevalid to the admitting bank and loses the drain claim during
-// the first drain, as a completing validation does.
+// Commits prevalid to admitting bank, loses drain claim during first drain,
+// as completing validation does.
 struct validate_drain_accessor
   : chaser_validate
 {

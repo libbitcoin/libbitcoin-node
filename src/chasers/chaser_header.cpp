@@ -69,10 +69,10 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
 code chaser_header::start() NOEXCEPT
 {
     // Initialize cache of top candidate chain state.
-    // Spans full chain to obtain cumulative work. This can be optimized by
-    // storing it with each header, though the scan is fast. The same occurs
-    // when a block first branches below the current chain top. Chain work
-    // is a questionable DoS protection scheme only, so could also toss it.
+    // Spans full chain to obtain cumulative work. Can be optimized by storing
+    // it with each header, though scan is fast. Same occurs when block first
+    // branches below current chain top. Chain work is questionable DoS
+    // protection scheme only, so could also toss it.
     const auto& query = archive();
     const auto top = query.get_top_candidate();
     state_ = query.get_candidate_chain_state(settings_, top);
@@ -377,19 +377,19 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     {
         if (!bumped_)
         {
-            // If at start the fork point is top of both chains, and next
-            // candidate is already downloaded, then new header will arrive and
-            // download will be skipped, resulting in stall until restart at
-            // which time the start event will advance through all downloaded
-            // candidates and progress on arrivals. This bumps validation for
-            // the first current strong header, and for the first following
-            // each regression, as the candidate above the branch point may
-            // already be downloaded when reorganizing back to a stored branch.
+            // If at start fork point is top of both chains, and next candidate
+            // already downloaded, then new header will arrive and download will
+            // be skipped, resulting in stall until restart, at which time start
+            // event will advance through all downloaded candidates and progress
+            // on arrivals. This bumps validation for first current strong
+            // header, and for first following each regression, as candidate
+            // above branch point may already be downloaded when reorganizing
+            // back to stored branch.
             notify(error::success, chases::bump{ add1(branch_point) });
             bumped_ = true;
         }
 
-        // This prevents download stall, the download chaser races ahead.
+        // Prevents download stall, download chaser races ahead.
         // Start block downloads, which upon completion bumps validation.
         notify(error::success, chases::headers{ branch_point });
     }
@@ -576,11 +576,10 @@ void chaser_header::do_disorganize(header_t link) NOEXCEPT
 code chaser_header::duplicate(size_t& height,
     const hash_digest& hash) const NOEXCEPT
 {
-    // With a candidate reorg that drops strong below a valid header chain,
-    // this will cause a sequence of headers to be bypassed, such that a
-    // parent of a block that doesn't exist will not be a candidate, which
-    // result in a failure of get_chain_state, because it depends on candidate
-    // state. So get_chain_state needs to be chain independent.
+    // With candidate reorg that drops strong below valid header chain, a
+    // sequence of headers is bypassed, such that parent of a block that doesn't
+    // exist will not be candidate, resulting in get_chain_state failure, as it
+    // depends on candidate state. So get_chain_state must be chain independent.
 
     height = max_size_t;
     const auto& query = archive();
@@ -647,8 +646,8 @@ bool chaser_header::set_organized(const header_link& link,
     return true;
 }
 
-// Headers cannot be set strong, that is only when the block is archived.
-// Milestone is archived in the header and like checkpoint cannot change.
+// Headers cannot be set strong, only when block is archived.
+// Milestone is archived in header and, like checkpoint, cannot change.
 // But unlike checkpointed, milestoned blocks may not be strong chain.
 code chaser_header::push_header(header_link& link, const header& header,
     const context& ctx, const uint256_t& work, bool milestone,

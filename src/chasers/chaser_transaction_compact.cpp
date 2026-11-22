@@ -47,8 +47,8 @@ void chaser_transaction::submit_compact(const transactions_cptr& txs,
     POST(do_submit_compact, txs, links, link, std::move(handler));
 }
 
-// A compact block is not filled while a block archives off the strand, so a
-// block that finds the pool closed archives alone.
+// Compact block is not filled while a block archives off strand, so a block
+// that finds pool closed archives alone.
 bool chaser_transaction::archive_block(code& ec,
     const chain::view::block::cptr& block, const database::header_link& link,
     bool strong, bool bypass, size_t height, bool prune,
@@ -132,10 +132,10 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return true;
     };
 
-    // Txs are an arbitrary subset of the block, so block checks are deferred to
-    // validation. Each is archived before the next, so in block order a parent
-    // is resolved from the store. The coinbase (never a parent within its
-    // block) is archived last, as validation indexes only txs linked above it.
+    // Txs are an arbitrary subset of block, so block checks are deferred to
+    // validation. Each is archived before next, so in block order a parent is
+    // resolved from store. Coinbase (never a parent within its block) is
+    // archived last, as validation indexes only txs linked above it.
     auto filled = links;
     const auto deferred = filled.front() == terminal;
     auto index = deferred ? one : zero;

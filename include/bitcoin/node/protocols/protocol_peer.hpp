@@ -104,7 +104,7 @@ protected:
         network::result_handler&& handler) const NOEXCEPT;
 
     /// Suspend all existing and future network connections.
-    /// A race condition could result in an unsuspended connection.
+    /// Race condition could result in unsuspended connection.
     virtual code fault(const code& ec) NOEXCEPT;
 
     /// Announcements.

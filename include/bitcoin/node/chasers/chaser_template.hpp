@@ -38,8 +38,7 @@ public:
 
     code start() NOEXCEPT override;
 
-    /// A template of pooled txs built upon the request, parents first, and
-    /// its height.
+    /// Template of pooled txs built on request, parents first, and its height.
     virtual void get_template(template_handler&& handler) NOEXCEPT;
 
 protected:

@@ -192,7 +192,7 @@ void chaser_download::stop_tracking() NOEXCEPT
     ////BC_ASSERT(stranded());
 
     // shared_ptr.reset() is thread safe so can be called at stop.
-    // Resetting our own pointer allows destruct and call to handle_purged.
+    // Resetting own pointer allows destruct and call to handle_purged.
     job_.reset();
 }
 
@@ -350,8 +350,7 @@ void chaser_download::do_regressed(height_t branch_point) NOEXCEPT
         return;
 
     // Update position and window, purge outstanding work, and wait on track
-    // completion. The window must follow the position or the gap it awaits
-    // is never requested.
+    // completion. Window must follow position or awaited gap never requested.
     set_position(std::min(branch_point, position()));
     requested_ = advanced_ = position();
     stop_tracking();
@@ -518,7 +517,7 @@ bool chaser_download::set_map(const map_ptr& map) NOEXCEPT
 
 // Get all unassociated block records from start to stop heights.
 // Groups records into table sets by inventory set size, limited by advance.
-// Return the total number of records obtained and set requested_ to last.
+// Return total number of records obtained and set requested_ to last.
 size_t chaser_download::set_unassociated() NOEXCEPT
 {
     // Called from start.
@@ -540,11 +539,11 @@ size_t chaser_download::set_unassociated() NOEXCEPT
             return {};
 
     // Due to previous downloads, validation can race ahead of last request.
-    // The last request (requested_) stops at the last gap in the window, but
-    // validation continues until the next gap. Start next scan above validated
-    // not last requested, since all between are already downloaded.
-    // Bypassed blocks may archive unprobed, so the window must not extend
-    // above the bypass height until all blocks at/below it are associated.
+    // Last request (requested_) stops at last gap in window, but validation
+    // continues until next gap. Start next scan above validated, not last
+    // requested, since all between are already downloaded. Bypassed blocks may
+    // archive unprobed, so window must not extend above bypass height until all
+    // blocks at/below it are associated.
     const auto& query = archive();
     const auto previous = requested_;
     const auto step = ceilinged_add(position(), maximum_concurrency_);
@@ -607,8 +606,8 @@ void chaser_download::handle_compact_timer(const code& ec) NOEXCEPT
     do_headers({});
 }
 
-// The block is issued once, to the first channel that did not fill it. Other
-// work found by the scan is announced to all channels.
+// Block is issued once, to first channel that did not fill it. Other work
+// found by scan is announced to all channels.
 void chaser_download::do_get_unfilled(header_t link,
     const map_handler& handler) NOEXCEPT
 {

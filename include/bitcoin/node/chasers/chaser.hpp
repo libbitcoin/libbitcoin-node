@@ -29,10 +29,10 @@ class full_node;
 
 /// Abstract base chaser for thread safe chain state management classes.
 /// Chasers impose order on blockchain/pool construction as necessary.
-/// Each chaser operates on its own strand, implemented here, allowing
-/// concurrent chaser operations to the extent that threads are available.
-/// Events are passed between chasers using the full_node shared notifier.
-/// Unlike protocols chasers can stop the node.
+/// Each chaser operates on own strand, implemented here, allowing concurrent
+/// chaser operations to extent threads are available.
+/// Events are passed between chasers using full_node shared notifier.
+/// Unlike protocols, chasers can stop node.
 class BCN_API chaser
   : public network::reporter
 {
@@ -79,7 +79,7 @@ protected:
     virtual bool suspended() const NOEXCEPT;
 
     /// Suspend all existing and future network connections.
-    /// A race condition could result in an unsuspended connection.
+    /// Race condition could result in unsuspended connection.
     virtual code fault(const code& ec)  NOEXCEPT;
 
     /// Resume all network connections.

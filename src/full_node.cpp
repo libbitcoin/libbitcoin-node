@@ -114,7 +114,7 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
     }
 
     // Bump sequential chasers to their starting heights.
-    // This will kick off lagging validations even if not current.
+    // Kicks off lagging validations even if not current.
     do_notify(error::success, chases::start{});
 
     // Start services after network is running.
@@ -476,9 +476,9 @@ code full_node::reload(const store::event_handler& handler) NOEXCEPT
     const auto start = logger::now();
     suspend(error::store_reload);
 
-    // This will set the store's dirty flag causing increased read activity for
-    // set(tx/block) due to activation of duplicate detection. The store is
-    // is however always in a dirty state after startup with non-empty tables.
+    // Sets store's dirty flag, causing increased read activity for
+    // set(tx/block) due to activation of duplicate detection. Store is however
+    // always in a dirty state after startup with non-empty tables.
     const auto ec = query_.reload([&](auto event, auto table) NOEXCEPT
     {
         // Suspend channels that missed previous suspend events.

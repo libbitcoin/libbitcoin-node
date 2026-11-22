@@ -629,8 +629,8 @@ struct chaser_transaction_setup_fixture
             std::vector<uint64_t> values{};
         };
 
-        // The state is shared, as the subscription may outlive the call.
-        // Every unsubscription (sentinel or stop code) completes the wait.
+        // State shared, as subscription may outlive call.
+        // Every unsubscription (sentinel or stop code) completes wait.
         const auto shared = std::make_shared<state>();
         auto done = shared->done.get_future();
         log_.subscribe_events([=](const code& ec, uint8_t event_,
@@ -703,8 +703,7 @@ struct chaser_transaction_setup_fixture
         }
     }
 
-    // The payload of the command if received before the pong of a subsequent
-    // ping, otherwise empty.
+    // Payload of command if received before pong of next ping, else empty.
     data_chunk receive_before_pong(const std::string& command)
     {
         send(peer::ping{ 42 }, node_version->value);

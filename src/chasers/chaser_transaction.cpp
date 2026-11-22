@@ -139,9 +139,9 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
     return true;
 }
 
-// The pool is closed until the confirmed chain is current, and closes again if
-// currency is lost, though the store latch is one way, since the txs archived
-// while it was open outlive it.
+// Pool is closed until confirmed chain is current, and closes again if
+// currency is lost, though store latch is one way, since txs archived while
+// it was open outlive it.
 void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -177,8 +177,7 @@ void chaser_transaction::do_bump() NOEXCEPT
         const auto previous = pool_;
         pool_ = chain_state{ *state, system_settings() }.context();
 
-        // A row holds while no flag changes and neither height nor median
-        // time past falls.
+        // Row holds unless a flag changes or height or median time past falls.
         due_ = due_ || pool_.flags != previous.flags ||
             pool_.height < previous.height ||
             pool_.median_time_past < previous.median_time_past;
@@ -209,8 +208,8 @@ void chaser_transaction::do_bump() NOEXCEPT
     if (!query.silent_enabled() || scanning_)
         return;
 
-    // A complete map reaches genesis, and keeps up with the top until latched.
-    // Rows of a block archived before the latch may precede mapped starts.
+    // Complete map reaches genesis, and keeps up with top until latched.
+    // Rows of a block archived before latch may precede mapped starts.
     const auto top = query.to_top_confirmed();
     const auto unmapped = query.get_scan_start(top).is_terminal();
     if (query.get_scan_start(query.to_confirmed(zero)).is_terminal())
@@ -239,8 +238,8 @@ bool chaser_transaction::is_sufficient(
         database::context::from(ctx));
 }
 
-// A sweep remains due while it leaves any row unsatisfied, so that the row is
-// restored once the pool context satisfies it.
+// Sweep remains due while it leaves any row unsatisfied, so row is restored
+// once pool context satisfies it.
 bool chaser_transaction::sweep() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -262,8 +261,8 @@ bool chaser_transaction::sweep() NOEXCEPT
 }
 
 // Rows left out by flags are revalidated once per change of flags, and rows
-// not validated once per change of the pool context, so a row that fails is
-// retried only under another context.
+// not validated once per change of pool context, so failing row is retried
+// only under another context.
 void chaser_transaction::start_revalidation() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -306,9 +305,9 @@ void chaser_transaction::start_revalidation() NOEXCEPT
         BIND(do_revalidate, std::move(links), pool_));
 }
 
-// Revalidation is admission under the context, as confirmation of what a row
-// spends may differ from when it was pooled. Sigops are counted under the
-// flags of the context, so a tx that passes is counted again.
+// Revalidation is admission under context, as confirmation of what a row spends
+// may differ from when it was pooled. Sigops are counted under flags of
+// context, so a passing tx is counted again.
 void chaser_transaction::do_revalidate(const database::tx_links& links,
     const chain::context& ctx) NOEXCEPT
 {
@@ -337,8 +336,8 @@ void chaser_transaction::do_revalidate(const database::tx_links& links,
     POST(do_revalidated, links, std::move(passed), std::move(sigops), ctx);
 }
 
-// The pool context may have moved under the revalidation, and a reorganization
-// under it may have unvalidated a row that it passed.
+// Pool context may have moved under revalidation, and a reorganization under
+// it may have unvalidated a row it passed.
 void chaser_transaction::do_revalidated(const database::tx_links& links,
     const data_chunk& passed, const std::vector<size_t>& sigops,
     const chain::context& ctx) NOEXCEPT
@@ -421,8 +420,8 @@ void chaser_transaction::do_scanned(bool mapped) NOEXCEPT
     do_bump();
 }
 
-// Index transitions are applied in the order confirmed, once the store is
-// pooling and while relay is enabled, whether or not the pool is open.
+// Index transitions are applied in order confirmed, once store is pooling
+// and while relay is enabled, whether or not pool is open.
 void chaser_transaction::do_organized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -448,8 +447,7 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
     do_bump();
 }
 
-// The block was organized before it was announced, so its transition has
-// been applied.
+// Block organized before announced, so its transition has been applied.
 void chaser_transaction::do_block(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -459,8 +457,8 @@ void chaser_transaction::do_block(header_t link) NOEXCEPT
     notify(error::success, chases::block_settled{ link });
 }
 
-// Pooled in block order under the block context, excluding any confirmed (by
-// another block).
+// Pooled in block order under block context,
+// excluding any confirmed (by another block).
 void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -557,8 +555,8 @@ chaser_transaction::time_point chaser_transaction::now() NOEXCEPT
     return std::chrono::steady_clock::now();
 }
 
-// The fee and size are recomputed here, as they are for the package rate and
-// for block fees, so the rate could instead be cached on the transaction.
+// Fee and size are recomputed here, as for package rate and block fees, so
+// rate could instead be cached on transaction.
 size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
 {
     const auto size = tx.virtual_size();

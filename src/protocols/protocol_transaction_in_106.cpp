@@ -125,7 +125,7 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
 }
 
 // private
-// The txs requested of the announcement are one set, in its order.
+// Txs requested of announcement are one set, in its order.
 get_data protocol_transaction_in_106::create_get_data(
     const inventory& message) NOEXCEPT
 {
@@ -186,7 +186,7 @@ void protocol_transaction_in_106::advance(size_t set) NOEXCEPT
 }
 
 // private
-// A tx of the set that is yet to arrive is a set of its own when it does.
+// Tx of set yet to arrive is a set of its own when it does.
 void protocol_transaction_in_106::flush() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -301,15 +301,15 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec,
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    // A conflict with an unconfirmed tx is not misbehavior, as the peer
-    // cannot know what is held here, and a requested tx may be archived from
-    // another peer before it arrives. An unknown prevout is not misbehavior,
-    // as announcement order is not constrained and orphans are not pooled.
-    // A locked tx is final to a peer one block ahead, as locks are evaluated
-    // against the presumed next block, so neither lock is misbehavior.
-    // The rate and suspension cannot be advertised below bip133, so a tx that
-    // violates either is not misbehavior (see protocol_transaction_in_70013).
-    // The peer cannot know the extent of a conflict component held here.
+    // Conflict with an unconfirmed tx is not misbehavior, as peer cannot know
+    // what is held here, and a requested tx may be archived from another peer
+    // before it arrives. Unknown prevout is not misbehavior, as announcement
+    // order is not constrained and orphans are not pooled. Locked tx is final
+    // to a peer one block ahead, as locks are evaluated against presumed next
+    // block, so neither lock is misbehavior. Rate and suspension cannot be
+    // advertised below bip133, so a tx violating either is not misbehavior
+    // (see protocol_transaction_in_70013). Peer cannot know extent of a
+    // conflict component held here.
     if (ec &&
         (ec != error::pooling_disabled) &&
         (ec != error::insufficient_fee) &&

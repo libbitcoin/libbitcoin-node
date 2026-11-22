@@ -103,7 +103,7 @@ bool protocol_header_in_70014::handle_receive_send_compact(const code& ec,
     return true;
 }
 
-// High bandwidth is requested of a peer that signaled compact blocks, once the
+// High bandwidth is requested of a peer that signaled compact blocks, once
 // chain is current, whichever comes last, while a slot is free.
 void protocol_header_in_70014::upgrade() NOEXCEPT
 {
@@ -271,7 +271,7 @@ void protocol_header_in_70014::collect(const compact_block& message,
         request();
 }
 
-// Prefilled txs by differentially encoded index, short ids in the remaining
+// Prefilled txs by differentially encoded index, short ids in remaining
 // positions (bip152).
 bool protocol_header_in_70014::decode(fill& block,
     const compact_block& message) NOEXCEPT
@@ -393,8 +393,8 @@ bool protocol_header_in_70014::handle_receive_compact_transactions(
         return false;
     }
 
-    // The peer's short id for each position must match its own tx. A coinbase
-    // short id is over its witness serialization, not its null wtxid (bip152).
+    // Peer's short id for each position must match its own tx. Coinbase short
+    // id is over its witness serialization, not its null wtxid (bip152).
     for (size_t index{}; index < txs.size(); ++index)
     {
         const auto& tx = txs.at(index);
@@ -580,8 +580,8 @@ void protocol_header_in_70014::do_submit_compact(const code& ec,
 
 // Unfilled.
 // ----------------------------------------------------------------------------
-// The block is requested of the peer that announced it, as work of the
-// channel's block protocol, and work not taken is returned.
+// Block is requested of peer that announced it, as work of channel's block
+// protocol, and work not taken is returned.
 
 // not stranded
 void protocol_header_in_70014::handle_unfilled(const code& ec,
@@ -614,9 +614,9 @@ void protocol_header_in_70014::restore(const map_ptr& map) NOEXCEPT
 // Evidence.
 // ----------------------------------------------------------------------------
 
-// Evidence of an unidentified compact block is held until the peer's next
-// compact block, when it is resolved against the block if then archived. A
-// resend of the block in evidence is not filled while it remains unarchived.
+// Evidence of an unidentified compact block is held until peer's next compact
+// block, when it is resolved against the block if then archived. Resend of
+// block in evidence is not filled while it remains unarchived.
 bool protocol_header_in_70014::resolve(
     const database::header_link& link) NOEXCEPT
 {

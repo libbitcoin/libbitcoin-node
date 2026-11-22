@@ -28,10 +28,10 @@ namespace node {
 
 class full_node;
 
-/// Chase down stronger header branches for the candidate chain.
-/// Weak branches are retained in a hash table if not store populated.
-/// Strong branches reorganize the candidate chain and fire the 'header' event.
-/// Headers are validated and proven by the protocol, so all are storable.
+/// Chase down stronger header branches for candidate chain.
+/// Weak branches are retained in hash table if not store populated.
+/// Strong branches reorganize candidate chain and fire 'header' event.
+/// Headers are validated and proven by protocol, so all are storable.
 class BCN_API chaser_header
   : public chaser
 {

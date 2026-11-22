@@ -35,10 +35,10 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// This protocol provides witness support despite 106 being much older than
-// bip144. This is because protocols are splot on the version negotiated in the
-// p2p handshake. Witness is enabled via a service bit. Protocols should also
-// be factored based on relevant service bits but that is not yet implemented.
+// Protocol provides witness support despite 106 being much older than bip144,
+// as protocols are split on version negotiated in p2p handshake. Witness is
+// enabled via a service bit. Protocols should also be factored on relevant
+// service bits, but that is not yet implemented.
 
 // start/stop
 // ----------------------------------------------------------------------------
@@ -177,9 +177,8 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
 
     const auto& query = archive();
 
-    // Drain unservable items, skipping non-block inventory. The derived
-    // protocol accumulates them if it reports them, and otherwise stops the
-    // channel on the first.
+    // Drain unservable items, skipping non-block inventory. Derived protocol
+    // accumulates them if it reports them, otherwise stops channel on first.
     database::header_link link{};
     for (; index < message->items.size(); ++index)
     {

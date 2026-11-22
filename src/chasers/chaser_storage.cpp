@@ -151,8 +151,8 @@ void chaser_storage::do_reload() NOEXCEPT
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
-        // A locked reload is a wait (in-flight accessors), not a failure:
-        // retry on the timer. All other store errors are terminal.
+        // Locked reload is a wait (in-flight accessors), not a failure: retry
+        // on timer. All other store errors are terminal.
         if (ec == database::error::reload_locked)
         {
             LOGN("Reload deferred by in-flight accessors.");

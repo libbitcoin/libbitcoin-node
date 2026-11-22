@@ -225,7 +225,7 @@ network::wall_clock::duration settings::currency_window() const NOEXCEPT
 network::processing_priority settings::thread_priority_() const NOEXCEPT
 {
     // medium is "normal" (os default), so true is a behavior change.
-    // highest is too much, as it makes the opreating system UI unresponsive.
+    // highest is too much, as it makes operating system UI unresponsive.
     return thread_priority ? network::processing_priority::high :
         network::processing_priority::medium;
 }

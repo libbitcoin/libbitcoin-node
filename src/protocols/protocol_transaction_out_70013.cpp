@@ -61,8 +61,8 @@ void protocol_transaction_out_70013::subscribed(const code& ec,
 // Outbound (feefilter).
 // ----------------------------------------------------------------------------
 
-// bip133: a relaying channel is sent every tx (coverage decides admission),
-// and one with no relay slot, or while not current, is sent nothing.
+// bip133: relaying channel is sent every tx (coverage decides admission), and
+// one with no relay slot, or while not current, is sent nothing.
 void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -77,7 +77,7 @@ void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
     set_silenced(!relaying);
     NOTIFY(fee_filter{ minimum }, handle_send, _1);
 
-    // bip35: the reply follows the zero filter, so it is not filtered.
+    // bip35: reply follows zero filter, so it is not filtered.
     // Core drops a mempool sender unless it serves bloom filters or permits
     // the sender, a restriction outside bip35 (whitelist this node there).
     if (relaying && !requested_ && request_mempool())

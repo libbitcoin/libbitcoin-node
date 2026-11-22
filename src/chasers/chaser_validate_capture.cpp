@@ -79,11 +79,10 @@ signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
     };
 }
 
-// Commit this thread's captured signatures as the block's batch rows. All
-// batch table state is written inside the commit epoch (turnstile). Upon
-// store decline, the rows are verified in place, equivalent to the inline
-// evaluation their capture fabricated (batched is cleared so the block
-// completes by the non-batched path).
+// Commit this thread's captured signatures as block's batch rows. All batch
+// table state is written inside commit epoch (turnstile). Upon store decline,
+// rows are verified in place, equivalent to inline evaluation their capture
+// fabricated (batched is cleared so block completes by non-batched path).
 code chaser_validate::commit_capture(bool& batched,
     const header_link& link) NOEXCEPT
 {
@@ -138,9 +137,9 @@ void chaser_validate::clear_capture() NOEXCEPT
     signatures::schnorr_rows().clear();
 }
 
-// Release all threads' accumulator capacity (batching subsided). Safe on the
-// strand with an empty backlog: accumulators are populated only within
-// validate_block, and the strand is the sole poster of validations.
+// Release all threads' accumulator capacity (batching subsided). Safe on
+// strand with empty backlog: accumulators are populated only within
+// validate_block, and strand is sole poster of validations.
 void chaser_validate::do_purge_capture() NOEXCEPT
 {
     BC_ASSERT(stranded());

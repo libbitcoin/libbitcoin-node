@@ -44,27 +44,26 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
     void stop() NOEXCEPT override;
 
-    /// Validate and archive a submitted set, admitted prefix by prefix until
-    /// one tx fails. The set is only validated when test, nothing archived.
+    /// Validate and archive submitted set, admitted prefix by prefix until one
+    /// tx fails. Set is only validated when test, nothing archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
 
-    /// Validate and archive an announced set, admitted prefix by prefix, a tx
-    /// that is not accepted passed over (the first such failure reported).
+    /// Validate and archive announced set, admitted prefix by prefix, tx not
+    /// accepted passed over (first such failure reported).
     virtual void submit_announced(
         const system::chain::transactions_cptr& txs, size_t slot,
         submit_handler&& handler) NOEXCEPT;
 
-    /// Validate, archive and associate the txs of an identified compact block,
-    /// in block order, the txs filling the terminal links.
+    /// Validate, archive and associate txs of identified compact block, in
+    /// block order, txs filling terminal links.
     virtual void submit_compact(const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
-    /// Archive and associate the txs of an identified block. Not pooling, on
-    /// the calling thread, returning true with the code. Pooling, on the
-    /// strand with compact blocks, returning false and handling the code
-    /// (thread safe).
+    /// Archive and associate txs of identified block. Not pooling, on calling
+    /// thread, returning true with code. Pooling, on strand with compact
+    /// blocks, returning false and handling code (thread safe).
     virtual bool archive_block(code& ec,
         const system::chain::view::block::cptr& block,
         const database::header_link& link, bool strong, bool bypass,
@@ -132,10 +131,10 @@ protected:
     virtual void do_get_confirmable_fees(
         const confirmable_fees_handler& handler) NOEXCEPT;
 
-    /// Recompute the pool context and sweep the index by it if due, closing
-    /// the pool if not current or the context is not reusable, and map scan
-    /// starts: built once current, extended by block until pooling, and
-    /// remapped when a block archived before the latch is organized.
+    /// Recompute pool context and sweep index by it if due, closing pool if not
+    /// current or context not reusable, and map scan starts: built once
+    /// current, extended by block until pooling, and remapped when block
+    /// archived before latch is organized.
     virtual void do_bump() NOEXCEPT;
 
     /// Retain the pool subscription.
@@ -243,13 +242,13 @@ private:
     void start_scan(bool remap) NOEXCEPT;
     void start_revalidation() NOEXCEPT;
 
-    /// Relay the txs with their unconfirmed ancestry, marked held by origin,
-    /// to each of the slots whose rate the sum of the rows it lacks clears.
+    /// Relay txs with their unconfirmed ancestry, marked held by origin, to
+    /// each slot whose rate the sum of rows it lacks clears.
     bool relay(const database::tx_links& links, size_t origin,
         uint64_t slots, object_key key={}) NOEXCEPT;
 
-    /// Relay the confirmable txs in row order, each with the ancestry the
-    /// slot lacks, where that clears the slot's rate.
+    /// Relay confirmable txs in row order, each with ancestry slot lacks, where
+    /// that clears slot's rate.
     bool sweep_relay(size_t slot) NOEXCEPT;
 
     /// Owe slot a sweep, made now unless swept since last block.
@@ -275,8 +274,8 @@ private:
     static uint64_t arriving(const query::pool_arrivals& arrivals,
         uint64_t rate, estimate_mode mode) NOEXCEPT;
 
-    /// Notify pool subscribers of the scan, timed from its start, and fire
-    /// its event (other than for coverage, which fires only when it clears).
+    /// Notify pool subscribers of scan, timed from its start, and fire its
+    /// event (other than for coverage, which fires only when it clears).
     using time_point = std::chrono::steady_clock::time_point;
     static time_point now() NOEXCEPT;
     void report(pool_scan scan, const time_point& start) NOEXCEPT;

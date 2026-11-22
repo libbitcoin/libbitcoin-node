@@ -434,8 +434,8 @@ private:
     std::vector<event_value> events_{};
 };
 
-// Counts top latency events fired before the unknown event (sentinel).
-// Every unsubscription (sentinel or stop code) completes the wait.
+// Counts top latency events fired before unknown event (sentinel).
+// Every unsubscription (sentinel or stop code) completes wait.
 class top_recorder
 {
 public:

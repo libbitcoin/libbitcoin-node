@@ -78,7 +78,7 @@ bool chaser_snapshot::handle_chase(const code&, event_value value) NOEXCEPT
         return false;
 
     // Stop generating query during suspension.
-    // Incoming events may already be flushed to the strand at this point.
+    // Incoming events may already be flushed to strand at this point.
     if (suspended())
         return true;
 
@@ -155,8 +155,8 @@ void chaser_snapshot::do_prune(header_t link) NOEXCEPT
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
-        // Prune may fail due to chain not being coalesced following suspend,
-        // in which case pruning will be attempted on announce until success.
+        // Prune may fail due to chain not coalesced following suspend, in which
+        // case pruning is attempted on announce until success.
         LOGF("Prune deferred, " << ec.message());
 
         if (running && ec == database::error::not_coalesced)
