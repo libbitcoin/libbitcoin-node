@@ -33,6 +33,7 @@ settings::transaction_pool::transaction_pool() NOEXCEPT
     maximum_outcomes{ 1'024 },
     bytes_per_sigop{ 20 },
     coinbase_weight{ 2'000 },
+    coinbase_sigops{ 400 },
     maximum_chunk_depth{ 25 },
     estimate_cache_seconds{ 7 },
     thread_priority{ true }

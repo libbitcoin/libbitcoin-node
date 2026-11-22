@@ -638,7 +638,8 @@ void chaser_transaction::broadcast(const chain::transaction& tx) const NOEXCEPT
     broadcast(emplace_shared<const network::wire_tx>(view));
 }
 
-// A block less its header, largest tx count and declared coinbase weight.
+// A block less its header, largest tx count and declared coinbase weight and
+// sigops.
 pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
 {
     constexpr auto count = variable_size(max_block_size / min_transaction_size);
@@ -648,7 +649,8 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
     const auto reserved = ceilinged_add(fixed, settings.coinbase_weight);
     const auto weight = floored_subtract(max_block_weight, reserved);
     const auto bip141 = pool_.is_enabled(flags::bip141_rule);
-    const auto sigops = bip141 ? max_fast_sigops : max_block_sigops;
+    const auto limit = bip141 ? max_fast_sigops : max_block_sigops;
+    const auto sigops = floored_subtract(limit, settings.coinbase_sigops);
     return
     {
         {},

@@ -45,6 +45,7 @@ public:
         uint32_t maximum_outcomes;
         uint32_t bytes_per_sigop;
         uint32_t coinbase_weight;
+        uint32_t coinbase_sigops;
         uint32_t maximum_chunk_depth;
         uint16_t estimate_cache_seconds;
         bool thread_priority;

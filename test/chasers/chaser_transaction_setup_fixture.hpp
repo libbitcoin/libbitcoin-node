@@ -72,6 +72,20 @@ inline chain::transaction::cptr spend(uint64_t value) NOEXCEPT
     return spend(parent().hash(false), value);
 }
 
+// A spend of the parent to an output of one sigop.
+inline chain::transaction::cptr spend_signed(uint64_t value) NOEXCEPT
+{
+    const chain::point point{ parent().hash(false), 0u };
+    const chain::operations ops{ { chain::opcode::checksig } };
+    return std::make_shared<const chain::transaction>(chain::transaction
+    {
+        1u,
+        chain::inputs{ { point, chain::script{}, max_uint32 } },
+        chain::outputs{ { value, chain::script{ ops } } },
+        0u
+    });
+}
+
 inline chain::transaction::cptr spend_relative(const hash_digest& hash,
     uint64_t value, uint32_t sequence) NOEXCEPT
 {
@@ -802,6 +816,21 @@ struct chaser_transaction_reserve_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 4'000'000;
+        })
+    {
+    }
+};
+
+// The coinbase is declared to count every sigop of a block.
+struct chaser_transaction_sigops_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_sigops_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_sigops = 80'000;
         })
     {
     }
