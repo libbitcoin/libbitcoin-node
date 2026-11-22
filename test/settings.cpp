@@ -216,6 +216,15 @@ BC_AUTO_TEST_CASE(settings__pool__default__expected)
     BC_REQUIRE_EQUAL(pool.bytes_per_sigop, 20_u32);
     BC_REQUIRE_EQUAL(pool.coinbase_weight, 2'000_u32);
     BC_REQUIRE_EQUAL(pool.maximum_chunk_depth, 25_u32);
+    BC_REQUIRE(pool.thread_priority);
+    BC_REQUIRE(pool.thread_priority_() == network::processing_priority::high);
+}
+
+BC_AUTO_TEST_CASE(settings__pool__thread_priority_false__medium)
+{
+    node::settings::transaction_pool pool{};
+    pool.thread_priority = false;
+    BC_REQUIRE(pool.thread_priority_() == network::processing_priority::medium);
 }
 
 BC_AUTO_TEST_SUITE_END()

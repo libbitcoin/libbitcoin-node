@@ -34,8 +34,11 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
+// Independent threadpool and strand (base class strand uses network pool).
 chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : chaser(node),
+    transaction_threadpool_(one, node.node_settings().pool.thread_priority_()),
+    transaction_strand_(transaction_threadpool_.service().get_executor()),
     scan_threadpool_(one, node.node_settings().thread_priority_()),
     revalidation_threadpool_(one, node.node_settings().thread_priority_()),
     outbound_excluded_(unmask_right<uint64_t>(
@@ -61,13 +64,15 @@ void chaser_transaction::stopping(const code& ec) NOEXCEPT
     stopping_.store(true);
     scan_threadpool_.stop();
     revalidation_threadpool_.stop();
+    transaction_threadpool_.stop();
     chaser::stopping(ec);
 }
 
 // The strand is no longer running when the chaser is stopped.
 void chaser_transaction::stop() NOEXCEPT
 {
-    if (!scan_threadpool_.join() || !revalidation_threadpool_.join())
+    if (!scan_threadpool_.join() || !revalidation_threadpool_.join() ||
+        !transaction_threadpool_.join())
     {
         BC_ASSERT_MSG(false, "failed to join threadpool");
         std::abort();
@@ -629,6 +634,19 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
         possible_narrow_cast<uint32_t>(weight / light_weight_factor),
         possible_narrow_cast<uint32_t>(sigops)
     };
+}
+
+// Overrides due to independent priority thread pool
+// ----------------------------------------------------------------------------
+
+network::io::strand& chaser_transaction::strand() NOEXCEPT
+{
+    return transaction_strand_;
+}
+
+bool chaser_transaction::stranded() const NOEXCEPT
+{
+    return transaction_strand_.running_in_this_thread();
 }
 
 BC_POP_WARNING()

@@ -173,6 +173,10 @@ protected:
         const system::data_chunk& passed,
         const system::chain::context& ctx) NOEXCEPT;
 
+    // Override base class strand because it sits on the network thread pool.
+    network::io::strand& strand() NOEXCEPT override;
+    bool stranded() const NOEXCEPT override;
+
 private:
     /// A set under submission, its running set and outcome.
     struct submission
@@ -262,7 +266,11 @@ private:
     /// Fire the event with the microseconds since the start.
     void fire_span(events event, const time_point& start) NOEXCEPT;
 
+    // This is not thread safe.
+    network::threadpool transaction_threadpool_;
+
     // These are thread safe.
+    network::io::strand transaction_strand_;
     network::threadpool scan_threadpool_;
     network::threadpool revalidation_threadpool_;
     stopper stopping_{};
