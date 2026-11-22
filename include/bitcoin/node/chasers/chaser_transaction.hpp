@@ -211,7 +211,8 @@ private:
 
     code check(const system::chain::transaction_cptrs& txs,
         const std::vector<bool>& stored, bool announced) NOEXCEPT;
-    code accept(const system::chain::transaction& tx) NOEXCEPT;
+    code accept(const system::chain::transaction& tx,
+        const system::chain::context& ctx) NOEXCEPT;
     code admit(database::tx_link& out, const system::chain::transaction& tx,
         uint32_t time) NOEXCEPT;
     code validate(const system::chain::transaction& tx,
@@ -278,7 +279,9 @@ private:
     bool due_{ true };
     bool scanning_{};
     bool revalidating_{};
+    bool unvalidated_{};
     uint32_t revalidated_flags_{};
+    system::chain::context retried_{};
     std::vector<uint64_t> marks_{};
     std::array<uint64_t, relay_slots> rates_{};
 };
