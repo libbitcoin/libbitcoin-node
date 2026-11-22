@@ -327,6 +327,41 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__spender_of_unpooled_parent
     BC_REQUIRE(restored);
 }
 
+// The spender is pooled again after its parent, which is admitted and not
+// confirmed, and its context is swept before it is revalidated.
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__parent_submitted__spender_swept_then_revalidated, chaser_transaction_single_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto block = confirm(first);
+    const auto raised = bumped(3);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ second }));
+    const auto popped = query_.pop_confirmed();
+    const auto out = reported(3, [&]()
+    {
+        node_.notify(node::error::success, chases::reorganized{ block });
+    });
+
+    const auto again = reported(4, [&]()
+    {
+        submit(package({ first }));
+    });
+
+    const auto restored = celled(query_.to_tx(second->hash(false)), pool::algorithm::unlabeled);
+
+    BC_REQUIRE(!block.is_terminal());
+    BC_REQUIRE(raised);
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(popped);
+    BC_REQUIRE_EQUAL(out.size(), 3u);
+    BC_REQUIRE_EQUAL(again.size(), 4u);
+    BC_REQUIRE(again.at(0).scan == node::pool_scan::coverage);
+    BC_REQUIRE(again.at(1).scan == node::pool_scan::admission);
+    BC_REQUIRE(again.at(2).scan == node::pool_scan::context);
+    BC_REQUIRE(again.at(3).scan == node::pool_scan::context);
+    BC_REQUIRE(restored);
+}
+
 BC_AUTO_TEST_SUITE_END()
 
 BC_AUTO_TEST_SUITE(chaser_transaction_scan_tests)

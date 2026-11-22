@@ -464,11 +464,24 @@ code chaser_transaction::admit(database::tx_link& link,
 
     if (!query.is_pooled(link))
     {
+        size_t repooled{};
         const auto start = now();
-        const auto admitted = query.set_pooled(link, tx, pool_, time);
+        const auto admitted = query.set_pooled(repooled, link, tx,
+            database::context::from(pool_), time);
+
         report(pool_scan::admission, start);
         if (!admitted)
             return fault(error::transaction2);
+
+        // A spender pooled again keeps its context, which may not suffice,
+        // and one not validated for want of this parent may now pass.
+        if (is_nonzero(repooled))
+        {
+            due_ = true;
+            unvalidated_ = true;
+            if (!sweep())
+                return fault(error::transaction11);
+        }
     }
 
     if (!archived && query.silent_enabled() && !query.set_silent(link, tx))
