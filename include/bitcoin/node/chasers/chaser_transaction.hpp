@@ -170,7 +170,7 @@ protected:
 
     /// Restore the pooled txs that passed, if the context still holds.
     virtual void do_revalidated(const database::tx_links& links,
-        const system::data_chunk& passed,
+        const system::data_chunk& passed, const std::vector<size_t>& sigops,
         const system::chain::context& ctx) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.

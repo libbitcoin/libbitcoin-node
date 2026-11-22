@@ -302,12 +302,16 @@ void chaser_transaction::start_revalidation() NOEXCEPT
 }
 
 // Revalidation is admission under the context, as confirmation of what a row
-// spends may differ from when it was pooled.
+// spends may differ from when it was pooled. Sigops are counted under the
+// flags of the context, so a tx that passes is counted again.
 void chaser_transaction::do_revalidate(const database::tx_links& links,
     const chain::context& ctx) NOEXCEPT
 {
     const auto& query = archive();
+    const auto bip16 = ctx.is_enabled(flags::bip16_rule);
+    const auto bip141 = ctx.is_enabled(flags::bip141_rule);
     data_chunk passed(links.size());
+    std::vector<size_t> sigops(links.size());
     std::for_each(poolstl::execution::par, links.cbegin(), links.cend(),
         [&](const auto& link) NOEXCEPT
         {
@@ -317,17 +321,22 @@ void chaser_transaction::do_revalidate(const database::tx_links& links,
             const auto offset = std::distance(links.data(), &link);
             const auto at = sign_cast<size_t>(offset);
             const auto tx = query.get_transaction(link, true);
-            passed.at(at) = to_int<uint8_t>(tx && !accept(*tx, ctx) &&
-                spends_held(*tx) && !tx->connect(ctx));
+            if (!tx || accept(*tx, ctx) || !spends_held(*tx) ||
+                tx->connect(ctx))
+                return;
+
+            sigops.at(at) = tx->signature_operations(bip16, bip141);
+            passed.at(at) = one;
         });
 
-    POST(do_revalidated, links, std::move(passed), ctx);
+    POST(do_revalidated, links, std::move(passed), std::move(sigops), ctx);
 }
 
 // The pool context may have moved under the revalidation, and a reorganization
 // under it may have unvalidated a row that it passed.
 void chaser_transaction::do_revalidated(const database::tx_links& links,
-    const data_chunk& passed, const chain::context& ctx) NOEXCEPT
+    const data_chunk& passed, const std::vector<size_t>& sigops,
+    const chain::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
     revalidating_ = false;
@@ -353,7 +362,8 @@ void chaser_transaction::do_revalidated(const database::tx_links& links,
         if (is_zero(passed.at(at)))
             continue;
 
-        if (!query.set_pooled_context(links.at(at), revalidated))
+        if (!query.set_pooled_context(links.at(at), revalidated,
+            sigops.at(at)))
         {
             fault(error::transaction2);
             return;
