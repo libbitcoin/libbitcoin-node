@@ -109,6 +109,10 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
     if (!is_current_chain(true))
         return true;
 
+    // Peer told not to announce is not asked for its announcements.
+    if (silenced())
+        return true;
+
     const auto getter = create_get_data(*message);
     if (getter.items.empty())
         return true;

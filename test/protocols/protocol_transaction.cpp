@@ -521,6 +521,16 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__no_relay_slot__max_money_f
     BC_REQUIRE_EQUAL(message->minimum_fee, config_.bitcoin.max_money());
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__no_relay_slot__no_get_data, chaser_transaction_pooling_setup_fixture)
+{
+    reserve_relays();
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    BC_REQUIRE(!receive(peer::fee_filter::command).empty());
+
+    send(peer::inventory{ { { type_id::transaction, spend(parent_value)->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::get_data::command));
+}
+
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__submit__announced_by_peer__not_announced, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));

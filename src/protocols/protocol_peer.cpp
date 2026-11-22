@@ -150,6 +150,16 @@ bool protocol_peer::was_announced(const system::hash_digest& hash) const NOEXCEP
     return channel_->was_announced(hash);
 }
 
+void protocol_peer::set_silenced(bool value) NOEXCEPT
+{
+    channel_->set_silenced(value);
+}
+
+bool protocol_peer::silenced() const NOEXCEPT
+{
+    return channel_->silenced();
+}
+
 // Compact blocks (bip152 version 2).
 // ----------------------------------------------------------------------------
 

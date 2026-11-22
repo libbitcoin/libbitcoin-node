@@ -117,6 +117,10 @@ protected:
     /// Determine if outgoing block or tx was previously announced by peer.
     virtual bool was_announced(const system::hash_digest&) const NOEXCEPT;
 
+    /// Peer told not to announce txs.
+    virtual void set_silenced(bool value) NOEXCEPT;
+    virtual bool silenced() const NOEXCEPT;
+
     /// Currency.
     /// -----------------------------------------------------------------------
 
