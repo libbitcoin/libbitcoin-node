@@ -224,8 +224,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 }
 
 // private
-// A tx of the set is stored if pooled or confirmed (other than a coinbase),
-// and if pooled is held by the peer that sent it.
+// Set tx is stored if pooled or confirmed (not coinbase), pooled held by peer.
 void chaser_transaction::hold(submission& set) NOEXCEPT
 {
     const auto& query = archive();
@@ -473,8 +472,7 @@ code chaser_transaction::admit(database::tx_link& link,
         if (!admitted)
             return fault(error::transaction2);
 
-        // A spender pooled again keeps its context, which may not suffice,
-        // and one not validated for want of this parent may now pass.
+        // Spender pooled again keeps its context, and may now pass if failed.
         if (is_nonzero(repooled))
         {
             due_ = true;

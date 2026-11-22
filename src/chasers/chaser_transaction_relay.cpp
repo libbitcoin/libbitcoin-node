@@ -102,8 +102,7 @@ void chaser_transaction::relay_pool(size_t slot) NOEXCEPT
     POST(do_relay_pool, slot);
 }
 
-// A slot is relayed to only once its channel is notified of relay, as a tx
-// relayed to it before then is marked held by a peer that is not sent it.
+// Slot is relayed to once its channel is notified, else marks precede sends.
 void chaser_transaction::do_activate_relay(size_t slot,
     object_key key) NOEXCEPT
 {
@@ -145,8 +144,7 @@ void chaser_transaction::do_relay_pool(size_t slot) NOEXCEPT
 }
 
 // private
-// A sweep is a scan of the pool at a peer's request, so a slot is swept once
-// between blocks, and a later request is met after the next block.
+// Sweep is a pool scan at peer request, so one per slot between blocks.
 void chaser_transaction::owe_relay(size_t slot) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -161,8 +159,7 @@ uint64_t chaser_transaction::sweepable() const NOEXCEPT
     return bit_and(bit_and(owed_, relaying_), bit_not(swept_));
 }
 
-// One slot is swept in a turn of the strand, so other work is not held up by
-// the sweeps of many slots.
+// One slot swept per strand turn, so sweeps do not hold up other work.
 void chaser_transaction::do_sweep_relay() NOEXCEPT
 {
     BC_ASSERT(stranded());

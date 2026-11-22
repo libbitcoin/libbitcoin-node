@@ -43,8 +43,7 @@ void protocol_transaction_out_106::start() NOEXCEPT
     if (started())
         return;
 
-    // A channel with no relay slot is relayed nothing, and stopping has
-    // already been called for one stopped before its protocols attach.
+    // No slot implies no relay, stopping already called if stopped at attach.
     if (!stopped())
         reserve_relay();
 
@@ -55,7 +54,7 @@ void protocol_transaction_out_106::start() NOEXCEPT
     protocol_peer::start();
 }
 
-// The slot is relayed to once the channel is notified of relay.
+// Slot is relayed to once channel is notified of relay.
 void protocol_transaction_out_106::subscribed(const code& ec,
     object_key key) NOEXCEPT
 {

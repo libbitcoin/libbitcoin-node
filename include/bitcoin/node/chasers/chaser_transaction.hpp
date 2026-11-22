@@ -149,7 +149,7 @@ protected:
         const database::tx_links& links) NOEXCEPT;
     virtual void do_relay_pool(size_t slot) NOEXCEPT;
 
-    /// Sweep the pool to one slot owed a sweep, then post for the next.
+    /// Sweep pool to one slot owed a sweep, then post for next.
     virtual void do_sweep_relay() NOEXCEPT;
 
     /// Apply the organized block to the pool index, then bump.
@@ -252,11 +252,10 @@ private:
     /// slot lacks, where that clears the slot's rate.
     bool sweep_relay(size_t slot) NOEXCEPT;
 
-    /// Owe the slot a sweep, made at once unless it was swept since the last
-    /// block, and otherwise after the next.
+    /// Owe slot a sweep, made now unless swept since last block.
     void owe_relay(size_t slot) NOEXCEPT;
 
-    /// The relaying slots owed a sweep and not swept since the last block.
+    /// Relaying slots owed a sweep and not swept since last block.
     uint64_t sweepable() const NOEXCEPT;
 
     /// The marks of the pool row, grown with the table.

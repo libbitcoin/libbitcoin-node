@@ -79,8 +79,7 @@ protected:
     /// The memory pool of the peer is requested once relaying.
     virtual bool request_mempool() const NOEXCEPT;
 
-    /// Reserve, activate or release the channel's relay slot, reserve false
-    /// if none is free.
+    /// Reserve (false if none free), activate or release channel relay slot.
     virtual bool reserve_relay() NOEXCEPT;
     virtual void activate_relay(object_key key) NOEXCEPT;
     virtual void release_relay() NOEXCEPT;

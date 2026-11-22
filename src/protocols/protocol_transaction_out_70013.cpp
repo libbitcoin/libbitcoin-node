@@ -47,7 +47,7 @@ void protocol_transaction_out_70013::start() NOEXCEPT
     protocol_transaction_out_70001::start();
 }
 
-// The peer is told what to send once relay to it is started.
+// Peer is told what to send once relay to it starts.
 void protocol_transaction_out_70013::subscribed(const code& ec,
     object_key key) NOEXCEPT
 {

@@ -155,8 +155,7 @@ void chaser_transaction::do_bump() NOEXCEPT
     auto& query = archive();
     if (network_settings().enable_relay)
     {
-        // The context is of the block the index was last applied through, as
-        // the store's top may be above it.
+        // Context of block last applied to index (store top may be above).
         size_t height{};
         const auto top = top_.is_terminal() ? query.to_top_confirmed() : top_;
         if (!query.get_height(height, top))
@@ -199,7 +198,7 @@ void chaser_transaction::do_bump() NOEXCEPT
             if (!opened)
                 floor_ = std::max(floor_, pool_.height);
 
-            // Sweeps deferred to the block are now made.
+            // Make sweeps deferred to block.
             swept_ = {};
             if (!sweeping_)
                 do_sweep_relay();
@@ -642,8 +641,7 @@ void chaser_transaction::broadcast(const chain::transaction& tx) const NOEXCEPT
     broadcast(emplace_shared<const network::wire_tx>(view));
 }
 
-// A block less its header, largest tx count and declared coinbase weight and
-// sigops.
+// Block less header, largest tx count, declared coinbase weight and sigops.
 pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
 {
     constexpr auto count = variable_size(max_block_size / min_transaction_size);
