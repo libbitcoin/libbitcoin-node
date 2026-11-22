@@ -65,18 +65,18 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     if (draining_.exchange(true))
         return;
 
-    // Retest under the claim, another drain may have just emptied the bank.
-    // Losers commit before testing, so the retest after each drain observes
-    // commits that lost the claim during it.
+    // Retest under claim, another drain may have just emptied bank. Losers
+    // commit before testing, so retest after each drain observes commits that
+    // lost claim during it.
     while (!closed() && is_mature(residual || is_residual()))
     {
         // Admit arriving commits to the other bank (changed only under claim).
         const auto bank = bank_.load();
         bank_.store(!bank);
 
-        // Wait for in-flight commits to the bank to complete or abandon on
-        // close. Bounded: the writer epoch spans only the per-block slab
-        // commit, and arriving commits go to the other bank.
+        // Wait for in-flight commits to bank to complete or abandon on close.
+        // Bounded: writer epoch spans only per-block slab commit, and arriving
+        // commits go to other bank.
         while (is_nonzero(writers_.at(to_int<size_t>(bank)).load()))
         {
             if (closed())
@@ -182,10 +182,11 @@ code chaser_validate::purge_batch(bool bank) NOEXCEPT
     auto& query = archive();
 
     // Purge prevalids before signatures.
-    return query.purge_prevalids(bank) &&
-        query.purge_ecdsa_signatures(bank) &&
-        query.purge_schnorr_signatures(bank) ?
-        error::success : error::batch4;
+    const auto purged = query.purge_prevalids(bank)
+        && query.purge_ecdsa_signatures(bank)
+        && query.purge_schnorr_signatures(bank);
+
+    return purged ? error::success : error::batch4;
 }
 
 bool chaser_validate::mark_invalids(header_links& prevalids,
@@ -340,17 +341,16 @@ void chaser_validate::process_silent_batch(bool residual) NOEXCEPT
     if (silent_draining_.exchange(true))
         return;
 
-    // Retest under the claim, another drain may have just emptied the bank.
-    // Losers commit before testing, so the retest after each drain observes
-    // commits that lost the claim during it.
+    // Retest under claim, another drain may have just emptied bank. Losers
+    // commit before testing, so retest after each drain observes commits that
+    // lost claim during it.
     while (!closed() && is_silent_mature(residual || is_residual()))
     {
         // Admit arriving commits to the other bank (changed only under claim).
         const auto bank = silent_bank_.load();
         silent_bank_.store(!bank);
 
-        // Wait for in-flight commits to the bank to complete or abandon on
-        // close.
+        // Wait for in-flight commits to bank to complete or abandon on close.
         while (is_nonzero(silent_writers_.at(to_int<size_t>(bank)).load()))
         {
             if (closed())
@@ -420,8 +420,8 @@ code chaser_validate::do_process_silent_batch(bool bank) NOEXCEPT
     return error::success;
 }
 
-// Upon store decline the records are set directly, within the commit epoch,
-// so that a drain of the bank cannot precede them.
+// Upon store decline, records are set directly, within commit epoch, so a drain
+// of bank cannot precede them.
 template <typename Block>
 bool chaser_validate::commit_silent_(const header_link& link,
     const Block& block) NOEXCEPT
@@ -452,8 +452,8 @@ bool chaser_validate::commit_silent_batch(const header_link& link,
     return commit_silent_(link, block);
 }
 
-// A writer admitted to a bank that is then switched retries on the other, so
-// that a drain observes every writer of its bank.
+// Writer admitted to a bank that is then switched retries on the other, so a
+// drain observes every writer of its bank.
 bool chaser_validate::enter_silent_capture() NOEXCEPT
 {
     while (true)
@@ -476,8 +476,8 @@ void chaser_validate::exit_silent_capture(bool bank) NOEXCEPT
 // ----------------------------------------------------------------------------
 // protected
 
-// A writer admitted to a bank that is then switched retries on the other, so
-// that a drain observes every writer of its bank.
+// Writer admitted to a bank that is then switched retries on the other, so a
+// drain observes every writer of its bank.
 bool chaser_validate::enter_capture() NOEXCEPT
 {
     while (true)

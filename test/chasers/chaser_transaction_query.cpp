@@ -217,6 +217,15 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__full_block__above_lowest_take
     BC_REQUIRE_EQUAL(rate, 16'394u);
 }
 
+BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__full_block_without_room__estimate_false, chaser_transaction_room_setup_fixture)
+{
+    const auto first = spend(parent_value - 1'000);
+    const auto second = spend(first->hash(false), parent_value - 3'000);
+    const auto result = submit(package({ first, second }));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE_EQUAL(estimate(0).first, node::error::estimate_false);
+}
+
 BC_FIXTURE_TEST_CASE(chaser_transaction__estimate__open_block__zero, chaser_transaction_single_setup_fixture)
 {
     const auto first = spend(parent_value - 1'000);

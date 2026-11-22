@@ -82,7 +82,7 @@ bool chaser_confirm::handle_chase(const code&, event_value value) NOEXCEPT
         return false;
 
     // Stop generating query during suspension.
-    // Incoming events may already be flushed to the strand at this point.
+    // Incoming events may already be flushed to strand at this point.
     if (suspended())
         return true;
 
@@ -212,7 +212,7 @@ void chaser_confirm::do_bumped(height_t) NOEXCEPT
         }
 
         // Compares candidate branch work to confirmed (above fork point).
-        // A tie is accepted because only prioritization creates one.
+        // Tie is accepted, as only prioritization creates one.
         bool strong{};
         if (!query.get_strong_fork(strong, work, fork_point, true))
         {
@@ -396,7 +396,7 @@ bool chaser_confirm::notify_block(const code& ec, size_t height,
 
 // private
 // ----------------------------------------------------------------------------
-// Checkpointed blocks are set strong by archiver, and cannot be reorganized.
+// Checkpointed blocks are set strong by archiver, cannot be reorganized.
 
 bool chaser_confirm::set_reorganized(const header_link& link,
     height_t confirmed_height) NOEXCEPT
@@ -449,7 +449,8 @@ bool chaser_confirm::set_organized(const header_link& link,
     if (confirmed_height == maximum_height_)
     {
         maximum_height_ = zero;
-        LOG_ONLY(const hh_mm_ss elapsed{ seconds{ zulu_time() - start_time() } };)
+        LOG_ONLY(const auto duration = zulu_time() - start_time();)
+        LOG_ONLY(const hh_mm_ss elapsed{ seconds{ duration } };)
         LOGN("Organized maximum height [" << confirmed_height << "] in "
             << std::format("{:02}:{:02}:{:02}", elapsed.hours().count(),
                 elapsed.minutes().count(), elapsed.seconds().count()) << ".");
@@ -521,8 +522,8 @@ void chaser_confirm::do_broadcast(const header_link& link,
         broadcast(emplace_shared<const wire_block>(block, organized));
 }
 
-// The chain becomes stale at the top block timestamp plus the window, which
-// may be sooner than the window, as the block may have been mined earlier.
+// Chain becomes stale at top block timestamp plus window, which may be sooner
+// than window, as block may have been mined earlier.
 void chaser_confirm::start_stale_timer() NOEXCEPT
 {
     BC_ASSERT(stranded());

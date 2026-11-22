@@ -23,6 +23,7 @@
 #include "../functional/p2p_setup_fixture.hpp"
 #include <chrono>
 #include <future>
+#include <mutex>
 #include <thread>
 
 using namespace system;
@@ -33,7 +34,8 @@ constexpr uint64_t parent_value = 100'000;
 const hash_digest missing_hash{ 0x42 };
 
 // The flags of the bip9 bit zero deployment.
-constexpr auto deployed = chain::flags::bip68_rule | chain::flags::bip112_rule | chain::flags::bip113_rule;
+constexpr auto deployed = chain::flags::bip68_rule | chain::flags::bip112_rule
+    | chain::flags::bip113_rule;
 
 // A tx with an anyone-can-spend output.
 inline const chain::transaction& parent() NOEXCEPT
@@ -204,12 +206,22 @@ inline const chain::block& reorganized_block() NOEXCEPT
     const system::settings bitcoin{ chain::selection::mainnet };
     const auto& genesis = bitcoin.genesis_block.header();
     const chain::input null{ chain::point{}, chain::script{}, max_uint32 };
-    const chain::transaction coinbase{ 1u, chain::inputs{ null },
-        chain::outputs{ { 42u, chain::script{} } }, 0u };
-    const chain::header header{ 1u, genesis.hash(), null_hash,
-        add1(genesis.timestamp()), genesis.bits(), 0u };
-    static const chain::block instance{ header,
-        { coinbase, *spend(parent_value) } };
+    const chain::transaction coinbase
+    {
+        1u,
+        chain::inputs{ null },
+        chain::outputs{ { 42u, chain::script{} } },
+        0u
+    };
+    const chain::header header
+    {
+        1u, genesis.hash(), null_hash, add1(genesis.timestamp()),
+        genesis.bits(), 0u
+    };
+    static const chain::block instance
+    {
+        header, { coinbase, *spend(parent_value) }
+    };
     return instance;
 }
 
@@ -246,7 +258,8 @@ struct chaser_transaction_setup_fixture
       : p2p_setup_fixture(setup, [=](configuration& config)
         {
             using deployment = chain::chain_state::deployment;
-            config.bitcoin.bip9_bit0_deployment.start = deployment::always_active;
+            constexpr auto always = deployment::always_active;
+            config.bitcoin.bip9_bit0_deployment.start = always;
             if (configure)
                 configure(config);
         })
@@ -279,8 +292,9 @@ struct chaser_transaction_setup_fixture
     // Reserve a relay slot of the tier and start relay to it.
     size_t reserve_relaying(node::relay_tier tier=node::relay_tier::manual)
     {
+        recording();
         const auto slot = node_.reserve_relay(tier);
-        node_.activate_relay(slot);
+        node_.activate_relay(slot, relays_->key);
         return slot;
     }
 
@@ -294,15 +308,21 @@ struct chaser_transaction_setup_fixture
         return count;
     }
 
-    // Relay events recorded from subscription until the zero word marker.
+    // Relay events of fixture subscription, zero word marker completes wait.
     struct relays
     {
+        std::mutex mutex{};
         std::vector<chases::relay> events{};
-        std::promise<void> ended{};
+        std::shared_ptr<std::promise<void>> marked{};
+        object_key key{};
     };
 
-    std::shared_ptr<relays> record()
+    // Subscribe recorder (once).
+    void recording()
     {
+        if (relays_)
+            return;
+
         const auto out = std::make_shared<relays>();
         std::promise<void> subscribed{};
         node_.subscribe_chase([out](const code&, event_value value) NOEXCEPT
@@ -311,33 +331,57 @@ struct chaser_transaction_setup_fixture
                 return true;
 
             const auto& relay = to_payload<chase::relay>(value);
-            if (is_zero(relay.slots))
+            std::unique_lock lock{ out->mutex };
+            if (is_nonzero(relay.slots))
             {
-                out->ended.set_value();
-                return false;
+                out->events.push_back(relay);
+                return true;
             }
 
-            out->events.push_back(relay);
+            if (out->marked)
+                out->marked->set_value();
+
+            out->marked.reset();
             return true;
-        }, [&](const code&, object_key) NOEXCEPT
+        }, [&](const code&, object_key key) NOEXCEPT
         {
+            out->key = key;
             subscribed.set_value();
         });
 
         subscribed.get_future().wait();
-        return out;
+        relays_ = out;
     }
 
-    // The recorded relay events as tx hash and slots, ending the record.
-    using relayed = std::vector<std::pair<hash_digest, uint64_t>>;
-    relayed recorded(const std::shared_ptr<relays>& record)
+    // Count of relay events recorded, once those notified have arrived.
+    size_t record()
     {
-        node_.notify(node::error::success, chases::relay{ 0, 0 });
-        record->ended.get_future().wait();
+        recording();
+        const auto marked = std::make_shared<std::promise<void>>();
+        auto arrived = marked->get_future();
+        {
+            std::unique_lock lock{ relays_->mutex };
+            relays_->marked = marked;
+        }
 
+        node_.notify(node::error::success, chases::relay{ 0, 0 });
+        arrived.wait();
+        std::unique_lock lock{ relays_->mutex };
+        return relays_->events.size();
+    }
+
+    // Relay events since record, as tx hash and slots.
+    using relayed = std::vector<std::pair<hash_digest, uint64_t>>;
+    relayed recorded(size_t from)
+    {
+        const auto to = record();
         relayed out{};
-        for (const auto& event: record->events)
+        std::unique_lock lock{ relays_->mutex };
+        for (auto at = from; at < to; ++at)
+        {
+            const auto& event = relays_->events.at(at);
             out.emplace_back(query_.get_tx_key(event.link), event.slots);
+        }
 
         return out;
     }
@@ -597,8 +641,8 @@ struct chaser_transaction_setup_fixture
             std::vector<uint64_t> values{};
         };
 
-        // The state is shared, as the subscription may outlive the call.
-        // Every unsubscription (sentinel or stop code) completes the wait.
+        // State shared, as subscription may outlive call.
+        // Every unsubscription (sentinel or stop code) completes wait.
         const auto shared = std::make_shared<state>();
         auto done = shared->done.get_future();
         log_.subscribe_events([=](const code& ec, uint8_t event_,
@@ -629,6 +673,8 @@ struct chaser_transaction_setup_fixture
         BC_REQUIRE(done.get());
         return shared->values;
     }
+
+    std::shared_ptr<relays> relays_{};
 
     // The pool cell of the tx (absent if it has no row).
     uint32_t cell(const database::tx_link& link)
@@ -669,8 +715,7 @@ struct chaser_transaction_setup_fixture
         }
     }
 
-    // The payload of the command if received before the pong of a subsequent
-    // ping, otherwise empty.
+    // Payload of command if received before pong of next ping, else empty.
     data_chunk receive_before_pong(const std::string& command)
     {
         send(peer::ping{ 42 }, node_version->value);
@@ -863,6 +908,23 @@ struct chaser_transaction_single_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 1;
+        })
+    {
+    }
+};
+
+// Block holds one test tx, estimate requires room for two.
+struct chaser_transaction_room_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_room_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 122;
         })
     {
     }
@@ -878,6 +940,7 @@ struct chaser_transaction_held_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 1;
             config.node.pool.estimate_cache_seconds = max_uint16;
         })
     {
@@ -894,6 +957,7 @@ struct chaser_transaction_live_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
             config.node.pool.coinbase_weight = 3'999'348;
+            config.node.pool.estimate_room = 1;
             config.node.pool.estimate_cache_seconds = 0;
         })
     {
@@ -922,7 +986,8 @@ struct chaser_transaction_relative_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            constexpr auto always = chain::chain_state::deployment::always_active;
+            using deployment = chain::chain_state::deployment;
+            constexpr auto always = deployment::always_active;
             config.bitcoin.bip9_bit0_deployment.start = always;
         })
     {

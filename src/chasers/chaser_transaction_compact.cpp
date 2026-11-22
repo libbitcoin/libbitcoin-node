@@ -47,8 +47,8 @@ void chaser_transaction::submit_compact(const transactions_cptr& txs,
     POST(do_submit_compact, txs, links, link, std::move(handler));
 }
 
-// A compact block is not filled while a block archives off the strand, so a
-// block that finds the pool closed archives alone.
+// Compact block is not filled while a block archives off strand, so a block
+// that finds pool closed archives alone.
 bool chaser_transaction::archive_block(code& ec,
     const chain::view::block::cptr& block, const database::header_link& link,
     bool strong, bool bypass, size_t height, bool prune,
@@ -132,10 +132,10 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
         return true;
     };
 
-    // Txs are an arbitrary subset of the block, so block checks are deferred to
-    // validation. Each is archived before the next, so in block order a parent
-    // is resolved from the store. The coinbase (never a parent within its
-    // block) is archived last, as validation indexes only txs linked above it.
+    // Txs are an arbitrary subset of block, so block checks are deferred to
+    // validation. Each is archived before next, so in block order a parent is
+    // resolved from store. Coinbase (never a parent within its block) is
+    // archived last, as validation indexes only txs linked above it.
     auto filled = links;
     const auto deferred = filled.front() == terminal;
     auto index = deferred ? one : zero;
@@ -196,8 +196,8 @@ void chaser_transaction::do_archive_block(
     handler(query.set_code(*block, link, strong, bypass, height, prune));
 }
 
-// The stored tx, or validated and archived, pooled under the block context if
-// guarded. Each block archives its own coinbase.
+// Stored or validated and archived tx, pooled under block context if guarded.
+// Each block archives its own coinbase.
 code chaser_transaction::fill(database::tx_link& out,
     const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
 {
@@ -258,7 +258,7 @@ code chaser_transaction::fill(database::tx_link& out,
     return error::success;
 }
 
-// Pooled at the block's time, a sweep due if its context does not suffice.
+// Pooled at block time, sweep due if block context does not suffice.
 bool chaser_transaction::set_pooled(const database::tx_link& link,
     const chain::transaction& tx, const chain::context& ctx) NOEXCEPT
 {
@@ -285,9 +285,8 @@ code chaser_transaction::unconfirmable(const database::header_link& link,
 // validation
 // ----------------------------------------------------------------------------
 
-// A block tx is under proof of work, so it is not subject to policy (fee
-// rate, guards) and may conflict with unconfirmed txs. It is guarded if it
-// also passes the guards of admission, which a pooled tx must.
+// Block tx is under proof of work, so not subject to policy (fee rate) and
+// may conflict with unconfirmed txs. Guarded if it passes admission guards.
 code chaser_transaction::validate(bool& guarded, const chain::transaction& tx,
     const chain::context& ctx) NOEXCEPT
 {

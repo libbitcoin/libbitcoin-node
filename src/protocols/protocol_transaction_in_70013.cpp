@@ -34,8 +34,8 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 // Submission.
 // ----------------------------------------------------------------------------
 
-// bip133: the peer is sent the maximum rate while not current, so any tx then
-// is sent against instruction.
+// bip133: peer is sent maximum rate while not current,
+// so any tx then is sent against instruction.
 void protocol_transaction_in_70013::do_handle_submit(const code& ec,
     size_t count, bool whole, const gate_t::ptr& gate) NOEXCEPT
 {

@@ -105,15 +105,15 @@ bool chaser_validate::handle_chase(const code&, event_value value) NOEXCEPT
         return true;
     }
 
-    // Record durable state before the suspension gate. A consequence is that
-    // recovery with window_archived_ drains small batches until next checked.
+    // Record durable state before suspension gate. Consequently, recovery with
+    // window_archived_ drains small batches until next checked.
     if (event_ == chase::windowed)
         window_archived_.store(true);
     else if (event_ == chase::checked)
         window_archived_.store(false);
 
     // Stop generating query during suspension.
-    // Incoming events may already be flushed to the strand at this point.
+    // Incoming events may already be flushed to strand at this point.
     if (suspended())
         return true;
 
@@ -140,9 +140,9 @@ bool chaser_validate::handle_chase(const code&, event_value value) NOEXCEPT
         }
         case chase::windowed:
         {
-            // Called directly (not posted): the drain must never depend on
-            // scheduling, which saturated validations can exhaust for the
-            // entire window (strand for admission-side control, never for
+            // Called directly (not posted): drain must never depend on
+            // scheduling, which saturated validations can exhaust for entire
+            // window (strand for admission-side control, never for
             // release-side).
             process_batch(is_residual());
             process_silent_batch(is_residual());

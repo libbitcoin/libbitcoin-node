@@ -83,9 +83,9 @@ bool protocol_filter_out_70015::handle_receive_get_filter_checkpoint(
         return false;
     }
 
-    // There is no guarantee that this set will be consistent across reorgs.
-    // However for it to be inconsistent there must be a >= 1000 block reorg.
-    // If the branch has never been confirmed then filters will not be found.
+    // No guarantee this set will be consistent across reorgs.
+    // However, for it to be inconsistent there must be a >= 1000 block reorg.
+    // If branch has never been confirmed then filters will not be found.
     client_filter_checkpoint out{};
     if (!query.get_filter_heads(out.filter_headers, stop_height,
         client_filter_checkpoint_interval))
@@ -148,8 +148,8 @@ bool protocol_filter_out_70015::handle_receive_get_filter_headers(
         return false;
     }
 
-    // The response is assured to represent a consistent branch.
-    // If the branch has never been confirmed then filters will not be found.
+    // Response is assured to represent a consistent branch.
+    // If branch has never been confirmed then filters will not be found.
     client_filter_headers out{};
     if (!query.get_filter_hashes(out.filter_hashes, out.previous_filter_header,
         stop_link, count))

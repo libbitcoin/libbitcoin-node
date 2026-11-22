@@ -68,7 +68,7 @@ void protocol_block_in_31800::subscribed(const code& ec, object_key) NOEXCEPT
     }
 
     // Start performance timing and download cycles if candidates are current.
-    // This prevents a startup delay in which the node waits on a header.
+    // Prevents startup delay in which node waits on a header.
     if (is_current_chain(false))
     {
         start_performance();
@@ -109,30 +109,30 @@ bool protocol_block_in_31800::handle_chase(const code&,
         case chase::split:
         {
             // chase::split is posted by notify_one() using subscription key.
-            // 'value' is the channel that requested a split to obtain work.
+            // 'value' is channel that requested split to obtain work.
             POST(do_split, peer_t{});
             break;
         }
         case chase::stall:
         {
             // If this channel has divisible work, split it and stop.
-            // There are no channels reporting work, either stalled or done.
-            // This is initiated by any channel notifying chase::starved.
+            // No channels reporting work, either stalled or done.
+            // Initiated by any channel notifying chase::starved.
             POST(do_stall, peer_t{});
             break;
         }
         case chase::purge:
         {
-            // If have work clear it and stop.
-            // This is initiated by chase::regressed/disorganized.
+            // If have work, clear it and stop.
+            // Initiated by chase::regressed/disorganized.
             POST(do_purge, peer_t{});
             break;
         }
         case chase::download:
         {
-            // There are count blocks to download at/above given header.
+            // Count blocks to download at/above given header.
             // chase::headers is only sent for current candidate chain, and this
-            // chase::download is only sent as a consequence of chase::headers.
+            // chase::download is only sent as consequence of chase::headers.
             POST(do_get_downloads, to_payload<chase::download>(value).count);
             break;
         }
@@ -312,10 +312,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Identify block.
     // ........................................................................
 
-    // Tx commitments and malleation are checked under bypass. Invalidity is
-    // only stored when a strong header has been stored, later to be found out
-    // as invalid and not malleable. Stored invalidity prevents repeat
-    // processing of the same invalid chain but is not necessary or desirable.
+    // Tx commitments and malleation checked under bypass. Invalidity is only
+    // stored when a strong header has been stored, later found invalid and not
+    // malleable. Stored invalidity prevents repeat processing of same invalid
+    // chain but is not necessary or desirable.
     if (const auto code = identify(block, it->context, bypass))
     {
         if (code == system::error::invalid_transaction_commitment ||
@@ -361,8 +361,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 }
 
 // not stranded
-// A stored block is announced, and a failure to store one is a fault, whether
-// or not its channel has stopped.
+// Stored block is announced, and failure to store one is a fault, whether or
+// not its channel has stopped.
 void protocol_block_in_31800::announce(const code& ec,
     const hash_digest& hash, size_t height) NOEXCEPT
 {
@@ -438,9 +438,9 @@ bool protocol_block_in_31800::archived(const code& ec,
     return true;
 }
 
-// Header is checked by header_in, Check/Accept/Connect are called by validate.
+// Header is checked by header_in, Check/Accept/Connect called by validate.
 // While check could be called here, it's more optimal to defer to validate, as
-// requiring only identity here allows the use of the simplified view::block.
+// requiring only identity here allows use of simplified view::block.
 code protocol_block_in_31800::identify(const chain::view::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {

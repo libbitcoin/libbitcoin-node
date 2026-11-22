@@ -29,7 +29,7 @@ namespace node {
 
 /// Template for network::session derivation with node::session.
 /// node::session does not derive from network::session (siblings).
-/// This avoids the diamond inheritance problem between network/node.
+/// Avoids diamond inheritance problem between network/node.
 template <class NetworkSession>
 class session_peer
   : public node::session,

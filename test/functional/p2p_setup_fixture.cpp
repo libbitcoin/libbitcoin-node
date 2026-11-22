@@ -26,8 +26,6 @@ using namespace bc::network::messages::peer;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// The store and the chasers copy settings at construction, so configuration
-// precedes them.
 configuration p2p_setup_fixture::configured(const configurator& configure)
 {
     configuration config{ test::node_configuration() };
@@ -54,7 +52,6 @@ configuration p2p_setup_fixture::configured(const configurator& configure)
     if (configure)
         configure(config);
 
-    // Derived values are computed from the configuration, as at startup.
     config.database.initialize(config.bitcoin, node_settings.limited_blocks,
         node_settings.provide_filters, node_settings.require_witness,
         node_settings.silent_start_height);
@@ -121,8 +118,9 @@ void p2p_setup_fixture::send(const std::string& command,
     const auto head = heading::factory(config_.network.identifier, command,
         payload);
     data_chunk frame(heading::size() + payload.size());
-    BC_REQUIRE(head.serialize({ frame.data(),
-        std::next(frame.data(), heading::size()) }));
+    const auto begin = frame.data();
+    const auto end = std::next(begin, heading::size());
+    BC_REQUIRE(head.serialize({ begin, end }));
 
     std::copy(payload.begin(), payload.end(),
         std::next(frame.begin(), heading::size()));
@@ -164,8 +162,8 @@ object_key p2p_setup_fixture::subscribe()
     return subscribed.get_future().get();
 }
 
-// The state is shared, as the subscription may outlive the call. Either end
-// of the subscription (the event or a stop code) completes the wait.
+// State shared, as subscription may outlive call. Either end of subscription
+// (event or stop code) completes wait.
 uint64_t p2p_setup_fixture::fired_value(uint8_t event,
     const std::function<void()>& act)
 {

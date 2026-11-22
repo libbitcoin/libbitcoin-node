@@ -79,10 +79,9 @@ protected:
     /// The memory pool of the peer is requested once relaying.
     virtual bool request_mempool() const NOEXCEPT;
 
-    /// Reserve, activate or release the channel's relay slot, reserve false
-    /// if none is free.
+    /// Reserve (false if none free), activate or release channel relay slot.
     virtual bool reserve_relay() NOEXCEPT;
-    virtual void activate_relay() NOEXCEPT;
+    virtual void activate_relay(object_key key) NOEXCEPT;
     virtual void release_relay() NOEXCEPT;
 
     /// The channel's relay slot, relay_slots if none.
@@ -105,7 +104,7 @@ protected:
         network::result_handler&& handler) const NOEXCEPT;
 
     /// Suspend all existing and future network connections.
-    /// A race condition could result in an unsuspended connection.
+    /// Race condition could result in unsuspended connection.
     virtual code fault(const code& ec) NOEXCEPT;
 
     /// Announcements.
@@ -116,6 +115,10 @@ protected:
 
     /// Determine if outgoing block or tx was previously announced by peer.
     virtual bool was_announced(const system::hash_digest&) const NOEXCEPT;
+
+    /// Peer told not to announce txs.
+    virtual void set_silenced(bool value) NOEXCEPT;
+    virtual bool silenced() const NOEXCEPT;
 
     /// Currency.
     /// -----------------------------------------------------------------------

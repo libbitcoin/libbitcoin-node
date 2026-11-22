@@ -327,8 +327,8 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__spender_of_unpooled_parent
     BC_REQUIRE(restored);
 }
 
-// The spender is pooled again after its parent, which is admitted and not
-// confirmed, and its context is swept before it is revalidated.
+// Spender pooled again after parent (admitted, not confirmed),
+// its context swept before revalidation.
 BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__parent_submitted__spender_swept_then_revalidated, chaser_transaction_single_setup_fixture)
 {
     const auto first = spend(parent_value - 1'000);
@@ -471,40 +471,48 @@ struct scan_stale_fixture
     }
 };
 
+static bool stored_scan_complete(node::query& query) NOEXCEPT
+{
+    return stored_scan(query)
+        && query.set_scan_start(0, 42)
+        && query.set_scan_start(1, 43);
+}
+
 struct scan_complete_fixture
   : chaser_transaction_scan_setup_fixture
 {
     inline scan_complete_fixture()
-      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
-        {
-            return stored_scan(query)
-                && query.set_scan_start(0, 42)
-                && query.set_scan_start(1, 43);
-        })
+      : chaser_transaction_scan_setup_fixture(false, true,
+            stored_scan_complete)
     {
     }
 };
+
+static bool stored_scan_partial(node::query& query) NOEXCEPT
+{
+    return stored_scan(query) && query.set_scan_start(1, 43);
+}
 
 struct scan_partial_fixture
   : chaser_transaction_scan_setup_fixture
 {
     inline scan_partial_fixture()
-      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
-        {
-            return stored_scan(query) && query.set_scan_start(1, 43);
-        })
+      : chaser_transaction_scan_setup_fixture(false, true, stored_scan_partial)
     {
     }
 };
+
+static bool stored_scan_unextended(node::query& query) NOEXCEPT
+{
+    return stored_scan(query) && query.set_scan_start(0, 0);
+}
 
 struct scan_unextended_fixture
   : chaser_transaction_scan_setup_fixture
 {
     inline scan_unextended_fixture()
-      : chaser_transaction_scan_setup_fixture(false, true, [](node::query& query)
-        {
-            return stored_scan(query) && query.set_scan_start(0, 0);
-        })
+      : chaser_transaction_scan_setup_fixture(false, true,
+            stored_scan_unextended)
     {
     }
 };

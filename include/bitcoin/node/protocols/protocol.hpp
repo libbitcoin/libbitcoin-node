@@ -30,11 +30,11 @@ namespace libbitcoin {
 namespace node {
 
 /// Abstract base for node protocols, thread safe.
-/// This node::protocol is not derived from network::protocol, but given the
-/// channel constructor parameter is derived from network::channel, the strand
-/// is accessible despite lack of bind/post/parallel templates access. This
-/// allows event subscription by derived protocols without the need to derive
-/// from protocol_peer (which would prevent derivation from service protocols).
+/// node::protocol not derived from network::protocol, but given channel
+/// constructor parameter derived from network::channel, strand is accessible
+/// despite lack of bind/post/parallel templates access. Allows event
+/// subscription by derived protocols without deriving from protocol_peer
+/// (which would prevent derivation from service protocols).
 class BCN_API protocol
 {
 protected:
@@ -94,8 +94,7 @@ protected:
     virtual void connect(const network::config::endpoint& endpoint,
         network::net::channel_notifier&& handler) NOEXCEPT;
 
-    /// A template of pooled txs built upon the request, parents first, and
-    /// its height.
+    /// Template of pooled txs built on request, parents first, and its height.
     virtual void get_template(template_handler&& handler) NOEXCEPT;
 
     /// Lowest rate (per virtual kilobyte) confirmed by the target block.
@@ -141,25 +140,25 @@ protected:
     /// Work a proven header branch must reach (candidate or configured).
     virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
 
-    /// Validate and archive a submitted set, admitted prefix by prefix until
-    /// one tx fails. The set is only validated when test, nothing archived.
+    /// Validate and archive submitted set, admitted prefix by prefix until one
+    /// tx fails. Set is only validated when test, nothing archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
 
-    /// Validate and archive an announced set, admitted prefix by prefix, a tx
-    /// that is not accepted passed over (the first such failure reported).
+    /// Validate and archive announced set, admitted prefix by prefix, tx not
+    /// accepted passed over (first such failure reported).
     virtual void submit_announced(
         const system::chain::transactions_cptr& txs, size_t slot,
         submit_handler&& handler) NOEXCEPT;
 
-    /// Validate, archive and associate the txs of an identified compact block,
-    /// in block order, the txs filling the terminal links.
+    /// Validate, archive and associate txs of identified compact block, in
+    /// block order, txs filling terminal links.
     virtual void submit_compact(const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
-    /// Archive and associate the txs of an identified block, on the calling
-    /// thread (true) unless pooling, then on the strand of compact blocks.
+    /// Archive and associate txs of identified block, on calling thread (true)
+    /// unless pooling, then on strand of compact blocks.
     virtual bool archive_block(code& ec,
         const system::chain::view::block::cptr& block,
         const database::header_link& link, bool strong, bool bypass,

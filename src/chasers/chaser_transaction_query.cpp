@@ -233,7 +233,8 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
 
     using algorithm = pool::algorithm;
     const auto space = limit.size;
-    const auto rate = algorithm::estimate(projection_, count, space, arrive);
+    const auto rate = algorithm::estimate(projection_, count, space,
+        settings.estimate_room, arrive);
     if (rate == max_uint64)
     {
         handler(error::estimate_false, {});

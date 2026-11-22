@@ -80,9 +80,9 @@ bool protocol_peer::reserve_relay() NOEXCEPT
     return slot < relay_slots;
 }
 
-void protocol_peer::activate_relay() NOEXCEPT
+void protocol_peer::activate_relay(object_key key) NOEXCEPT
 {
-    session_->activate_relay(channel_->relay_slot());
+    session_->activate_relay(channel_->relay_slot(), key);
 }
 
 void protocol_peer::release_relay() NOEXCEPT
@@ -148,6 +148,16 @@ void protocol_peer::set_current(bool value) NOEXCEPT
 bool protocol_peer::was_announced(const system::hash_digest& hash) const NOEXCEPT
 {
     return channel_->was_announced(hash);
+}
+
+void protocol_peer::set_silenced(bool value) NOEXCEPT
+{
+    channel_->set_silenced(value);
+}
+
+bool protocol_peer::silenced() const NOEXCEPT
+{
+    return channel_->silenced();
 }
 
 // Compact blocks (bip152 version 2).

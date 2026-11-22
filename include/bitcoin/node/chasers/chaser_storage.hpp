@@ -27,7 +27,7 @@ namespace node {
 
 class full_node;
 
-/// Monitor storage capacity following a disk full condition.
+/// Monitor storage capacity following disk full condition.
 /// Clear disk full condition and restart network given increased capacity.
 class BCN_API chaser_storage
   : public chaser

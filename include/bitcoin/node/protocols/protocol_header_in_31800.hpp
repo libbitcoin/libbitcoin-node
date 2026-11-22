@@ -25,9 +25,9 @@
 namespace libbitcoin {
 namespace node {
 
-/// Synchronize the peer's header branch, validating and discarding headers
-/// until proven (a checkpoint, or exhausted, current and at minimum work).
-/// Then get it again and archive as verified against sampled hashes.
+/// Synchronize peer's header branch, validating and discarding headers until
+/// proven (checkpoint, or exhausted, current and at minimum work). Then get it
+/// again and archive as verified against sampled hashes.
 class BCN_API protocol_header_in_31800
   : public node::protocol_peer,
     protected network::tracker<protocol_header_in_31800>

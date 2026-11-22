@@ -21,10 +21,9 @@
 
 #include <bitcoin/system.hpp>
 
-/// Now we use the generic helper definitions above to define BCN_API
-/// and BCN_INTERNAL. BCN_API is used for the public API symbols. It either DLL
-/// imports or DLL exports (or does nothing for static build) BCN_INTERNAL is
-/// used for non-api symbols.
+/// Generic helper definitions above define BCN_API and BCN_INTERNAL.
+/// BCN_API for public API symbols, DLL import/export (nothing if static).
+/// BCN_INTERNAL for non-api symbols.
 #if defined BCN_STATIC
     #define BCN_API
     #define BCN_INTERNAL

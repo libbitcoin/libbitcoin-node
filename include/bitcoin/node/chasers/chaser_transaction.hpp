@@ -44,27 +44,26 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
     void stop() NOEXCEPT override;
 
-    /// Validate and archive a submitted set, admitted prefix by prefix until
-    /// one tx fails. The set is only validated when test, nothing archived.
+    /// Validate and archive submitted set, admitted prefix by prefix until one
+    /// tx fails. Set is only validated when test, nothing archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
 
-    /// Validate and archive an announced set, admitted prefix by prefix, a tx
-    /// that is not accepted passed over (the first such failure reported).
+    /// Validate and archive announced set, admitted prefix by prefix, tx not
+    /// accepted passed over (first such failure reported).
     virtual void submit_announced(
         const system::chain::transactions_cptr& txs, size_t slot,
         submit_handler&& handler) NOEXCEPT;
 
-    /// Validate, archive and associate the txs of an identified compact block,
-    /// in block order, the txs filling the terminal links.
+    /// Validate, archive and associate txs of identified compact block, in
+    /// block order, txs filling terminal links.
     virtual void submit_compact(const system::chain::transactions_cptr& txs,
         const database::tx_links& links, const database::header_link& link,
         submit_handler&& handler) NOEXCEPT;
 
-    /// Archive and associate the txs of an identified block. Not pooling, on
-    /// the calling thread, returning true with the code. Pooling, on the
-    /// strand with compact blocks, returning false and handling the code
-    /// (thread safe).
+    /// Archive and associate txs of identified block. Not pooling, on calling
+    /// thread, returning true with code. Pooling, on strand with compact
+    /// blocks, returning false and handling code (thread safe).
     virtual bool archive_block(code& ec,
         const system::chain::view::block::cptr& block,
         const database::header_link& link, bool strong, bool bypass,
@@ -91,8 +90,8 @@ public:
     /// Reserve a free slot of the tier, relay_slots if none (thread safe).
     virtual size_t reserve_relay(relay_tier tier) NOEXCEPT;
 
-    /// Start relay to the slot, once its channel is notified of relay.
-    virtual void activate_relay(size_t slot) NOEXCEPT;
+    /// Start relay to slot, its channel notified by events key.
+    virtual void activate_relay(size_t slot, object_key key) NOEXCEPT;
 
     /// Release the relay slot, free once cleared from the marks.
     virtual void release_relay(size_t slot) NOEXCEPT;
@@ -132,24 +131,24 @@ protected:
     virtual void do_get_confirmable_fees(
         const confirmable_fees_handler& handler) NOEXCEPT;
 
-    /// Recompute the pool context and sweep the index by it if due, closing
-    /// the pool if not current or the context is not reusable, and map scan
-    /// starts: built once current, extended by block until pooling, and
-    /// remapped when a block archived before the latch is organized.
+    /// Recompute pool context and sweep index by it if due, closing pool if not
+    /// current or context not reusable, and map scan starts: built once
+    /// current, extended by block until pooling, and remapped when block
+    /// archived before latch is organized.
     virtual void do_bump() NOEXCEPT;
 
     /// Retain the pool subscription.
     virtual void do_subscribe_pool(const pool_notifier& handler) NOEXCEPT;
 
     /// Relay slot management.
-    virtual void do_activate_relay(size_t slot) NOEXCEPT;
+    virtual void do_activate_relay(size_t slot, object_key key) NOEXCEPT;
     virtual void do_release_relay(size_t slot) NOEXCEPT;
     virtual void do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT;
     virtual void do_set_relayed(size_t slot,
         const database::tx_links& links) NOEXCEPT;
     virtual void do_relay_pool(size_t slot) NOEXCEPT;
 
-    /// Sweep the pool to one slot owed a sweep, then post for the next.
+    /// Sweep pool to one slot owed a sweep, then post for next.
     virtual void do_sweep_relay() NOEXCEPT;
 
     /// Apply the organized block to the pool index, then bump.
@@ -243,20 +242,19 @@ private:
     void start_scan(bool remap) NOEXCEPT;
     void start_revalidation() NOEXCEPT;
 
-    /// Relay the txs with their unconfirmed ancestry, marked held by origin,
-    /// to each of the slots whose rate the sum of the rows it lacks clears.
+    /// Relay txs with their unconfirmed ancestry, marked held by origin, to
+    /// each slot whose rate the sum of rows it lacks clears.
     bool relay(const database::tx_links& links, size_t origin,
-        uint64_t slots) NOEXCEPT;
+        uint64_t slots, object_key key={}) NOEXCEPT;
 
-    /// Relay the confirmable txs in row order, each with the ancestry the
-    /// slot lacks, where that clears the slot's rate.
+    /// Relay confirmable txs in row order, each with ancestry slot lacks, where
+    /// that clears slot's rate.
     bool sweep_relay(size_t slot) NOEXCEPT;
 
-    /// Owe the slot a sweep, made at once unless it was swept since the last
-    /// block, and otherwise after the next.
+    /// Owe slot a sweep, made now unless swept since last block.
     void owe_relay(size_t slot) NOEXCEPT;
 
-    /// The relaying slots owed a sweep and not swept since the last block.
+    /// Relaying slots owed a sweep and not swept since last block.
     uint64_t sweepable() const NOEXCEPT;
 
     /// The marks of the pool row, grown with the table.
@@ -276,8 +274,8 @@ private:
     static uint64_t arriving(const query::pool_arrivals& arrivals,
         uint64_t rate, estimate_mode mode) NOEXCEPT;
 
-    /// Notify pool subscribers of the scan, timed from its start, and fire
-    /// its event (other than for coverage, which fires only when it clears).
+    /// Notify pool subscribers of scan, timed from its start, and fire its
+    /// event (other than for coverage, which fires only when it clears).
     using time_point = std::chrono::steady_clock::time_point;
     static time_point now() NOEXCEPT;
     void report(pool_scan scan, const time_point& start) NOEXCEPT;
@@ -316,6 +314,7 @@ private:
     system::chain::context retried_{};
     std::vector<uint64_t> marks_{};
     std::array<uint64_t, relay_slots> rates_{};
+    std::array<object_key, relay_slots> keys_{};
     uint64_t relaying_{};
     uint64_t owed_{};
     uint64_t swept_{};

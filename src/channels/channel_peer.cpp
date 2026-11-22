@@ -41,6 +41,18 @@ bool channel_peer::was_announced(const hash_digest& hash) const NOEXCEPT
     return announced_.contains(hash);
 }
 
+void channel_peer::set_silenced(bool value) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    silenced_ = value;
+}
+
+bool channel_peer::silenced() const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    return silenced_;
+}
+
 void channel_peer::set_downloader(downloader&& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());

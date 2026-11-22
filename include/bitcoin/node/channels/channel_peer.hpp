@@ -53,6 +53,10 @@ public:
     /// The hash is (probably) known to the peer.
     bool was_announced(const system::hash_digest& hash) const NOEXCEPT;
 
+    /// Peer told not to announce txs (requires strand).
+    void set_silenced(bool value) NOEXCEPT;
+    bool silenced() const NOEXCEPT;
+
     /// Set the handler of work offered by the channel's own protocols.
     void set_downloader(downloader&& handler) NOEXCEPT;
 
@@ -80,6 +84,7 @@ private:
 
     // These are protected by strand.
     rolling_bloom_filter announced_{};
+    bool silenced_{};
     downloader downloader_{};
 };
 

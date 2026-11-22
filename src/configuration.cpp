@@ -104,8 +104,8 @@ code configuration::initialize() NOEXCEPT
     return network.initialize();
 }
 
-// Unset reserves default to the configured manual peers and outbound
-// connections (current connections once reduced).
+// Unset reserves default to configured manual peers and outbound connections
+// (current connections once reduced).
 size_t configuration::manual_relay_slots() const NOEXCEPT
 {
     size_t reserve = node.manual_relay_slots;

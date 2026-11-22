@@ -424,7 +424,6 @@ struct validate_setup_fixture
 
         system::batched::accelerate(config.node.use_gpu);
 
-        // The store envelope is derived from the configured chain.
         config.database.initialize(config.bitcoin, config.node.limited_blocks,
             config.node.provide_filters, config.node.require_witness,
             config.node.silent_start_height);
@@ -677,30 +676,35 @@ struct validate_current_overspent_fixture
     }
 };
 
+static void validate_captured(configuration& config)
+{
+    config.bitcoin.checkpoints.clear();
+    config.node.batch_verify = 1;
+    config.node.cpu_batch_verify = true;
+    validate_silent_batched(config);
+}
+
 struct validate_captured_fixture
   : validate_setup_fixture
 {
     validate_captured_fixture()
-      : validate_setup_fixture(validate_matured_candidates, [](configuration& config)
-        {
-            config.bitcoin.checkpoints.clear();
-            config.node.batch_verify = 1;
-            config.node.cpu_batch_verify = true;
-            validate_silent_batched(config);
-        })
+      : validate_setup_fixture(validate_matured_candidates, validate_captured)
     {
     }
 };
+
+static void validate_silent_bypass(configuration& config)
+{
+    validate_silent_batched(config);
+    config.node.maximum_height = 2;
+}
 
 struct validate_silent_bypass_fixture
   : validate_setup_fixture
 {
     validate_silent_bypass_fixture()
-      : validate_setup_fixture(validate_silent_candidates, [](configuration& config)
-        {
-            validate_silent_batched(config);
-            config.node.maximum_height = 2;
-        })
+      : validate_setup_fixture(validate_silent_candidates,
+            validate_silent_bypass)
     {
     }
 };
@@ -721,8 +725,8 @@ struct validate_noncandidates_fixture
     }
 };
 
-// Commits a prevalid to the admitting bank and loses the drain claim during
-// the first drain, as a completing validation does.
+// Commits prevalid to admitting bank, loses drain claim during first drain,
+// as completing validation does.
 struct validate_drain_accessor
   : chaser_validate
 {

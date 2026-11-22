@@ -43,8 +43,7 @@ void protocol_transaction_out_106::start() NOEXCEPT
     if (started())
         return;
 
-    // A channel with no relay slot is relayed nothing, and stopping has
-    // already been called for one stopped before its protocols attach.
+    // No slot implies no relay, stopping already called if stopped at attach.
     if (!stopped())
         reserve_relay();
 
@@ -55,9 +54,9 @@ void protocol_transaction_out_106::start() NOEXCEPT
     protocol_peer::start();
 }
 
-// The slot is relayed to once the channel is notified of relay.
+// Slot is relayed to once channel is notified of relay.
 void protocol_transaction_out_106::subscribed(const code& ec,
-    object_key) NOEXCEPT
+    object_key key) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -67,7 +66,7 @@ void protocol_transaction_out_106::subscribed(const code& ec,
         return;
     }
 
-    activate_relay();
+    activate_relay(key);
 }
 
 void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
@@ -241,8 +240,8 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     chain::transaction::cptr ptr{};
     auto witness = false;
 
-    // Drain unservable items, skipping non-tx inventory. The derived protocol
-    // accumulates them if it reports them, and otherwise stops the channel.
+    // Drain unservable items, skipping non-tx inventory. Derived protocol
+    // accumulates them if it reports them, and otherwise stops channel.
     for (; index < message->items.size(); ++index)
     {
         const auto& item = message->items.at(index);
@@ -258,9 +257,9 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
             return;
         }
 
-        // Tx could be always queried with witness and therefore safely cached.
-        // If can then be serialized according to channel configuration, however
-        // that is currently fixed to witness as available in the object.
+        // Tx could always be queried with witness and therefore safely cached.
+        // It can then be serialized according to channel configuration, however
+        // that is fixed to witness as available in object.
         ptr = query.get_transaction(to_transaction(item), witness);
         if (ptr)
             break;

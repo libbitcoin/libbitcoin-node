@@ -50,8 +50,8 @@ bool protocol_block_out_70001::handle_unservable(
     return true;
 }
 
-// The items are answered and the send loop resumed, as with a block, so
-// nothing is produced until the prior write completes.
+// Items are answered and send loop resumed, as with a block, so nothing is
+// produced until prior write completes.
 bool protocol_block_out_70001::report_unservable(size_t index,
     const get_data::cptr& message, const gate_t::ptr& gate) NOEXCEPT
 {

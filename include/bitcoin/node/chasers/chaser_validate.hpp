@@ -90,9 +90,9 @@ protected:
         const header_link& link, bool bypass, bool startup=false) NOEXCEPT;
 
     /// Batching (lock-free, self-serviced by completing pool threads).
-    /// Batch state is the store: sig tables carry rows, prevalid table
-    /// carries the per-block link set (write-through, crash-durable).
-    /// Tables are banked, commits fill one bank while the other drains.
+    /// Batch state is store: sig tables carry rows, prevalid table carries
+    /// per-block link set (write-through, crash-durable).
+    /// Tables are banked, commits fill one bank while other drains.
     virtual code start_batch() NOEXCEPT;
     virtual void process_batch(bool residual) NOEXCEPT;
     virtual code do_process_batch(bool bank, bool startup) NOEXCEPT;
@@ -106,8 +106,8 @@ protected:
     virtual void exit_capture(bool bank) NOEXCEPT;
 
     /// Silent payment batch.
-    /// Banked and drained independently of signatures, and computed in the
-    /// drain, after which their blocks can be confirmed if also valid.
+    /// Banked and drained independently of signatures, computed in drain, after
+    /// which their blocks can be confirmed if also valid.
     virtual code start_silent_batch() NOEXCEPT;
     virtual void process_silent_batch(bool residual) NOEXCEPT;
     virtual code do_process_silent_batch(bool bank) NOEXCEPT;

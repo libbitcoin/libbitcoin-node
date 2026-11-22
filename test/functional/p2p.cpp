@@ -189,8 +189,8 @@ struct p2p_regtest_sampled_setup_fixture
     }
 };
 
-// A node with compact blocks enabled and blocks 1 and 2 as unassociated
-// candidates, not current.
+// Node with compact blocks enabled,
+// blocks 1 and 2 unassociated candidates, not current.
 struct p2p_compact_not_current_setup_fixture
   : p2p_setup_fixture
 {

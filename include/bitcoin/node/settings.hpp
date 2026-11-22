@@ -48,6 +48,7 @@ public:
         uint32_t coinbase_sigops;
         uint32_t maximum_chunk_depth;
         uint16_t estimate_cache_seconds;
+        uint32_t estimate_room;
         bool thread_priority;
 
         /// Helpers.

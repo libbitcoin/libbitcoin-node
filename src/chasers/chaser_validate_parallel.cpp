@@ -63,8 +63,7 @@ void chaser_validate::validate_block(const header_link& link,
     const auto start = network::logger::now();
     const auto current = !bypass && is_current_header(link);
 
-    // A block is timed only if validated alone, as concurrent blocks share
-    // the processor.
+    // Block timed only if validated alone, as concurrent ones share processor.
     const auto ticket = validating_.begin();
 
     if (!query.get_context(ctx, link))
@@ -159,8 +158,8 @@ code chaser_validate::populate(chain::view::block& block,
     if (!archive().get_block_prevouts(prevouts, spends, conflicts, link))
         return system::error::missing_previous_output;
 
-    // Internal maturity and time locks are verified here because they are
-    // the only necessary confirmation checks for internal spends.
+    // Internal maturity and time locks are verified here, as they are the
+    // only necessary confirmation checks for internal spends.
     return block.populate(ctx, std::move(prevouts));
 }
 
@@ -179,8 +178,8 @@ void chaser_validate::scan_block(const header_link& link,
     complete_block(ec, link, height, bypass);
 }
 
-// A bypassed block is read only for its optional indexes, so it is not
-// materialized. A filter requires all prevouts, otherwise only those of the
+// Bypassed block is read only for its optional indexes, so not materialized.
+// Filter requires all prevouts, otherwise only those of
 // silent payment eligible txs are populated.
 code chaser_validate::validate_view(const header_link& link, bool filter,
     bool silent, bool bank) NOEXCEPT
@@ -227,8 +226,8 @@ code chaser_validate::complete_view(const header_link& link, bool filter,
     return query.set_block_valid(link) ? error::success : error::validate10;
 }
 
-// A block with all txs pooled under a sufficient context requires only block
-// checks, performed by the store. Insufficiency implies full validation.
+// Block with all txs pooled under a sufficient context requires only block
+// checks, performed by store. Insufficiency implies full validation.
 code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
@@ -240,8 +239,8 @@ code chaser_validate::validate_pooled(bool& pooled, const header_link& link,
         return error::success;
 
     // Store codes are faults, consensus codes imply block invalidity.
-    return database::error::error_category::contains(ec) ?
-        error::validate11 : ec;
+    const auto store_code = database::error::error_category::contains(ec);
+    return store_code ? error::validate11 : ec;
 }
 
 // A pooled block is valid and SP indexed, so produce only for client filters.
@@ -288,9 +287,9 @@ code chaser_validate::validate(bool& batched, bool& capturing,
     // At least one signature batch was attempted (batch completion).
     batched = capture.batched;
 
-    // Commit (or discard) the captured signatures, marking the block prevalid
-    // contingent on batch verification. The commit epoch is mutually
-    // exclusive with batch verification (turnstile).
+    // Commit (or discard) captured signatures, marking block prevalid
+    // contingent on batch verification. Commit epoch is mutually exclusive
+    // with batch verification (turnstile).
     if (capturing)
     {
         if (!ec && batched)
