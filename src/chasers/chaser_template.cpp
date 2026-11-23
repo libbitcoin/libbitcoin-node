@@ -256,17 +256,13 @@ code chaser_template::replace(const chain::context& context,
     const hash_digest& previous, const database::tx_links& links) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
+    database::template_txs txs{};
+    if (const auto ec = archive().get_template_txs(txs, links))
+        return ec;
 
     uint64_t fees{};
-    for (const auto& link: links)
-    {
-        query::pool_totals totals{};
-        if (!query.get_pooled_totals(totals, link))
-            return database::error::integrity;
-
-        fees = ceilinged_add(fees, totals.fee);
-    }
+    for (const auto& tx: txs)
+        fees = ceilinged_add(fees, tx.fee);
 
     const auto increase = node_settings().pool.template_fee_increase;
     const auto current = held_ && (moved_ == moves_) &&
@@ -278,16 +274,12 @@ code chaser_template::replace(const chain::context& context,
     // Leaves of the coinbase are null, as it is not of the template.
     hashes txids{ null_hash };
     hashes wtxids{ null_hash };
-    txids.reserve(add1(links.size()));
-    wtxids.reserve(add1(links.size()));
-    for (const auto& link: links)
+    txids.reserve(add1(txs.size()));
+    wtxids.reserve(add1(txs.size()));
+    for (const auto& tx: txs)
     {
-        const auto row = query.to_pool_row(link);
-        if (row.is_terminal())
-            return database::error::integrity;
-
-        txids.push_back(query.get_tx_key(link));
-        wtxids.push_back(query.get_wtxid_key(row));
+        txids.push_back(tx.txid);
+        wtxids.push_back(tx.wtxid);
     }
 
     const auto root = merkle_root(std::move(wtxids));
@@ -300,7 +292,8 @@ code chaser_template::replace(const chain::context& context,
         fees,
         links,
         sha256::double_hash(root, null_hash),
-        chain::block::merkle_branch(zero, std::move(txids))
+        chain::block::merkle_branch(zero, std::move(txids)),
+        std::move(txs)
     });
 
     generation_.store(sequence, std::memory_order_relaxed);

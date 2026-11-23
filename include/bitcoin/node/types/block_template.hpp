@@ -50,6 +50,9 @@ struct block_template
 
     /// Merkle branch of the coinbase.
     system::hashes branch;
+
+    /// Ids, totals and parent positions of the txs.
+    database::template_txs txs;
 };
 
 } // namespace node
