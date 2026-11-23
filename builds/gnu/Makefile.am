@@ -218,6 +218,7 @@ include_bitcoin_node_typesdir = \
     ${includedir}/bitcoin/node/types
 
 include_bitcoin_node_types_HEADERS = \
+    ${srcdir}/../../include/bitcoin/node/types/block_template.hpp \
     ${srcdir}/../../include/bitcoin/node/types/constants.hpp \
     ${srcdir}/../../include/bitcoin/node/types/estimate_mode.hpp \
     ${srcdir}/../../include/bitcoin/node/types/pool_event.hpp \

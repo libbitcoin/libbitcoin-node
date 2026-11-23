@@ -21,6 +21,7 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chase.hpp>
+#include <bitcoin/node/types/block_template.hpp>
 #include <bitcoin/node/types/pool_event.hpp>
 
 namespace libbitcoin {
@@ -45,31 +46,6 @@ typedef std::function<void(const code&, const map_ptr&,
 /// Mining types.
 typedef std::function<void(const code&, size_t,
     const database::tx_links&)> template_handler;
-
-/// Template of the next block, its txs parents first.
-struct block_template
-{
-    typedef std::shared_ptr<const block_template> cptr;
-
-    /// Height of the block.
-    size_t height;
-
-    /// Count of templates held to this one.
-    uint64_t sequence;
-
-    /// Sum of the fees of the txs.
-    uint64_t fees;
-
-    /// The txs, less the coinbase.
-    database::tx_links links;
-
-    /// Witness commitment of the coinbase, its reserved value null.
-    system::hash_digest commitment;
-
-    /// Merkle branch of the coinbase.
-    system::hashes branch;
-};
-
 typedef std::function<void(const code&,
     const block_template::cptr&)> block_template_handler;
 

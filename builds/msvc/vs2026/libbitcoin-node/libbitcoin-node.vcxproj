@@ -222,6 +222,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\block_template.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\constants.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\estimate_mode.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\pool_event.hpp" />

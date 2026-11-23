@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_TYPES_TYPES_HPP
 #define LIBBITCOIN_NODE_TYPES_TYPES_HPP
 
+#include <bitcoin/node/types/block_template.hpp>
 #include <bitcoin/node/types/constants.hpp>
 #include <bitcoin/node/types/estimate_mode.hpp>
 #include <bitcoin/node/types/pool_event.hpp>
