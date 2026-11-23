@@ -91,7 +91,7 @@ static std::string describe_limit(const node::query& query,
         const auto ancestry = is_zero(component.contests) ||
             algorithm::ancestry(sum, g, component, limit);
         const auto outcomes = algorithm::outcomes(component);
-        if (!ancestry || outcomes > maximum_outcomes)
+        if (!ancestry || is_zero(maximum_outcomes))
         {
             out << "candidate " << at << (ancestry ? " outcomes " :
                 " ancestry ") << "members " << component.count
