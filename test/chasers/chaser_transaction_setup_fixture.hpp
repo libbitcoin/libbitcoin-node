@@ -461,10 +461,11 @@ struct chaser_transaction_setup_fixture
     built build_template()
     {
         std::promise<built> promise{};
-        node_.build_template([&](const code& ec, size_t height,
+        node_.build_template([&](const code& ec,
+            const system::chain::context& context, const system::hash_digest&,
             const database::tx_links& links) NOEXCEPT
         {
-            promise.set_value({ ec, height, links });
+            promise.set_value({ ec, context.height, links });
         });
 
         return promise.get_future().get();

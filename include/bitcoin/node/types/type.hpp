@@ -44,8 +44,8 @@ typedef std::function<void(const code&, const map_ptr&,
     const job::ptr&)> map_handler;
 
 /// Mining types.
-typedef std::function<void(const code&, size_t,
-    const database::tx_links&)> template_handler;
+typedef std::function<void(const code&, const system::chain::context&,
+    const system::hash_digest&, const database::tx_links&)> template_handler;
 typedef std::function<void(const code&,
     const block_template::cptr&)> block_template_handler;
 

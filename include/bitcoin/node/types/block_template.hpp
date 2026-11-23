@@ -30,8 +30,11 @@ struct block_template
 {
     typedef std::shared_ptr<const block_template> cptr;
 
-    /// Height of the block.
-    size_t height;
+    /// Hash of the previous block.
+    system::hash_digest previous;
+
+    /// Context of the block, as the pool validates under it.
+    system::chain::context context;
 
     /// Count of templates held to this one.
     uint64_t sequence;

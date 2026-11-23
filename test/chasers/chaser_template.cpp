@@ -149,7 +149,7 @@ struct chaser_template_setup_fixture
             const node::block_template::cptr& held) NOEXCEPT
         {
             if (held)
-                promise.set_value({ ec, held->height, held->links });
+                promise.set_value({ ec, held->context.height, held->links });
             else
                 promise.set_value({ ec, zero, {} });
         });

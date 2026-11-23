@@ -190,20 +190,22 @@ void chaser_template::build() NOEXCEPT
 
     building_ = true;
     request_template(
-        BIND(handle_build, _1, _2, _3, pool_generation(), moves_));
+        BIND(handle_build, _1, _2, _3, _4, pool_generation(), moves_));
 }
 
 // private
-void chaser_template::handle_build(const code& ec, size_t height,
+void chaser_template::handle_build(const code& ec,
+    const chain::context& context, const hash_digest& previous,
     const database::tx_links& links, uint64_t generation,
     size_t moves) NOEXCEPT
 {
-    POST(do_build, ec, height, links, generation, moves);
+    POST(do_build, ec, context, previous, links, generation, moves);
 }
 
 // private
 // A build that the chain moved under is not of its top, so is built again.
-void chaser_template::do_build(const code& ec, size_t height,
+void chaser_template::do_build(const code& ec,
+    const chain::context& context, const hash_digest& previous,
     const database::tx_links& links, uint64_t generation,
     size_t moves) NOEXCEPT
 {
@@ -237,7 +239,7 @@ void chaser_template::do_build(const code& ec, size_t height,
     }
 
     built_ = generation;
-    if (const auto failed = replace(height, links))
+    if (const auto failed = replace(context, previous, links))
     {
         complete(fault(failed));
         return;
@@ -250,8 +252,8 @@ void chaser_template::do_build(const code& ec, size_t height,
 // private
 // The template held is replaced when it is not of the chain top, or when the
 // fees of the build exceed its own by more than the configured increase.
-code chaser_template::replace(size_t height,
-    const database::tx_links& links) NOEXCEPT
+code chaser_template::replace(const chain::context& context,
+    const hash_digest& previous, const database::tx_links& links) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
@@ -268,7 +270,7 @@ code chaser_template::replace(size_t height,
 
     const auto increase = node_settings().pool.template_fee_increase;
     const auto current = held_ && (moved_ == moves_) &&
-        (held_->height == height);
+        (held_->previous == previous);
 
     if (current && (floored_subtract(fees, held_->fees) <= increase))
         return error::success;
@@ -292,7 +294,8 @@ code chaser_template::replace(size_t height,
     const auto sequence = add1(template_generation());
     held_ = to_shared<block_template>(block_template
     {
-        height,
+        previous,
+        context,
         sequence,
         fees,
         links,
@@ -302,7 +305,7 @@ code chaser_template::replace(size_t height,
 
     generation_.store(sequence, std::memory_order_relaxed);
     fire(events::template_issued, links.size());
-    notify(error::success, chases::template_{ height });
+    notify(error::success, chases::template_{ context.height });
     return error::success;
 }
 

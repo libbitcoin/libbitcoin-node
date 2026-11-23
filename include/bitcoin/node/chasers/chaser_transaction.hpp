@@ -313,6 +313,7 @@ private:
     // These are protected by strand.
     pool_subscriber subscriber_{};
     system::chain::context pool_{};
+    system::hash_digest previous_{};
     database::header_link top_{};
     size_t floor_{};
     bool due_{ true };

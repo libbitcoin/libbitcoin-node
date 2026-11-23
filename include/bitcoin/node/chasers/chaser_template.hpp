@@ -63,13 +63,15 @@ protected:
 
 private:
     void build() NOEXCEPT;
-    void handle_build(const code& ec, size_t height,
-        const database::tx_links& links, uint64_t generation,
-        size_t moves) NOEXCEPT;
-    void do_build(const code& ec, size_t height,
-        const database::tx_links& links, uint64_t generation,
-        size_t moves) NOEXCEPT;
-    code replace(size_t height, const database::tx_links& links) NOEXCEPT;
+    void handle_build(const code& ec, const system::chain::context& context,
+        const system::hash_digest& previous, const database::tx_links& links,
+        uint64_t generation, size_t moves) NOEXCEPT;
+    void do_build(const code& ec, const system::chain::context& context,
+        const system::hash_digest& previous, const database::tx_links& links,
+        uint64_t generation, size_t moves) NOEXCEPT;
+    code replace(const system::chain::context& context,
+        const system::hash_digest& previous,
+        const database::tx_links& links) NOEXCEPT;
     void complete(const code& ec) NOEXCEPT;
     void start_timer() NOEXCEPT;
     void handle_timer(const code& ec) NOEXCEPT;
