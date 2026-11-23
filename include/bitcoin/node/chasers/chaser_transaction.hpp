@@ -85,7 +85,7 @@ public:
         confirmable_fees_handler&& handler) NOEXCEPT;
 
     /// Count of changes to the pool (thread safe).
-    virtual uint64_t pool_generation() const NOEXCEPT;
+    uint64_t pool_generation() const NOEXCEPT override;
 
     /// Subscribe to pool scans (notified on the strand).
     virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
