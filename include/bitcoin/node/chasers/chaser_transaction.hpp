@@ -199,6 +199,7 @@ private:
         bool test;
         bool announced;
         std::vector<bool> stored{};
+        std::vector<size_t> sigops_of{};
         std::unordered_set<system::hash_digest> held{};
         query::pool_graph graph{};
         uint64_t bytes{};
@@ -221,8 +222,7 @@ private:
     bool spends_held(const system::chain::transaction& tx) const NOEXCEPT;
     bool is_held(const system::chain::input& in) const NOEXCEPT;
     void pass_over(submission& set, size_t index, const code& ec) NOEXCEPT;
-    void count(submission& set,
-        const system::chain::transaction& tx) const NOEXCEPT;
+    void count(submission& set, size_t index) const NOEXCEPT;
     code extend(bool& covered, submission& set, size_t index) NOEXCEPT;
     code restore(submission& set, size_t index) NOEXCEPT;
     code clear(size_t& at, submission& set, size_t index) NOEXCEPT;
@@ -232,7 +232,7 @@ private:
     code accept(const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
     code admit(database::tx_link& out, const system::chain::transaction& tx,
-        uint32_t time) NOEXCEPT;
+        uint32_t time, size_t sigops) NOEXCEPT;
     code validate(bool& guarded, const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
     database::tx_link to_stored(

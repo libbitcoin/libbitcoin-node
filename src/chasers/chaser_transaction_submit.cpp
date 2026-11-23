@@ -229,6 +229,7 @@ void chaser_transaction::hold(submission& set) NOEXCEPT
 {
     const auto& query = archive();
     set.stored.resize(set.txs->size());
+    set.sigops_of.resize(set.txs->size());
     for (size_t index{}; index < set.txs->size(); ++index)
     {
         const auto& tx = *set.txs->at(index);
@@ -293,14 +294,14 @@ void chaser_transaction::pass_over(submission& set, size_t index,
 }
 
 // private
-void chaser_transaction::count(submission& set,
-    const chain::transaction& tx) const NOEXCEPT
+// Totals of last candidate in graph, tx at index.
+void chaser_transaction::count(submission& set, size_t index) const NOEXCEPT
 {
-    const auto bip16 = pool_.is_enabled(flags::bip16_rule);
-    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
-    const auto sigops = tx.signature_operations(bip16, bip141);
-    set.bytes = ceilinged_add<uint64_t>(set.bytes, tx.virtual_size());
-    set.sigops = ceilinged_add<uint64_t>(set.sigops, sigops);
+    using algorithm = pool::algorithm;
+    const auto totals = algorithm::from_column(set.graph.totals.back());
+    set.sigops_of.at(index) = totals.sigops;
+    set.bytes = ceilinged_add<uint64_t>(set.bytes, totals.size);
+    set.sigops = ceilinged_add<uint64_t>(set.sigops, totals.sigops);
 }
 
 // private
@@ -319,7 +320,7 @@ code chaser_transaction::extend(bool& covered, submission& set,
         set.first = index;
 
     set.running = true;
-    count(set, tx);
+    count(set, index);
 
     const auto limit = block_limit();
     if (set.bytes > limit.size || set.sigops > limit.sigops)
@@ -371,7 +372,7 @@ code chaser_transaction::restore(submission& set, size_t index) NOEXCEPT
         if (const auto ec = query.get_pool_candidate(set.graph, tx, ctx))
             return fault(ec);
 
-        count(set, tx);
+        count(set, at);
         set.running = true;
     }
 
@@ -409,7 +410,8 @@ code chaser_transaction::clear(size_t& at, submission& set,
             continue;
 
         database::tx_link link{};
-        if (const auto ec = admit(link, *set.txs->at(at), set.time))
+        const auto& tx = *set.txs->at(at);
+        if (const auto ec = admit(link, tx, set.time, set.sigops_of.at(at)))
             return ec;
 
         admitted.push_back(link);
@@ -452,7 +454,7 @@ code chaser_transaction::check(const transaction_cptrs& txs,
 }
 
 code chaser_transaction::admit(database::tx_link& link,
-    const chain::transaction& tx, uint32_t time) NOEXCEPT
+    const chain::transaction& tx, uint32_t time, size_t sigops) NOEXCEPT
 {
     bool archived{};
     auto& query = archive();
@@ -466,7 +468,7 @@ code chaser_transaction::admit(database::tx_link& link,
         size_t repooled{};
         const auto start = now();
         const auto admitted = query.set_pooled(repooled, link, tx,
-            database::context::from(pool_), time);
+            database::context::from(pool_), time, sigops, archived);
 
         report(pool_scan::admission, start);
         if (!admitted)
