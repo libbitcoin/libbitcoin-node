@@ -19,6 +19,8 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_TEMPLATE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_TEMPLATE_HPP
 
+#include <atomic>
+#include <vector>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -27,7 +29,7 @@ namespace node {
 
 class full_node;
 
-/// Construct template blocks upon request.
+/// Hold the template of the next block, replaced as chain and pool move.
 class BCN_API chaser_template
   : public chaser
 {
@@ -37,20 +39,53 @@ public:
     chaser_template(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
-    /// Template of pooled txs built on request, parents first, and its height.
-    virtual void get_template(template_handler&& handler) NOEXCEPT;
+    /// The template held, built first if the chain or pool has moved.
+    virtual void get_template(block_template_handler&& handler) NOEXCEPT;
+
+    /// Count a demand for template replacement by interval (or uncount).
+    virtual void demand_template(bool demand) NOEXCEPT;
+
+    /// Sequence of the template held, zero if none yet (thread safe).
+    virtual uint64_t template_generation() const NOEXCEPT;
 
 protected:
-    virtual void do_get_template(const template_handler& handler) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
+
+    virtual void do_stopping(const code& ec) NOEXCEPT;
+    virtual void do_get_template(
+        const block_template_handler& handler) NOEXCEPT;
+    virtual void do_demand_template(bool demand) NOEXCEPT;
+
+    /// The chain has moved, so the template held is not of its top.
+    virtual void do_moved(bool settled) NOEXCEPT;
 
 private:
+    void build() NOEXCEPT;
     void handle_build(const code& ec, size_t height,
-        const database::tx_links& links,
-        const template_handler& handler) NOEXCEPT;
+        const database::tx_links& links, uint64_t generation,
+        size_t moves) NOEXCEPT;
     void do_build(const code& ec, size_t height,
-        const database::tx_links& links,
-        const template_handler& handler) NOEXCEPT;
+        const database::tx_links& links, uint64_t generation,
+        size_t moves) NOEXCEPT;
+    code replace(size_t height, const database::tx_links& links) NOEXCEPT;
+    void complete(const code& ec) NOEXCEPT;
+    void start_timer() NOEXCEPT;
+    void handle_timer(const code& ec) NOEXCEPT;
+
+    // This is thread safe.
+    std::atomic<uint64_t> generation_{};
+
+    // These are protected by strand.
+    block_template::cptr held_{};
+    std::vector<block_template_handler> waiting_{};
+    network::deadline::ptr timer_{};
+    uint64_t built_{};
+    size_t moves_{};
+    size_t moved_{};
+    size_t demand_{};
+    bool building_{};
 };
 
 } // namespace node

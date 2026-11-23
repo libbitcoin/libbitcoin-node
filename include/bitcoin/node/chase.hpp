@@ -185,7 +185,7 @@ enum class chase
     /// Issued by 'transaction' and handled by 'protocol_transaction_out'.
     relay,
 
-    /// Candidate block (template) has been created, upon request.
+    /// Template of the next block has been replaced.
     /// Issued by 'template' and handled by [miners].
     template_,
 

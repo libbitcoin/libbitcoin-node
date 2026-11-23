@@ -70,6 +70,7 @@
 #include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
+#include <bitcoin/node/types/block_template.hpp>
 #include <bitcoin/node/types/constants.hpp>
 #include <bitcoin/node/types/estimate_mode.hpp>
 #include <bitcoin/node/types/pool_event.hpp>

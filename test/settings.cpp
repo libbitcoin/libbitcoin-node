@@ -220,9 +220,9 @@ BC_AUTO_TEST_CASE(settings__pool__default__expected)
     BC_REQUIRE_EQUAL(pool.estimate_cache_seconds, 7_u16);
     BC_REQUIRE_EQUAL(pool.estimate_room, 1'000_u32);
     BC_REQUIRE(pool.estimate_cache() == steady_clock::duration(seconds(7)));
-    BC_REQUIRE_EQUAL(pool.maximum_requests, 500'000_u32);
-    BC_REQUIRE_EQUAL(pool.request_timeout_seconds, 60_u16);
-    BC_REQUIRE(pool.request_timeout() == steady_clock::duration(seconds(60)));
+    BC_REQUIRE_EQUAL(pool.template_interval_seconds, 30_u16);
+    BC_REQUIRE_EQUAL(pool.template_fee_increase, 0_u64);
+    BC_REQUIRE(pool.template_interval() == steady_clock::duration(seconds(30)));
     BC_REQUIRE(pool.thread_priority);
     BC_REQUIRE(pool.thread_priority_() == network::processing_priority::high);
 }

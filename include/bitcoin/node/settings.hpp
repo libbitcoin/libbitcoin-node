@@ -49,15 +49,15 @@ public:
         uint32_t maximum_chunk_depth;
         uint16_t estimate_cache_seconds;
         uint32_t estimate_room;
-        uint32_t maximum_requests;
-        uint16_t request_timeout_seconds;
+        uint16_t template_interval_seconds;
+        uint64_t template_fee_increase;
         bool thread_priority;
 
         /// Helpers.
         virtual uint64_t minimum_fee_rate_() const NOEXCEPT;
         virtual uint64_t cutoff_rate_() const NOEXCEPT;
         virtual network::steady_clock::duration estimate_cache() const NOEXCEPT;
-        virtual network::steady_clock::duration request_timeout() const NOEXCEPT;
+        virtual network::steady_clock::duration template_interval() const NOEXCEPT;
         virtual network::processing_priority thread_priority_() const NOEXCEPT;
     };
 

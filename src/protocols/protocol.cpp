@@ -95,9 +95,19 @@ size_t protocol::inbound_channel_count() const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void protocol::get_template(template_handler&& handler) NOEXCEPT
+void protocol::get_template(block_template_handler&& handler) NOEXCEPT
 {
     session_->get_template(std::move(handler));
+}
+
+void protocol::demand_template(bool demand) NOEXCEPT
+{
+    session_->demand_template(demand);
+}
+
+uint64_t protocol::template_generation() const NOEXCEPT
+{
+    return session_->template_generation();
 }
 
 void protocol::estimate(size_t target, estimate_mode mode,

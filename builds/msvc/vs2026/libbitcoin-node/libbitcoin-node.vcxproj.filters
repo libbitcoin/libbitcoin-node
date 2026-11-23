@@ -380,6 +380,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\types\block_template.hpp">
+      <Filter>include\bitcoin\node\types</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\types\constants.hpp">
       <Filter>include\bitcoin\node\types</Filter>
     </ClInclude>

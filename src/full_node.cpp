@@ -233,9 +233,24 @@ void full_node::subscribe_pool(pool_notifier&& handler) NOEXCEPT
     chaser_transaction_.subscribe_pool(std::move(handler));
 }
 
-void full_node::get_template(template_handler&& handler) NOEXCEPT
+uint64_t full_node::pool_generation() const NOEXCEPT
+{
+    return chaser_transaction_.pool_generation();
+}
+
+void full_node::get_template(block_template_handler&& handler) NOEXCEPT
 {
     chaser_template_.get_template(std::move(handler));
+}
+
+void full_node::demand_template(bool demand) NOEXCEPT
+{
+    chaser_template_.demand_template(demand);
+}
+
+uint64_t full_node::template_generation() const NOEXCEPT
+{
+    return chaser_template_.template_generation();
 }
 
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT

@@ -21,6 +21,7 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chase.hpp>
+#include <bitcoin/node/types/block_template.hpp>
 #include <bitcoin/node/types/pool_event.hpp>
 
 namespace libbitcoin {
@@ -45,6 +46,8 @@ typedef std::function<void(const code&, const map_ptr&,
 /// Mining types.
 typedef std::function<void(const code&, size_t,
     const database::tx_links&)> template_handler;
+typedef std::function<void(const code&,
+    const block_template::cptr&)> block_template_handler;
 
 /// Confirmable types.
 typedef std::function<void(const code&,

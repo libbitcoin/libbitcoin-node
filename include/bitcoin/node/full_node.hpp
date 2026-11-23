@@ -112,8 +112,17 @@ public:
     /// Subscribe to pool scans (notified on the transaction strand).
     virtual void subscribe_pool(pool_notifier&& handler) NOEXCEPT;
 
-    /// Template of pooled txs built on request, parents first, and its height.
-    virtual void get_template(template_handler&& handler) NOEXCEPT;
+    /// Count of changes to the pool (thread safe).
+    virtual uint64_t pool_generation() const NOEXCEPT;
+
+    /// The template held, built first if the chain or pool has moved.
+    virtual void get_template(block_template_handler&& handler) NOEXCEPT;
+
+    /// Count a demand for template replacement by interval (or uncount).
+    virtual void demand_template(bool demand) NOEXCEPT;
+
+    /// Sequence of the template held, zero if none yet (thread safe).
+    virtual uint64_t template_generation() const NOEXCEPT;
 
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;

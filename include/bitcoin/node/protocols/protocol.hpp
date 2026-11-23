@@ -94,8 +94,14 @@ protected:
     virtual void connect(const network::config::endpoint& endpoint,
         network::net::channel_notifier&& handler) NOEXCEPT;
 
-    /// Template of pooled txs built on request, parents first, and its height.
-    virtual void get_template(template_handler&& handler) NOEXCEPT;
+    /// The template held, built first if the chain or pool has moved.
+    virtual void get_template(block_template_handler&& handler) NOEXCEPT;
+
+    /// Count a demand for template replacement by interval (or uncount).
+    virtual void demand_template(bool demand) NOEXCEPT;
+
+    /// Sequence of the template held, zero if none yet (thread safe).
+    virtual uint64_t template_generation() const NOEXCEPT;
 
     /// Lowest rate (per virtual kilobyte) confirmed by the target block.
     void estimate(size_t target, estimate_mode mode,
