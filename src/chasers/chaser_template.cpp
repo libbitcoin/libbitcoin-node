@@ -189,8 +189,8 @@ void chaser_template::build() NOEXCEPT
         return;
 
     building_ = true;
-    request_template(BIND(handle_build, _1, _2, _3, pool_generation(),
-        moves_));
+    request_template(
+        BIND(handle_build, _1, _2, _3, pool_generation(), moves_));
 }
 
 // private

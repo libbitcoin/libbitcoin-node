@@ -889,8 +889,8 @@ struct chaser_transaction_requests_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            config.node.pool.maximum_requests = 2;
-            config.node.pool.request_timeout_seconds = 0;
+            config.network.maximum_requests = 2;
+            config.network.request_timeout_seconds = 0;
         })
     {
     }
@@ -904,7 +904,7 @@ struct chaser_transaction_request_timeout_setup_fixture
         {
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
-            config.node.pool.request_timeout_seconds = 1;
+            config.network.request_timeout_seconds = 1;
         })
     {
     }

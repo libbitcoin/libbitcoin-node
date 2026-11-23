@@ -41,9 +41,9 @@ public:
         tx_type_(session->node_settings().require_witness ?
             type_id::witness_tx : type_id::transaction),
         maximum_requests_(system::possible_wide_cast<size_t>(
-            session->node_settings().pool.maximum_requests)),
+            session->network_settings().maximum_requests)),
         request_timer_(system::emplace_shared<network::deadline>(session->log,
-            channel->strand(), session->node_settings().pool.request_timeout()))
+            channel->strand(), session->network_settings().request_timeout()))
     {
     }
 
