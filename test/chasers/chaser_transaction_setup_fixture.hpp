@@ -237,6 +237,45 @@ inline bool stored_reorganized(node::query& query) NOEXCEPT
         query.pop_confirmed();
 }
 
+// As stored_reorganized, block 1 the pool top when popped.
+inline bool stored_unapplied(node::query& query) NOEXCEPT
+{
+    const auto& block = reorganized_block();
+    if (!query.set(parent()) ||
+        !query.set(block, database::context{ deployed, 1, 0 }, {}, false, true))
+        return false;
+
+    query.set_pooling();
+    const auto link = query.to_header(block.hash());
+    return query.push_confirmed(link, true) && query.set_pool_top(link) &&
+        query.pop_confirmed();
+}
+
+// A relative spender of the tx of the reorganized block.
+inline chain::transaction::cptr unapplied_spender() NOEXCEPT
+{
+    const auto& txs = *reorganized_block().transactions_ptr();
+    return spend_relative(txs.at(1)->hash(false), parent_value - 1'000, 2);
+}
+
+// As stored_unapplied, the relative spender pooled before the pop.
+inline bool stored_unapplied_relative(node::query& query) NOEXCEPT
+{
+    database::tx_link link{};
+    const auto& block = reorganized_block();
+    const database::context context{ deployed, 1, 0 };
+    if (!query.set(parent()) ||
+        !query.set(block, context, {}, false, true) ||
+        query.set_code(link, *unapplied_spender()))
+        return false;
+
+    query.set_pooling();
+    const auto top = query.to_header(block.hash());
+    return query.push_confirmed(top, true) &&
+        query.set_pooled(link, *unapplied_spender(), context, 0) &&
+        query.set_pool_top(top) && query.pop_confirmed();
+}
+
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // A session to observe wire broadcasts.
@@ -596,6 +635,22 @@ struct chaser_transaction_setup_fixture
         return false;
     }
 
+    // True once the pool top is the block.
+    bool topped(const database::header_link& link)
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (query_.get_pool_top() == link)
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
+    }
+
     // The first count of pool scans reported from the act, empty if fewer.
     using pool_events = std::vector<node::pool_event>;
     pool_events reported(size_t count, const std::function<void()>& act)
@@ -826,6 +881,35 @@ struct chaser_transaction_pooling_setup_fixture
     }
 };
 
+struct chaser_transaction_requests_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_requests_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.maximum_requests = 2;
+            config.node.pool.request_timeout_seconds = 0;
+        })
+    {
+    }
+};
+
+struct chaser_transaction_request_timeout_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_request_timeout_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+            config.node.pool.request_timeout_seconds = 1;
+        })
+    {
+    }
+};
+
 struct chaser_transaction_reserves_setup_fixture
   : chaser_transaction_setup_fixture
 {
@@ -1044,6 +1128,32 @@ struct chaser_transaction_closed_header_setup_fixture
         {
             config.network.enable_relay = false;
         }, stored_header)
+    {
+    }
+};
+
+struct chaser_transaction_unapplied_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_unapplied_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+        }, stored_unapplied)
+    {
+    }
+};
+
+struct chaser_transaction_unapplied_relative_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_unapplied_relative_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 0;
+        }, stored_unapplied_relative)
     {
     }
 };

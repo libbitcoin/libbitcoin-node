@@ -177,6 +177,69 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__over_maximum_inventory_
     BC_REQUIRE(received_before_pong(peer::pong::command));
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__maximum_requests__get_data, chaser_transaction_requests_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(announcement(2, 1), node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__over_maximum_requests__stopped, chaser_transaction_requests_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(announcement(3, 1), node_version->value);
+    BC_REQUIRE(dropped(peer::get_data::command));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__over_maximum_requests_unanswered__stopped, chaser_transaction_requests_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(announcement(2, 1), node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(announcement(1, 2), node_version->value);
+    BC_REQUIRE(dropped(peer::get_data::command));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__inventory__maximum_requests_answered__get_data, chaser_transaction_requests_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(announcement(2, 1), node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::not_found{ announcement(2, 1).items }, node_version->value);
+    send(announcement(2, 2), node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__request__unanswered__stopped, chaser_transaction_request_timeout_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    send(peer::inventory{ { { type_id::transaction, one_hash } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+    BC_REQUIRE(dropped(peer::not_found::command));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_in__request__later_answered_oldest_unanswered__stopped, chaser_transaction_request_timeout_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+
+    const auto tx = spend(parent_value);
+    send(peer::inventory{ { { type_id::transaction, one_hash } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::inventory{ { { type_id::transaction, tx->hash(false) } } }, node_version->value);
+    BC_REQUIRE(!receive(peer::get_data::command).empty());
+
+    send(peer::transaction{ tx }, node_version->value);
+    BC_REQUIRE(dropped(peer::not_found::command));
+}
+
 BC_FIXTURE_TEST_CASE(protocol_transaction_in__not_found__block_only__not_stopped, chaser_transaction_pooling_setup_fixture)
 {
     BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));

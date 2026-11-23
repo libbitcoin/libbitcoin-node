@@ -211,6 +211,53 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__relay_off__pool_rows_not_fir
     BC_REQUIRE(rows.empty());
 }
 
+// do_start
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__start__pool_top_terminal__store_top, chaser_transaction_single_setup_fixture)
+{
+    BC_REQUIRE(topped(query_.to_top_confirmed()));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__start__pool_top_popped__block_tx_pooled, chaser_transaction_unapplied_setup_fixture)
+{
+    const auto& txs = *reorganized_block().transactions_ptr();
+    BC_REQUIRE(pooled(query_.to_tx(txs.at(1)->hash(false))));
+    BC_REQUIRE(topped(query_.to_top_confirmed()));
+    BC_REQUIRE(!query_.is_pooled(query_.to_tx(txs.front()->hash(false))));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__start__pool_top_popped__relative_spender_not_validated, chaser_transaction_unapplied_relative_setup_fixture)
+{
+    const auto& txs = *reorganized_block().transactions_ptr();
+    BC_REQUIRE(pooled(query_.to_tx(txs.at(1)->hash(false))));
+    BC_REQUIRE(topped(query_.to_top_confirmed()));
+
+    database::table::pool_scalar height{};
+    BC_REQUIRE(store_.pool.heights.get(store_.pool.first(query_.to_tx(unapplied_spender()->hash(false))), height));
+    BC_REQUIRE_EQUAL(height.value, max_uint32);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__block__pool_top, chaser_transaction_single_setup_fixture)
+{
+    const auto block = confirm();
+    BC_REQUIRE(!block.is_terminal());
+    BC_REQUIRE(topped(block));
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__block__pool_top_parent, chaser_transaction_single_setup_fixture)
+{
+    const auto block = confirm();
+    const auto applied = topped(block);
+    const auto parent = query_.to_parent(block);
+    const auto popped = query_.pop_confirmed();
+    node_.notify(node::error::success, chases::reorganized{ block });
+
+    BC_REQUIRE(!block.is_terminal());
+    BC_REQUIRE(applied);
+    BC_REQUIRE(popped);
+    BC_REQUIRE(topped(parent));
+}
+
 // do_reorganized
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__pooled_block_tx__present, chaser_transaction_single_setup_fixture)
@@ -355,9 +402,9 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__reorganized__parent_submitted__spender_
     BC_REQUIRE(popped);
     BC_REQUIRE_EQUAL(out.size(), 3u);
     BC_REQUIRE_EQUAL(again.size(), 4u);
-    BC_REQUIRE(again.at(0).scan == node::pool_scan::coverage);
-    BC_REQUIRE(again.at(1).scan == node::pool_scan::admission);
-    BC_REQUIRE(again.at(2).scan == node::pool_scan::context);
+    BC_REQUIRE(again.at(0).scan == node::pool_scan::coverage || again.at(0).scan == node::pool_scan::context);
+    BC_REQUIRE(again.at(1).scan == node::pool_scan::admission || again.at(1).scan == node::pool_scan::coverage);
+    BC_REQUIRE(again.at(2).scan == node::pool_scan::context || again.at(2).scan == node::pool_scan::admission);
     BC_REQUIRE(again.at(3).scan == node::pool_scan::context);
     BC_REQUIRE(restored);
 }

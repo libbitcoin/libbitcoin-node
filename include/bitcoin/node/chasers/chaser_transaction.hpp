@@ -137,6 +137,9 @@ protected:
     /// archived before latch is organized.
     virtual void do_bump() NOEXCEPT;
 
+    /// Bump, then reorganize blocks popped since pool top, top that of store.
+    virtual void do_start() NOEXCEPT;
+
     /// Retain the pool subscription.
     virtual void do_subscribe_pool(const pool_notifier& handler) NOEXCEPT;
 
@@ -265,6 +268,12 @@ private:
 
     /// A validation under the context holds at a later block.
     bool reusable(const system::chain::context& ctx) const NOEXCEPT;
+
+    /// Set pooled spenders of block's txs not validated, parent pool top.
+    bool unvalidate(header_t link) NOEXCEPT;
+
+    /// Pool block's unpooled txs under its context, false if faulted.
+    bool repool(header_t link) NOEXCEPT;
 
     /// A validation under the context holds under the pool context.
     bool is_sufficient(const system::chain::context& ctx) const NOEXCEPT;
