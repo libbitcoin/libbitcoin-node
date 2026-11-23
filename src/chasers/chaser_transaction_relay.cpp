@@ -225,41 +225,9 @@ bool chaser_transaction::relay(const database::tx_links& links,
 {
     BC_ASSERT(stranded());
     using algorithm = pool::algorithm;
-    struct relayable
-    {
-        size_t row;
-        database::tx_link link;
-        algorithm::totals_t totals;
-    };
-
-    const auto& query = archive();
-    std::vector<relayable> rows{};
-    std::unordered_set<database::tx_link::integer> seen{};
-    const auto add = [&](const database::tx_link& link) NOEXCEPT
-    {
-        if (!seen.insert(link.value).second)
-            return true;
-
-        algorithm::totals_t totals{};
-        const auto row = query.to_pool_row(link);
-        if (row.is_terminal() || !query.get_pooled_totals(totals, link))
-            return false;
-
-        rows.push_back({ row.value, link, totals });
-        return true;
-    };
-
-    for (const auto& link: links)
-    {
-        for (const auto& ancestor: query.to_confirmable_ancestors(link))
-            if (!add(ancestor))
-                return false;
-
-        if (!add(link))
-            return false;
-    }
-
-    std::ranges::sort(rows, {}, &relayable::row);
+    database::pooled_rows rows{};
+    if (archive().get_pooled_ancestry(rows, links))
+        return false;
 
     const auto limit = block_limit().size;
     const auto bytes_per_sigop = node_settings().pool.bytes_per_sigop;
@@ -302,7 +270,7 @@ bool chaser_transaction::relay(const database::tx_links& links,
             continue;
 
         mark = bit_or(mark, word);
-        const chases::relay event{ row.link.value, word };
+        const chases::relay event{ row.tx, word };
         if (is_zero(key))
             notify(error::success, event);
         else
