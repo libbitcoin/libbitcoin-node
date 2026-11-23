@@ -520,15 +520,17 @@ struct chaser_transaction_setup_fixture
         return link;
     }
 
-    // Confirm a block of a coinbase, and the tx if any, in the store only.
-    database::header_link push(const chain::transaction::cptr& tx={})
+    // Confirm a block of a coinbase, and the tx if any, in the store only,
+    // timestamped as given, or after genesis by its height if zero.
+    database::header_link push(const chain::transaction::cptr& tx={},
+        uint32_t timestamp=0)
     {
         const system::settings bitcoin{ chain::selection::mainnet };
         const auto& genesis = bitcoin.genesis_block;
         const auto top = query_.get_top_confirmed();
         const auto height = add1(top);
-        const auto time = genesis.header().timestamp() +
-            possible_narrow_cast<uint32_t>(height);
+        const auto time = is_zero(timestamp) ? genesis.header().timestamp() +
+            possible_narrow_cast<uint32_t>(height) : timestamp;
         const auto bits = genesis.header().bits();
         const chain::transaction coinbase
         {
@@ -556,6 +558,22 @@ struct chaser_transaction_setup_fixture
             return {};
 
         return link;
+    }
+
+    // True once a template build reports the pool closed.
+    bool pool_closed()
+    {
+        using namespace std::chrono;
+        const auto deadline = steady_clock::now() + seconds(10);
+        while (steady_clock::now() < deadline)
+        {
+            if (std::get<0>(build_template()) == node::error::pooling_disabled)
+                return true;
+
+            std::this_thread::sleep_for(milliseconds(10));
+        }
+
+        return false;
     }
 
     // True once the pool context is of the height.
@@ -1155,6 +1173,21 @@ struct chaser_transaction_unapplied_relative_setup_fixture
             config.network.enable_relay = true;
             config.node.currency_window_minutes = 0;
         }, stored_unapplied_relative)
+    {
+    }
+};
+
+// Current while the top is within twenty years of now, so the test chain is
+// current until a block of the epoch is confirmed.
+struct chaser_transaction_currency_setup_fixture
+  : chaser_transaction_setup_fixture
+{
+    inline chaser_transaction_currency_setup_fixture()
+      : chaser_transaction_setup_fixture([](configuration& config)
+        {
+            config.network.enable_relay = true;
+            config.node.currency_window_minutes = 20u * 365u * 24u * 60u;
+        })
     {
     }
 };

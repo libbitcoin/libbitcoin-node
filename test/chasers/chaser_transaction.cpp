@@ -30,6 +30,29 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__organized__invalid_confirmed_top__suspe
     BC_REQUIRE_EQUAL(submit(package({ spend(parent_value) })).first, node::error::pooling_disabled);
 }
 
+BC_FIXTURE_TEST_CASE(chaser_transaction__start__pool_opened__generation_bumped, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(!std::get<0>(build_template()));
+    BC_REQUIRE_EQUAL(node_.pool_generation(), 1u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__start__pool_not_opened__generation_unchanged, chaser_transaction_inactive_setup_fixture)
+{
+    BC_REQUIRE_EQUAL(std::get<0>(build_template()), node::error::pooling_disabled);
+    BC_REQUIRE_EQUAL(node_.pool_generation(), 0u);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__organized__currency_lost__pool_closed_generation_bumped, chaser_transaction_currency_setup_fixture)
+{
+    BC_REQUIRE(!std::get<0>(build_template()));
+    const auto opened = node_.pool_generation();
+    const auto link = push({}, 1);
+    node_.notify(node::error::success, chases::organized{ link });
+    BC_REQUIRE(!link.is_terminal());
+    BC_REQUIRE(pool_closed());
+    BC_REQUIRE_EQUAL(node_.pool_generation(), opened + 2u);
+}
+
 // subscribe_pool
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__subscribe_pool__submit__coverage_then_admission, chaser_transaction_single_setup_fixture)

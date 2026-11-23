@@ -184,7 +184,12 @@ void chaser_transaction::do_bump() NOEXCEPT
     const auto opened = pooling_.load();
     pooling_ = false;
     if (closed() || !is_current_chain(true))
+    {
+        if (opened)
+            ++generation_;
+
         return;
+    }
 
     // Pooling is a permanent store property, so it requires relay.
     auto& query = archive();
@@ -239,6 +244,10 @@ void chaser_transaction::do_bump() NOEXCEPT
                 do_sweep_relay();
         }
     }
+
+    // Opening or closing the pool changes its templates.
+    if (pooling_ != opened)
+        ++generation_;
 
     // Scan starts are mapped after the latch, as pooled rows are unordered.
     if (!query.silent_enabled() || scanning_)
