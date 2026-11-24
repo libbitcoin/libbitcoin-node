@@ -229,10 +229,10 @@ bool chaser_transaction::relay(const database::tx_links& links,
     if (archive().get_pooled_ancestry(rows, links))
         return false;
 
-    const auto limit = block_limit().size;
+    const auto limit = block_limit().weight;
     const auto bytes_per_sigop = node_settings().pool.bytes_per_sigop;
     std::array<uint64_t, relay_slots> fees{};
-    std::array<uint64_t, relay_slots> sizes{};
+    std::array<uint64_t, relay_slots> weights{};
     for (const auto& row: rows)
     {
         auto& mark = marks(row.row);
@@ -240,25 +240,23 @@ bool chaser_transaction::relay(const database::tx_links& links,
             set_right_into(mark, origin);
 
         const auto lacking = bit_and(slots, bit_not(mark));
-        const auto size = algorithm::chargeable(row.totals, bytes_per_sigop);
+        const auto weight = algorithm::chargeable(row.totals, bytes_per_sigop);
         for (size_t slot{}; slot < relay_slots; ++slot)
         {
             if (get_right(lacking, slot))
             {
                 fees.at(slot) = ceilinged_add(fees.at(slot), row.totals.fee);
-                sizes.at(slot) = ceilinged_add(sizes.at(slot), size);
+                weights.at(slot) = ceilinged_add(weights.at(slot), weight);
             }
         }
     }
 
-    // Compared in satoshis per virtual kilobyte.
     uint64_t clears{};
     for (size_t slot{}; slot < relay_slots; ++slot)
     {
-        const auto size = sizes.at(slot);
-        const auto paid = ceilinged_multiply(fees.at(slot), 1'000_u64);
-        const auto owed = ceilinged_multiply(rates_.at(slot), size);
-        if (!is_zero(size) && size <= limit && paid >= owed)
+        const auto weight = weights.at(slot);
+        if (!is_zero(weight) && weight <= limit &&
+            algorithm::covered(fees.at(slot), weight, rates_.at(slot)))
             set_right_into(clears, slot);
     }
 

@@ -715,7 +715,7 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
     return
     {
         {},
-        possible_narrow_cast<uint32_t>(weight / light_weight_factor),
+        possible_narrow_cast<uint32_t>(weight),
         possible_narrow_cast<uint32_t>(sigops)
     };
 }

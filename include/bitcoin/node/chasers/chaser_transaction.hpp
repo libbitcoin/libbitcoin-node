@@ -202,7 +202,7 @@ private:
         std::vector<size_t> sigops_of{};
         std::unordered_set<system::hash_digest> held{};
         query::pool_graph graph{};
-        uint64_t bytes{};
+        uint64_t weight{};
         uint64_t sigops{};
         size_t given{};
         size_t first{};
