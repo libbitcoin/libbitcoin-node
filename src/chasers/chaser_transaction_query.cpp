@@ -130,13 +130,13 @@ void chaser_transaction::do_build_template(
 
     if (closed())
     {
-        handler(network::error::service_stopped, {}, {});
+        handler(network::error::service_stopped, {}, {}, {});
         return;
     }
 
     if (!pooling_)
     {
-        handler(error::pooling_disabled, {}, {});
+        handler(error::pooling_disabled, {}, {}, {});
         return;
     }
 
@@ -150,7 +150,7 @@ void chaser_transaction::do_build_template(
         settings.bytes_per_sigop, settings.maximum_outcomes);
 
     report(pool_scan::template_, start);
-    handler(ec, pool_.height, links);
+    handler(ec, pool_, previous_, links);
 }
 
 // private

@@ -203,12 +203,27 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_added_fee__success_arc
     BC_REQUIRE(query_.is_tx(second->hash(false)));
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_outcomes_over_limit__pool_limit, chaser_transaction_limit_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_outcomes_over_limit__success, chaser_transaction_limit_setup_fixture)
 {
     const auto first = submit(package({ spend(parent_value) }));
     const auto second = submit(package({ spend(sub1(parent_value)) }));
     BC_REQUIRE_EQUAL(first.first, node::error::success);
-    BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
+    BC_REQUIRE_EQUAL(second.first, node::error::success);
+}
+
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit__dominant_rival_over_outcome_limit__templated, chaser_transaction_limit_setup_fixture)
+{
+    const auto low = spend(parent_value);
+    const auto high = spend(parent_value - 50'000);
+    const auto first = submit(package({ low }));
+    const auto second = submit(package({ high }));
+    const auto built = build_template();
+    const auto& links = std::get<2>(built);
+
+    BC_REQUIRE_EQUAL(first.first, node::error::success);
+    BC_REQUIRE_EQUAL(second.first, node::error::success);
+    BC_REQUIRE_EQUAL(links.size(), one);
+    BC_REQUIRE_EQUAL(links.front(), query_.to_tx(high->hash(false)));
 }
 
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_over_block__pool_limit, chaser_transaction_single_setup_fixture)
@@ -219,7 +234,7 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit__conflict_over_block__pool_limit
     BC_REQUIRE_EQUAL(second.first, database::error::pool_limit);
 }
 
-BC_FIXTURE_TEST_CASE(chaser_transaction__submit_announced__conflict_outcomes_over_limit__passed_over, chaser_transaction_limit_setup_fixture)
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_announced__conflict_outcomes_over_limit__both_stored, chaser_transaction_limit_setup_fixture)
 {
     const auto first = spend(parent_value);
     const auto conflict = spend(sub1(parent_value));
@@ -227,9 +242,8 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_announced__conflict_outcomes_ove
     BC_REQUIRE_EQUAL(submit(package({ first })).first, node::error::success);
 
     const auto result = submit_announced(package({ conflict, child }), node_.reserve_relay(node::relay_tier::manual));
-    BC_REQUIRE_EQUAL(result.first, database::error::pool_limit);
-    BC_REQUIRE_EQUAL(result.second, zero);
-    BC_REQUIRE(!query_.is_tx(conflict->hash(false)));
+    BC_REQUIRE_EQUAL(result.first, node::error::success);
+    BC_REQUIRE(query_.is_tx(conflict->hash(false)));
     BC_REQUIRE(query_.is_tx(child->hash(false)));
 }
 
