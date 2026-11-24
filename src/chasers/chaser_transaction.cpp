@@ -403,22 +403,23 @@ void chaser_transaction::do_revalidated(const database::tx_links& links,
         return;
     }
 
-    size_t count{};
-    auto& query = archive();
-    const auto revalidated = database::context::from(ctx);
+    database::tx_links valid{};
+    std::vector<size_t> counts{};
     for (size_t at{}; at < links.size(); ++at)
     {
         if (is_zero(passed.at(at)))
             continue;
 
-        if (!query.set_pooled_context(links.at(at), revalidated,
-            sigops.at(at)))
-        {
-            fault(error::transaction2);
-            return;
-        }
+        valid.push_back(links.at(at));
+        counts.push_back(sigops.at(at));
+    }
 
-        ++count;
+    const auto count = valid.size();
+    const auto revalidated = database::context::from(ctx);
+    if (!archive().set_pooled_contexts(valid, counts, revalidated))
+    {
+        fault(error::transaction2);
+        return;
     }
 
     LOGN("Revalidated (" << count << ") of (" << links.size()
