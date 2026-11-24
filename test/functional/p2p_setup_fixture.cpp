@@ -319,7 +319,20 @@ system::chain::header p2p_unassociated_setup_fixture::unassociated() NOEXCEPT
 
 bool p2p_limited_setup_fixture::pruned(node::query& query) NOEXCEPT
 {
-    const auto& block = p2p_compact_setup_fixture::block1();
+    const auto& block1 = p2p_compact_setup_fixture::block1();
+    const auto& coinbase = *block1.transactions_ptr()->front();
+    const chain::transaction spend
+    {
+        1u,
+        chain::inputs
+        {
+            { chain::point{ coinbase.hash(false), 0u }, {}, max_uint32 }
+        },
+        chain::outputs{ { 42u, chain::script{} } },
+        0u
+    };
+
+    const chain::block block{ block1.header(), { coinbase, spend } };
     return query.set(block.header(), database::context{ 0, 1, 0 }, {}, false)
         && query.set(block, false, false, true);
 }
