@@ -219,7 +219,7 @@ struct p2p_witness_setup_fixture
 struct p2p_limited_setup_fixture
   : p2p_setup_fixture
 {
-    /// Archives mainnet block 1 pruned.
+    /// Archives mainnet block 1, with a spend added, pruned.
     static bool pruned(node::query& query) NOEXCEPT;
 
     inline p2p_limited_setup_fixture()
