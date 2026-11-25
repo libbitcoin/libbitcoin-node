@@ -215,6 +215,10 @@ private:
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
 
+    /// Chain state of top, the held state advanced by top, else from store.
+    system::chain::chain_state::cptr top_state(const database::header_link& top,
+        size_t height) NOEXCEPT;
+
     /// Submission steps.
     void hold(submission& set) NOEXCEPT;
     bool spends_held(const submission& set,
@@ -313,6 +317,7 @@ private:
     // These are protected by strand.
     pool_subscriber subscriber_{};
     system::chain::context pool_{};
+    system::chain::chain_state::cptr state_{};
     system::hash_digest previous_{};
     database::header_link top_{};
     size_t floor_{};
