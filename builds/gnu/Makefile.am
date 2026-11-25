@@ -66,6 +66,7 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/chasers/chaser_template.cpp \
     ${srcdir}/../../src/chasers/chaser_transaction.cpp \
     ${srcdir}/../../src/chasers/chaser_transaction_compact.cpp \
+    ${srcdir}/../../src/chasers/chaser_transaction_context.cpp \
     ${srcdir}/../../src/chasers/chaser_transaction_query.cpp \
     ${srcdir}/../../src/chasers/chaser_transaction_relay.cpp \
     ${srcdir}/../../src/chasers/chaser_transaction_submit.cpp \
