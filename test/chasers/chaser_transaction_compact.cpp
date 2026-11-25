@@ -31,6 +31,19 @@ BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__invalid_tx_link__integr
     BC_REQUIRE(!query_.is_associated(link));
 }
 
+BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__unstorable_size__block_weight_limit, chaser_transaction_header_setup_fixture)
+{
+    const auto link = query_.to_header(p2p_compact_setup_fixture::block1().hash());
+    BC_REQUIRE(query_.set(large_transaction()));
+
+    const auto stored = query_.to_tx(large_transaction().hash(false));
+    const auto result = submit_compact(package({}), { stored, stored }, link);
+    BC_REQUIRE_EQUAL(result.first, system::error::block_weight_limit);
+    BC_REQUIRE(!node_.suspended());
+    BC_REQUIRE(query_.is_unconfirmable(link));
+    BC_REQUIRE(!query_.is_associated(link));
+}
+
 BC_FIXTURE_TEST_CASE(chaser_transaction__submit_compact__stored_unpooled_tx__pooled, chaser_transaction_child_header_setup_fixture)
 {
     const auto link = query_.to_header(child_header().hash());

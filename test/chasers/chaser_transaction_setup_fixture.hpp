@@ -103,6 +103,22 @@ inline chain::transaction::cptr spend_relative(const hash_digest& hash,
     });
 }
 
+// A tx with an output of one push, two of which are not storable as a block.
+inline const chain::transaction& large_transaction() NOEXCEPT
+{
+    const chain::point point{ one_hash, 1u };
+    const chain::operations push{ { data_chunk(4'194'304), false } };
+    static const chain::transaction instance
+    {
+        1u,
+        chain::inputs{ { point, chain::script{}, max_uint32 } },
+        chain::outputs{ { 42u, chain::script{ push } } },
+        0u
+    };
+
+    return instance;
+}
+
 inline chain::transactions_cptr package(
     const chain::transaction_cptrs& txs) NOEXCEPT
 {

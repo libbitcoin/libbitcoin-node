@@ -160,7 +160,17 @@ void chaser_transaction::do_submit_compact(const transactions_cptr& txs,
     }
 
     const auto strong = is_under_checkpoint(ctx.height);
-    if (const auto ec = query.set_code(link, filled, strong))
+    const auto ec = query.set_code(link, filled, strong);
+
+    // Block size that is not storable is above weight limit.
+    if (ec == database::error::txs_size)
+    {
+        constexpr auto limit = system::error::block_weight_limit;
+        handler(unconfirmable(link, ctx.height, limit), {});
+        return;
+    }
+
+    if (ec)
     {
         handler(fault(ec), {});
         return;
@@ -271,7 +281,7 @@ bool chaser_transaction::set_pooled(const database::tx_link& link,
     return pooled;
 }
 
-// An identified block with an invalid tx is invalid.
+// An identified block with an invalid tx or size is invalid.
 code chaser_transaction::unconfirmable(const database::header_link& link,
     size_t height, const code& ec) NOEXCEPT
 {
