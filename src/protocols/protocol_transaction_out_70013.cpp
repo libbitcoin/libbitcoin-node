@@ -47,6 +47,14 @@ void protocol_transaction_out_70013::start() NOEXCEPT
     protocol_transaction_out_70001::start();
 }
 
+void protocol_transaction_out_70013::stopping(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (fee_timer_) fee_timer_->stop();
+    protocol_transaction_out_70001::stopping(ec);
+}
+
 // Peer is told what to send once relay to it starts.
 void protocol_transaction_out_70013::subscribed(const code& ec,
     object_key key) NOEXCEPT
@@ -122,9 +130,33 @@ bool protocol_transaction_out_70013::handle_receive_fee_filter(const code& ec,
     if (stopped(ec))
         return false;
 
+    // A null fee timer implies no limit on lowering.
+    if (fee_timer_ && message->minimum_fee < minimum_fee())
+    {
+        if (lowered_)
+        {
+            LOGR("Fee filter lowered again within period by [" << opposite()
+                << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        lowered_ = true;
+        fee_timer_->start(BIND(handle_fee_timer, _1));
+    }
+
     set_minimum_fee(message->minimum_fee);
     set_relay_rate(message->minimum_fee);
     return true;
+}
+
+// private
+void protocol_transaction_out_70013::handle_fee_timer(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!ec)
+        lowered_ = false;
 }
 
 BC_POP_WARNING()

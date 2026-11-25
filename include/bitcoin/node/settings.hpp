@@ -94,6 +94,7 @@ public:
     uint16_t compact_timeout_seconds;
     uint8_t compact_missing_percent;
     uint32_t currency_window_minutes;
+    uint16_t fee_filter_minutes;
     ////uint64_t snapshot_bytes;
     ////uint32_t snapshot_valid;
     ////uint32_t snapshot_confirm;
@@ -112,6 +113,7 @@ public:
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::steady_clock::duration compact_timeout() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
+    virtual network::steady_clock::duration fee_filter_period() const NOEXCEPT;
     virtual network::processing_priority thread_priority_() const NOEXCEPT;
 };
 

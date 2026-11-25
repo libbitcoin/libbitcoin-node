@@ -150,7 +150,7 @@ void chaser_transaction::do_build_template(
         settings.bytes_per_sigop, settings.maximum_outcomes);
 
     report(pool_scan::template_, start);
-    handler(ec, pool_, previous_, links);
+    handler(ec, context_.pool, context_.previous, links);
 }
 
 // private
@@ -190,25 +190,25 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
     const auto start = now();
 
     // Targets estimated while the projection is held are of one pool.
-    const auto held = estimating_ &&
-        (start - estimated_) < settings.estimate_cache();
+    const auto held = estimate_.estimating &&
+        (start - estimate_.estimated) < settings.estimate_cache();
 
     if (!held)
     {
-        projection_ = {};
-        arrived_ = false;
-        estimated_ = start;
+        estimate_.projection = {};
+        estimate_.arrived = false;
+        estimate_.estimated = start;
     }
 
     const auto projected = held ?
-        query.get_pool_continuation(projection_, count, limit,
+        query.get_pool_continuation(estimate_.projection, count, limit,
             settings.maximum_chunk_depth, settings.bytes_per_sigop) :
-        query.get_pool_projection(projection_, count, limit,
+        query.get_pool_projection(estimate_.projection, count, limit,
             settings.maximum_chunk_depth, settings.cutoff_rate_(),
             settings.bytes_per_sigop, settings.maximum_outcomes);
 
     report(pool_scan::projection, start);
-    estimating_ = !projected;
+    estimate_.estimating = !projected;
     if (projected)
     {
         handler(fault(projected), {});
@@ -216,32 +216,33 @@ void chaser_transaction::do_estimate(size_t target, estimate_mode mode,
     }
 
     // Arrivals are whole from the floor to the height of the open interval.
-    if (mode != estimate_mode::basic && !arrived_)
+    if (mode != estimate_mode::basic && !estimate_.arrived)
     {
-        const auto whole = floored_subtract(pool_.height, floor_);
+        const auto whole = floored_subtract(context_.pool.height,
+            context_.floor);
         const auto heights = std::min(whole, conservative_estimate_window);
-        if (const auto ec = query.get_pool_arrivals(arrivals_, pool_.height,
-            heights, settings.bytes_per_sigop))
+        if (const auto ec = query.get_pool_arrivals(estimate_.arrivals,
+            context_.pool.height, heights, settings.bytes_per_sigop))
         {
-            estimating_ = false;
+            estimate_.estimating = false;
             handler(fault(ec), {});
             return;
         }
 
-        arrived_ = true;
+        estimate_.arrived = true;
     }
 
     const auto arrive = [&](uint64_t rate) NOEXCEPT
     {
-        return arriving(arrivals_, rate, mode);
+        return arriving(estimate_.arrivals, rate, mode);
     };
 
     using algorithm = pool::algorithm;
     const auto space = limit.weight;
     const auto room = ceilinged_multiply<uint64_t>(settings.estimate_room,
         light_weight_factor);
-    const auto rate = algorithm::estimate(projection_, count, space, room,
-        arrive);
+    const auto rate = algorithm::estimate(estimate_.projection, count, space,
+        room, arrive);
     if (rate == max_uint64)
     {
         handler(error::estimate_false, {});

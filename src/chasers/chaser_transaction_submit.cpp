@@ -124,9 +124,10 @@ void chaser_transaction::submit_announced(const transactions_cptr& txs,
 }
 
 // private
-// Set is tested prefix by prefix. Running set is its unstored txs since last
-// prefix to clear, and clears when its coverage does. It is then connected
-// and admitted, and next tx starts another. Announced set is a batch, not a
+// Set is reserved on the strand, validated in parallel under the pool context,
+// then admitted on the strand prefix by prefix. Running set is its unstored txs
+// since last prefix to clear, and clears when its coverage does. It is then
+// admitted, and next tx starts another. Announced set is a batch, not a
 // package, so a tx of it not accepted, or exceeding a pool limit, is passed
 // over as if stored. A tx is accepted only if each parent is confirmed,
 // pooled, or accepted before it in set.
@@ -147,55 +148,152 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         return;
     }
 
-    const auto begin = now();
-    submission set{ txs, slot, network::unix_time(), test, announced };
-    hold(set);
-    if (const auto ec = check(*txs, set.stored, announced))
+    enter(std::make_shared<submission>(submission
     {
-        handler(ec, {});
+        txs, slot, network::unix_time(), test, announced, handler, {}, now()
+    }));
+}
+
+// private
+// A set waits for the validation of another set that it includes or spends.
+void chaser_transaction::enter(const submission_ptr& set) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    hold(*set);
+    if (is_dependent(*set))
+    {
+        submit_.waiting.push_back(set);
         return;
     }
 
-    for (size_t index{}; index < txs->size(); ++index)
+    const auto& txs = *set->txs;
+    if (txs.empty())
     {
-        if (set.stored.at(index))
+        set->handler(error::empty_package, {});
+        return;
+    }
+
+    if (std::ranges::all_of(set->stored, std::identity{}))
+    {
+        set->handler(error::duplicate_transaction, {});
+        return;
+    }
+
+    for (size_t index{}; index < txs.size(); ++index)
+    {
+        if (set->stored.at(index))
             continue;
 
-        const auto& tx = *txs->at(index);
-        auto ec = accept(tx, pool_);
-        if (!ec && !spends_held(set, tx))
+        submit_.validating.insert(txs.at(index)->get_hash(false));
+        set->reserved.push_back(index);
+    }
+
+    set->ctx = context_.pool;
+    PARALLEL(do_validate, set);
+}
+
+// private
+// Script validation is most costly, and runs here off the pool strand.
+void chaser_transaction::do_validate(const submission_ptr& set) NOEXCEPT
+{
+    if (!closed())
+    {
+        const auto& txs = *set->txs;
+        set->accepted.assign(txs.size(), error::success);
+        set->checked = check(txs, set->stored, set->announced, set->ctx);
+        if (!set->checked)
+        {
+            const auto connecting = now();
+            for (size_t index{}; index < txs.size(); ++index)
+            {
+                if (set->stored.at(index))
+                    continue;
+
+                const auto& tx = *txs.at(index);
+                auto ec = accept(tx, set->ctx);
+                if (!ec) ec = tx.connect(set->ctx);
+                set->accepted.at(index) = ec;
+            }
+
+            fire_span(events::pool_connect_usecs, connecting);
+        }
+    }
+
+    POST(do_validated, set);
+}
+
+// private
+// A set validated under a context that no longer holds is validated again.
+void chaser_transaction::do_validated(const submission_ptr& set) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+    {
+        complete(set, network::error::service_stopped, {});
+        return;
+    }
+
+    if (!pooling_)
+    {
+        complete(set, error::pooling_disabled, {});
+        return;
+    }
+
+    if (!is_sufficient(set->ctx))
+    {
+        set->ctx = context_.pool;
+        PARALLEL(do_validate, set);
+        return;
+    }
+
+    if (set->checked)
+    {
+        complete(set, set->checked, {});
+        return;
+    }
+
+    const auto& txs = *set->txs;
+    for (size_t index{}; index < txs.size(); ++index)
+    {
+        if (set->stored.at(index))
+            continue;
+
+        const auto& tx = *txs.at(index);
+        auto ec = set->accepted.at(index);
+        if (!ec && !spends_held(*set, tx))
             ec = system::error::missing_previous_output;
 
         if (ec)
         {
-            if (!announced)
+            if (!set->announced)
             {
-                handler(ec, index);
+                complete(set, ec, index);
                 return;
             }
 
-            pass_over(set, index, ec);
+            pass_over(*set, index, ec);
             continue;
         }
 
         bool covered{};
-        set.held.insert(tx.get_hash(false));
-        ec = extend(covered, set, index);
+        set->held.insert(tx.get_hash(false));
+        ec = extend(covered, *set, index);
         if (ec == database::error::pool_limit)
         {
-            if (!announced)
+            if (!set->announced)
             {
-                handler(ec, set.first);
+                complete(set, ec, set->first);
                 return;
             }
 
-            pass_over(set, index, ec);
-            ec = restore(set, index);
+            pass_over(*set, index, ec);
+            ec = restore(*set, index);
         }
 
         if (ec)
         {
-            handler(ec, index);
+            complete(set, ec, index);
             return;
         }
 
@@ -203,24 +301,72 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
             continue;
 
         size_t at{};
-        ec = clear(at, set, index);
+        ec = clear(at, *set, index);
         if (ec)
         {
-            handler(ec, at);
+            complete(set, ec, at);
             return;
         }
     }
 
-    if (set.cleared)
-        fire_span(events::pool_submit_usecs, begin);
+    if (set->cleared)
+        fire_span(events::pool_submit_usecs, set->begin);
 
     // A set that ends uncleared fails at the first tx of the uncleared set.
-    if (set.failure)
-        handler(set.failure, set.passed);
-    else if (set.running)
-        handler(error::insufficient_fee, set.first);
+    if (set->failure)
+        complete(set, set->failure, set->passed);
+    else if (set->running)
+        complete(set, error::insufficient_fee, set->first);
     else
-        handler(error::success, {});
+        complete(set, error::success, {});
+}
+
+// private
+// Reservations are released before the handler, then waiting sets reenter.
+void chaser_transaction::complete(const submission_ptr& set, const code& ec,
+    size_t index) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    for (const auto at: set->reserved)
+        submit_.validating.erase(set->txs->at(at)->get_hash(false));
+
+    set->reserved.clear();
+    set->handler(ec, index);
+
+    auto waiting = std::move(submit_.waiting);
+    submit_.waiting.clear();
+    for (const auto& next: waiting)
+    {
+        if (closed())
+            next->handler(network::error::service_stopped, {});
+        else
+            enter(next);
+    }
+}
+
+// private
+// An unstored tx of the set, or a tx that one spends, is under validation.
+bool chaser_transaction::is_dependent(const submission& set) const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (submit_.validating.empty())
+        return false;
+
+    for (size_t index{}; index < set.txs->size(); ++index)
+    {
+        if (set.stored.at(index))
+            continue;
+
+        const auto& tx = *set.txs->at(index);
+        if (submit_.validating.contains(tx.get_hash(false)))
+            return true;
+
+        for (const auto& in: *tx.inputs_ptr())
+            if (submit_.validating.contains(in->point().hash()))
+                return true;
+    }
+
+    return false;
 }
 
 // private
@@ -312,7 +458,7 @@ code chaser_transaction::extend(bool& covered, submission& set,
     covered = false;
     auto& query = archive();
     const auto& tx = *set.txs->at(index);
-    const auto ctx = database::context::from(pool_);
+    const auto ctx = database::context::from(context_.pool);
     if (const auto ec = query.get_pool_candidate(set.graph, tx, ctx))
         return fault(ec);
 
@@ -359,7 +505,7 @@ code chaser_transaction::extend(bool& covered, submission& set,
 code chaser_transaction::restore(submission& set, size_t index) NOEXCEPT
 {
     auto& query = archive();
-    const auto ctx = database::context::from(pool_);
+    const auto ctx = database::context::from(context_.pool);
     set.graph = {};
     set.weight = set.sigops = zero;
     set.running = false;
@@ -380,23 +526,10 @@ code chaser_transaction::restore(submission& set, size_t index) NOEXCEPT
 }
 
 // private
-// Script validation is most costly, so it follows guards. In a test, cleared
-// txs are not pooled, so remain given candidates.
+// In a test, cleared txs are not pooled, so remain given candidates.
 code chaser_transaction::clear(size_t& at, submission& set,
     size_t index) NOEXCEPT
 {
-    const auto connecting = now();
-    for (at = set.first; at <= index; ++at)
-    {
-        if (set.stored.at(at))
-            continue;
-
-        if (const auto ec = set.txs->at(at)->connect(pool_))
-            return ec;
-    }
-
-    fire_span(events::pool_connect_usecs, connecting);
-
     // The graph holds accessors, released before the index is written.
     if (set.test)
         set.given = set.graph.candidates.size();
@@ -419,7 +552,7 @@ code chaser_transaction::clear(size_t& at, submission& set,
         set.cleared = true;
     }
 
-    if (!admitted.empty() && !relay(admitted, set.slot, relaying_))
+    if (!admitted.empty() && !relay(admitted, set.slot, relay_.relaying))
     {
         at = set.first;
         return fault(database::error::integrity);
@@ -436,7 +569,8 @@ code chaser_transaction::clear(size_t& at, submission& set,
 // Tx of announced set preceding its parent is not accepted, and its txs that
 // spend one point are rivals.
 code chaser_transaction::check(const transaction_cptrs& txs,
-    const std::vector<bool>& stored, bool announced) NOEXCEPT
+    const std::vector<bool>& stored, bool announced,
+    const chain::context& ctx) NOEXCEPT
 {
     if (txs.empty())
         return error::empty_package;
@@ -450,7 +584,7 @@ code chaser_transaction::check(const transaction_cptrs& txs,
     if (!announced && block::is_internal_double_spend(txs, false))
         return system::error::block_internal_double_spend;
 
-    return block::populate(txs, pool_, false);
+    return block::populate(txs, ctx, false);
 }
 
 code chaser_transaction::admit(database::tx_link& link,
@@ -468,7 +602,7 @@ code chaser_transaction::admit(database::tx_link& link,
         size_t repooled{};
         const auto start = now();
         const auto admitted = query.set_pooled(repooled, link, tx,
-            database::context::from(pool_), time, sigops, archived);
+            database::context::from(context_.pool), time, sigops, archived);
 
         report(pool_scan::admission, start);
         if (!admitted)
@@ -477,8 +611,8 @@ code chaser_transaction::admit(database::tx_link& link,
         // Spender pooled again keeps its context, and may now pass if failed.
         if (is_nonzero(repooled))
         {
-            due_ = true;
-            unvalidated_ = true;
+            context_.due = true;
+            context_.unvalidated = true;
             if (!sweep())
                 return fault(error::transaction11);
         }

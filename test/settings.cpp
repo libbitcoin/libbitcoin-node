@@ -59,6 +59,7 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.compact_timeout_seconds, 10_u16);
     BC_REQUIRE_EQUAL(node.compact_missing_percent, 50_u8);
     BC_REQUIRE_EQUAL(node.currency_window_minutes, 1440_u32);
+    BC_REQUIRE_EQUAL(node.fee_filter_minutes, 60_u16);
     ////BC_REQUIRE_EQUAL(node.snapshot_bytes, 200'000'000'000_u64);
     ////BC_REQUIRE_EQUAL(node.snapshot_valid, 250'000_u32);
     ////BC_REQUIRE_EQUAL(node.snapshot_confirm, 500'000_u32);
@@ -73,6 +74,7 @@ BC_AUTO_TEST_CASE(settings__node__default_context__expected)
     BC_REQUIRE_EQUAL(node.batch_silent_(), node.use_gpu_());
     BC_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BC_REQUIRE(node.currency_window() == steady_clock::duration(minutes(1440)));
+    BC_REQUIRE(node.fee_filter_period() == steady_clock::duration(minutes(60)));
     BC_REQUIRE(node.thread_priority_() == network::processing_priority::high);
 }
 

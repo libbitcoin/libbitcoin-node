@@ -35,28 +35,41 @@ public:
     protocol_transaction_out_70013(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : protocol_transaction_out_70001(session, channel),
-        network::tracker<protocol_transaction_out_70013>(session->log)
+        network::tracker<protocol_transaction_out_70013>(session->log),
+        fee_timer_(to_bool(session->node_settings().fee_filter_minutes) ?
+            system::emplace_shared<network::deadline>(session->log,
+                channel->strand(),
+                session->node_settings().fee_filter_period()) : nullptr)
     {
     }
 
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
 
+    /// The channel is stopping (called on strand by stop subscription).
+    void stopping(const code& ec) NOEXCEPT override;
+
 protected:
     /// Handle chaser events.
     bool handle_chase(const code& ec, event_value value) NOEXCEPT override;
     void subscribed(const code& ec, object_key key) NOEXCEPT override;
 
-    /// Capture the peer's minimum fee rate for announcements.
+    /// Capture the peer's minimum fee rate for announcements, a peer that
+    /// lowers it again within the fee filter period is dropped.
     virtual bool handle_receive_fee_filter(const code& ec,
         const network::messages::peer::fee_filter::cptr& message) NOEXCEPT;
 
 private:
     void do_send_fee_filter() NOEXCEPT;
+    void handle_fee_timer(const code& ec) NOEXCEPT;
+
+    // This is thread safe.
+    const network::deadline::ptr fee_timer_;
 
     // This is protected by strand.
     uint64_t sent_fee_{ max_uint64 };
     bool requested_{};
+    bool lowered_{};
 };
 
 } // namespace node
