@@ -108,7 +108,8 @@ settings::settings() NOEXCEPT
     sample_period_seconds{ 10 },
     compact_timeout_seconds{ 10 },
     compact_missing_percent{ 50 },
-    currency_window_minutes{ 1440 }
+    currency_window_minutes{ 1440 },
+    fee_filter_minutes{ 60 }
 {
 }
 
@@ -228,6 +229,11 @@ network::steady_clock::duration settings::compact_timeout() const NOEXCEPT
 network::wall_clock::duration settings::currency_window() const NOEXCEPT
 {
     return network::minutes(currency_window_minutes);
+}
+
+network::steady_clock::duration settings::fee_filter_period() const NOEXCEPT
+{
+    return network::minutes(fee_filter_minutes);
 }
 
 network::processing_priority settings::thread_priority_() const NOEXCEPT

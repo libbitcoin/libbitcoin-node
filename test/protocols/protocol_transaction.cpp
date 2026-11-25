@@ -573,6 +573,29 @@ BC_FIXTURE_TEST_CASE(protocol_transaction_out__fee_filter__rate_fall__swept_inve
     BC_REQUIRE_EQUAL(announced(1), expected);
 }
 
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__fee_filter__second_fall_within_period__dropped, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    send(peer::fee_filter{ 100'000 }, node_version->value);
+    send(peer::fee_filter{ 10'000 }, node_version->value);
+    BC_REQUIRE(!received_before_pong(peer::inventory::command));
+
+    send(peer::fee_filter{ 1'000 }, node_version->value);
+    send(peer::ping{ 42 }, node_version->value);
+    BC_REQUIRE(dropped(peer::pong::command));
+}
+
+BC_FIXTURE_TEST_CASE(protocol_transaction_out__fee_filter__rises_after_fall__kept, chaser_transaction_pooling_setup_fixture)
+{
+    BC_REQUIRE(handshake(0, peer::level::maximum_protocol, true));
+    send(peer::fee_filter{ 100'000 }, node_version->value);
+    send(peer::fee_filter{ 10'000 }, node_version->value);
+    send(peer::fee_filter{ 20'000 }, node_version->value);
+    send(peer::fee_filter{ 30'000 }, node_version->value);
+    send(peer::ping{ 42 }, node_version->value);
+    BC_REQUIRE(!dropped(peer::pong::command));
+}
+
 BC_FIXTURE_TEST_CASE(protocol_transaction_out__start__no_relay_slot__max_money_fee_filter, chaser_transaction_pooling_setup_fixture)
 {
     reserve_relays();
