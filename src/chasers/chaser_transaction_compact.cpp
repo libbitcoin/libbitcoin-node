@@ -267,7 +267,7 @@ bool chaser_transaction::set_pooled(const database::tx_link& link,
     const auto start = now();
     const auto pooled = archive().set_pooled(link, tx, ctx, ctx.timestamp);
     report(pool_scan::admission, start);
-    due_ = due_ || (pooled && !is_sufficient(ctx));
+    context_.due = context_.due || (pooled && !is_sufficient(ctx));
     return pooled;
 }
 

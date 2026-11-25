@@ -107,23 +107,23 @@ void chaser_transaction::do_activate_relay(size_t slot,
     object_key key) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    keys_.at(slot) = key;
-    set_right_into(relaying_, slot);
-    if (!sweeping_)
+    relay_.keys.at(slot) = key;
+    set_right_into(relay_.relaying, slot);
+    if (!relay_.sweeping)
         do_sweep_relay();
 }
 
 void chaser_transaction::do_release_relay(size_t slot) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    for (auto& mark: marks_)
+    for (auto& mark: relay_.marks)
         set_right_into(mark, slot, false);
 
-    rates_.at(slot) = zero;
-    keys_.at(slot) = {};
-    set_right_into(relaying_, slot, false);
-    set_right_into(owed_, slot, false);
-    set_right_into(swept_, slot, false);
+    relay_.rates.at(slot) = zero;
+    relay_.keys.at(slot) = {};
+    set_right_into(relay_.relaying, slot, false);
+    set_right_into(relay_.owed, slot, false);
+    set_right_into(relay_.swept, slot, false);
     reserved_.fetch_and(bit_not(bit_right<uint64_t>(slot)));
 }
 
@@ -131,8 +131,8 @@ void chaser_transaction::do_release_relay(size_t slot) NOEXCEPT
 void chaser_transaction::do_set_relay_rate(size_t slot, uint64_t rate) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto prior = rates_.at(slot);
-    rates_.at(slot) = rate;
+    const auto prior = relay_.rates.at(slot);
+    relay_.rates.at(slot) = rate;
     if (rate < prior)
         owe_relay(slot);
 }
@@ -148,28 +148,29 @@ void chaser_transaction::do_relay_pool(size_t slot) NOEXCEPT
 void chaser_transaction::owe_relay(size_t slot) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    set_right_into(owed_, slot);
-    if (!sweeping_)
+    set_right_into(relay_.owed, slot);
+    if (!relay_.sweeping)
         do_sweep_relay();
 }
 
 // private
 uint64_t chaser_transaction::sweepable() const NOEXCEPT
 {
-    return bit_and(bit_and(owed_, relaying_), bit_not(swept_));
+    return bit_and(bit_and(relay_.owed, relay_.relaying),
+        bit_not(relay_.swept));
 }
 
 // One slot swept per strand turn, so sweeps do not hold up other work.
 void chaser_transaction::do_sweep_relay() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    sweeping_ = false;
+    relay_.sweeping = false;
     if (closed() || !pooling_ || is_zero(sweepable()))
         return;
 
     const auto slot = right_zeros(sweepable());
-    set_right_into(owed_, slot, false);
-    set_right_into(swept_, slot);
+    set_right_into(relay_.owed, slot, false);
+    set_right_into(relay_.swept, slot);
     if (!sweep_relay(slot))
     {
         fault(database::error::integrity);
@@ -179,7 +180,7 @@ void chaser_transaction::do_sweep_relay() NOEXCEPT
     if (is_zero(sweepable()))
         return;
 
-    sweeping_ = true;
+    relay_.sweeping = true;
     POST(do_sweep_relay);
 }
 
@@ -198,7 +199,7 @@ bool chaser_transaction::sweep_relay(size_t slot) NOEXCEPT
         if (row.is_terminal() || get_right(marks(row.value), slot))
             continue;
 
-        if (!relay({ link }, relay_slots, word, keys_.at(slot)))
+        if (!relay({ link }, relay_slots, word, relay_.keys.at(slot)))
             return false;
     }
 
@@ -256,7 +257,7 @@ bool chaser_transaction::relay(const database::tx_links& links,
     {
         const auto weight = weights.at(slot);
         if (!is_zero(weight) && weight <= limit &&
-            algorithm::covered(fees.at(slot), weight, rates_.at(slot)))
+            algorithm::covered(fees.at(slot), weight, relay_.rates.at(slot)))
             set_right_into(clears, slot);
     }
 
@@ -281,10 +282,10 @@ bool chaser_transaction::relay(const database::tx_links& links,
 // private
 uint64_t& chaser_transaction::marks(size_t row) NOEXCEPT
 {
-    if (row >= marks_.size())
-        marks_.resize(add1(row));
+    if (row >= relay_.marks.size())
+        relay_.marks.resize(add1(row));
 
-    return marks_.at(row);
+    return relay_.marks.at(row);
 }
 
 BC_POP_WARNING()

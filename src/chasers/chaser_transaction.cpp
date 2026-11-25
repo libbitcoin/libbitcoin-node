@@ -183,7 +183,7 @@ bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
 void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    estimating_ = false;
+    estimate_.estimating = false;
     const auto opened = pooling_.load();
     pooling_ = false;
     if (closed() || !is_current_chain(true))
@@ -200,7 +200,8 @@ void chaser_transaction::do_bump() NOEXCEPT
     {
         // Context of block last applied to index (store top may be above).
         size_t height{};
-        const auto top = top_.is_terminal() ? query.to_top_confirmed() : top_;
+        const auto top = context_.top.is_terminal() ?
+            query.to_top_confirmed() : context_.top;
         if (!query.get_height(height, top))
         {
             fault(error::transaction9);
@@ -215,14 +216,14 @@ void chaser_transaction::do_bump() NOEXCEPT
         }
 
         // The context of the next block, in which a pool tx would confirm.
-        const auto previous = pool_;
-        pool_ = chain_state{ *state, system_settings() }.context();
-        previous_ = state->hash();
+        const auto previous = context_.pool;
+        context_.pool = chain_state{ *state, system_settings() }.context();
+        context_.previous = state->hash();
 
         // Row holds unless a flag changes or height or median time past falls.
-        due_ = due_ || pool_.flags != previous.flags ||
-            pool_.height < previous.height ||
-            pool_.median_time_past < previous.median_time_past;
+        context_.due = context_.due || context_.pool.flags != previous.flags ||
+            context_.pool.height < previous.height ||
+            context_.pool.median_time_past < previous.median_time_past;
 
         if (!sweep())
         {
@@ -230,18 +231,18 @@ void chaser_transaction::do_bump() NOEXCEPT
             return;
         }
 
-        if (reusable(pool_))
+        if (reusable(context_.pool))
         {
             query.set_pooling();
             pooling_ = true;
 
             // Rows that arrived while the pool was closed are not in it.
             if (!opened)
-                floor_ = std::max(floor_, pool_.height);
+                context_.floor = std::max(context_.floor, context_.pool.height);
 
             // Make sweeps deferred to block.
-            swept_ = {};
-            if (!sweeping_)
+            relay_.swept = {};
+            if (!relay_.sweeping)
                 do_sweep_relay();
         }
     }
@@ -272,22 +273,24 @@ chain_state::cptr chaser_transaction::top_state(
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
-    if (state_ && height == state_->height() &&
-        query.get_header_key(top) == state_->hash())
-        return state_;
+    if (context_.state && height == context_.state->height() &&
+        query.get_header_key(top) == context_.state->hash())
+        return context_.state;
 
-    if (state_ && height == add1(state_->height()))
+    if (context_.state && height == add1(context_.state->height()))
     {
         const auto header = query.get_header(top);
-        if (header && header->previous_block_hash() == state_->hash())
+        if (header && header->previous_block_hash() == context_.state->hash())
         {
-            state_ = to_shared<chain_state>(*state_, *header, system_settings());
-            return state_;
+            context_.state = to_shared<chain_state>(*context_.state, *header,
+                system_settings());
+            return context_.state;
         }
     }
 
-    state_ = query.get_confirmed_chain_state(system_settings(), top, height);
-    return state_;
+    context_.state = query.get_confirmed_chain_state(system_settings(), top,
+        height);
+    return context_.state;
 }
 
 bool chaser_transaction::is_indexing() const NOEXCEPT
@@ -304,7 +307,7 @@ bool chaser_transaction::reusable(const chain::context& ctx) const NOEXCEPT
 bool chaser_transaction::is_sufficient(
     const chain::context& ctx) const NOEXCEPT
 {
-    return archive().is_sufficient(database::context::from(pool_),
+    return archive().is_sufficient(database::context::from(context_.pool),
         database::context::from(ctx));
 }
 
@@ -314,16 +317,16 @@ bool chaser_transaction::sweep() NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
-    if (!due_ || !query.is_pooling())
+    if (!context_.due || !query.is_pooling())
         return true;
 
     size_t count{};
     const auto start = now();
     const auto applied = query.set_pool_context(count,
-        database::context::from(pool_));
+        database::context::from(context_.pool));
 
     report(pool_scan::context, start);
-    due_ = !applied || is_nonzero(count);
+    context_.due = !applied || is_nonzero(count);
     if (applied && is_nonzero(count))
         start_revalidation();
 
@@ -336,12 +339,13 @@ bool chaser_transaction::sweep() NOEXCEPT
 void chaser_transaction::start_revalidation() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (revalidating_)
+    if (context_.revalidating)
         return;
 
-    const auto flagged = pool_.flags != retried_.flags;
-    const auto moved = unvalidated_ || pool_.height != retried_.height ||
-        pool_.median_time_past != retried_.median_time_past;
+    const auto flagged = context_.pool.flags != context_.retried.flags;
+    const auto moved = context_.unvalidated ||
+        context_.pool.height != context_.retried.height ||
+        context_.pool.median_time_past != context_.retried.median_time_past;
 
     if (!flagged && !moved)
         return;
@@ -349,7 +353,7 @@ void chaser_transaction::start_revalidation() NOEXCEPT
     auto& query = archive();
     database::tx_links links{};
     database::tx_links unvalidated{};
-    const auto ctx = database::context::from(pool_);
+    const auto ctx = database::context::from(context_.pool);
     code ec{};
     if (flagged)
         ec = query.get_pool_revalidation(links, ctx);
@@ -365,14 +369,14 @@ void chaser_transaction::start_revalidation() NOEXCEPT
 
     links.insert(links.end(), unvalidated.begin(), unvalidated.end());
 
-    retried_ = pool_;
-    unvalidated_ = false;
+    context_.retried = context_.pool;
+    context_.unvalidated = false;
     if (links.empty())
         return;
 
-    revalidating_ = true;
+    context_.revalidating = true;
     network::io::post(revalidation_threadpool_.service(),
-        BIND(do_revalidate, std::move(links), pool_));
+        BIND(do_revalidate, std::move(links), context_.pool));
 }
 
 // Revalidation is admission under context, as confirmation of what a row spends
@@ -413,15 +417,15 @@ void chaser_transaction::do_revalidated(const database::tx_links& links,
     const chain::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    revalidating_ = false;
+    context_.revalidating = false;
     if (closed())
         return;
 
-    if (unvalidated_ || !is_sufficient(ctx))
+    if (context_.unvalidated || !is_sufficient(ctx))
     {
-        retried_.flags = {};
-        unvalidated_ = true;
-        due_ = true;
+        context_.retried.flags = {};
+        context_.unvalidated = true;
+        context_.due = true;
         if (!sweep())
             fault(error::transaction11);
 
@@ -450,7 +454,7 @@ void chaser_transaction::do_revalidated(const database::tx_links& links,
     LOGN("Revalidated (" << count << ") of (" << links.size()
         << ") pooled txs.");
 
-    due_ = true;
+    context_.due = true;
     if (!sweep())
         fault(error::transaction11);
 }
@@ -514,7 +518,7 @@ void chaser_transaction::do_organized(header_t link) NOEXCEPT
         fire(events::pool_rows, query.pool_records());
     }
 
-    top_ = link;
+    context_.top = link;
     ++generation_;
     do_bump();
 }
@@ -550,7 +554,7 @@ void chaser_transaction::do_reorganized(header_t link) NOEXCEPT
         }
     }
 
-    top_ = query.to_parent(link);
+    context_.top = query.to_parent(link);
     do_bump();
     if (pooling_ && repool(link) && !sweep())
         fault(error::transaction11);
@@ -564,8 +568,8 @@ bool chaser_transaction::unvalidate(header_t link) NOEXCEPT
     if (!archive().set_pool_unvalidated(count, link))
         return false;
 
-    unvalidated_ = unvalidated_ || is_nonzero(count);
-    due_ = due_ || is_nonzero(count);
+    context_.unvalidated = context_.unvalidated || is_nonzero(count);
+    context_.due = context_.due || is_nonzero(count);
     return true;
 }
 
@@ -629,8 +633,8 @@ void chaser_transaction::do_pruned(header_t link) NOEXCEPT
         return;
     }
 
-    floor_ = std::max(floor_, add1(height));
-    estimating_ = false;
+    context_.floor = std::max(context_.floor, add1(height));
+    estimate_.estimating = false;
 }
 
 // utility
@@ -734,7 +738,7 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
     const auto& settings = node_settings().pool;
     const auto reserved = ceilinged_add(fixed, settings.coinbase_weight);
     const auto weight = floored_subtract(max_block_weight, reserved);
-    const auto bip141 = pool_.is_enabled(flags::bip141_rule);
+    const auto bip141 = context_.pool.is_enabled(flags::bip141_rule);
     const auto limit = bip141 ? max_fast_sigops : max_block_sigops;
     const auto sigops = floored_subtract(limit, settings.coinbase_sigops);
     return

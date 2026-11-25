@@ -198,7 +198,7 @@ protected:
     bool stranded() const NOEXCEPT override;
 
 private:
-    /// A set under submission, its running set and outcome.
+    // A set under submission, its running set and outcome.
     struct submission
     {
         system::chain::transactions_cptr txs;
@@ -227,15 +227,20 @@ private:
         code failure{};
     };
     using submission_ptr = std::shared_ptr<submission>;
+    using submission_ptrs = std::vector<submission_ptr>;
+    using holder_map = std::unordered_map<system::hash_digest, uint64_t>;
+    using row_marks = std::vector<uint64_t>;
+    using rate_slots = std::array<uint64_t, relay_slots>;
+    using key_slots = std::array<object_key, relay_slots>;
 
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
 
-    /// Chain state of top, the held state advanced by top, else from store.
+    // Chain state of top, the held state advanced by top, else from store.
     system::chain::chain_state::cptr top_state(const database::header_link& top,
         size_t height) NOEXCEPT;
 
-    /// Submission steps.
+    // Submission steps.
     void enter(const submission_ptr& set) NOEXCEPT;
     void do_validate(const submission_ptr& set) NOEXCEPT;
     void do_validated(const submission_ptr& set) NOEXCEPT;
@@ -277,52 +282,95 @@ private:
     void start_scan(bool remap) NOEXCEPT;
     void start_revalidation() NOEXCEPT;
 
-    /// Relay txs with their unconfirmed ancestry, marked held by origin, to
-    /// each slot whose rate the sum of rows it lacks clears.
+    // Relay txs with their unconfirmed ancestry, marked held by origin, to
+    // each slot whose rate the sum of rows it lacks clears.
     bool relay(const database::tx_links& links, size_t origin,
         uint64_t slots, object_key key={}) NOEXCEPT;
 
-    /// Relay confirmable txs in row order, each with ancestry slot lacks, where
-    /// that clears slot's rate.
+    // Relay confirmable txs in row order, each with ancestry slot lacks, where
+    // that clears slot's rate.
     bool sweep_relay(size_t slot) NOEXCEPT;
 
-    /// Owe slot a sweep, made now unless swept since last block.
+    // Owe slot a sweep, made now unless swept since last block.
     void owe_relay(size_t slot) NOEXCEPT;
 
-    /// Relaying slots owed a sweep and not swept since last block.
+    // Relaying slots owed a sweep and not swept since last block.
     uint64_t sweepable() const NOEXCEPT;
 
-    /// The marks of the pool row, grown with the table.
+    // The marks of the pool row, grown with the table.
     uint64_t& marks(size_t row) NOEXCEPT;
 
-    /// The pool index follows blocks (pooling store and relay enabled).
+    // The pool index follows blocks (pooling store and relay enabled).
     bool is_indexing() const NOEXCEPT;
 
-    /// A validation under the context holds at a later block.
+    // A validation under the context holds at a later block.
     bool reusable(const system::chain::context& ctx) const NOEXCEPT;
 
-    /// Set pooled spenders of block's txs not validated, parent pool top.
+    // Set pooled spenders of block's txs not validated, parent pool top.
     bool unvalidate(header_t link) NOEXCEPT;
 
-    /// Pool block's unpooled txs under its context, false if faulted.
+    // Pool block's unpooled txs under its context, false if faulted.
     bool repool(header_t link) NOEXCEPT;
 
-    /// A validation under the context holds under the pool context.
+    // A validation under the context holds under the pool context.
     bool is_sufficient(const system::chain::context& ctx) const NOEXCEPT;
 
-    /// Sweep the index by the pool context if due, false on store failure.
+    // Sweep the index by the pool context if due, false on store failure.
     bool sweep() NOEXCEPT;
     static uint64_t arriving(const query::pool_arrivals& arrivals,
         uint64_t rate, estimate_mode mode) NOEXCEPT;
 
-    /// Notify pool subscribers of scan, timed from its start, and fire its
-    /// event (other than for coverage, which fires only when it clears).
+    // Notify pool subscribers of scan, timed from its start, and fire its
+    // event (other than for coverage, which fires only when it clears).
     using time_point = std::chrono::steady_clock::time_point;
     static time_point now() NOEXCEPT;
     void report(pool_scan scan, const time_point& start) NOEXCEPT;
 
-    /// Fire the event with the microseconds since the start.
+    // Fire the event with the microseconds since the start.
     void fire_span(events event, const time_point& start) NOEXCEPT;
+
+    // Pool context, its chain position and the sweep that follows it.
+    struct context_state
+    {
+        system::chain::context pool{};
+        system::chain::chain_state::cptr state{};
+        system::hash_digest previous{};
+        database::header_link top{};
+        size_t floor{};
+        bool due{ true };
+        bool revalidating{};
+        bool unvalidated{};
+        system::chain::context retried{};
+    };
+
+    // Projection held across estimates and the arrivals it draws on.
+    struct estimate_state
+    {
+        bool estimating{};
+        bool arrived{};
+        time_point estimated{};
+        query::pool_projection projection{};
+        query::pool_arrivals arrivals{};
+    };
+
+    // Relay slots, their rates and keys, and the marks of the pool rows.
+    struct relay_state
+    {
+        row_marks marks{};
+        rate_slots rates{};
+        key_slots keys{};
+        uint64_t relaying{};
+        uint64_t owed{};
+        uint64_t swept{};
+        bool sweeping{};
+    };
+
+    // Txs under validation with the slots that hold them, and waiting sets.
+    struct submit_state
+    {
+        holder_map holders{};
+        submission_ptrs waiting{};
+    };
 
     // These are not thread safe.
     network::threadpool transaction_threadpool_;
@@ -342,30 +390,11 @@ private:
 
     // These are protected by strand.
     pool_subscriber subscriber_{};
-    system::chain::context pool_{};
-    system::chain::chain_state::cptr state_{};
-    system::hash_digest previous_{};
-    database::header_link top_{};
-    size_t floor_{};
-    bool due_{ true };
+    context_state context_{};
+    estimate_state estimate_{};
+    relay_state relay_{};
+    submit_state submit_{};
     bool scanning_{};
-    bool revalidating_{};
-    bool unvalidated_{};
-    bool estimating_{};
-    bool arrived_{};
-    time_point estimated_{};
-    query::pool_projection projection_{};
-    query::pool_arrivals arrivals_{};
-    system::chain::context retried_{};
-    std::vector<uint64_t> marks_{};
-    std::array<uint64_t, relay_slots> rates_{};
-    std::array<object_key, relay_slots> keys_{};
-    uint64_t relaying_{};
-    uint64_t owed_{};
-    uint64_t swept_{};
-    bool sweeping_{};
-    std::unordered_map<system::hash_digest, uint64_t> validating_{};
-    std::vector<submission_ptr> waiting_{};
 };
 
 } // namespace node

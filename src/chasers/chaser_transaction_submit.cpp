@@ -169,13 +169,13 @@ void chaser_transaction::enter(const submission_ptr& set) NOEXCEPT
             continue;
 
         const auto hash = txs.at(index)->get_hash(false);
-        const auto it = validating_.find(hash);
-        if (it == validating_.end())
+        const auto it = submit_.holders.find(hash);
+        if (it == submit_.holders.end())
             continue;
 
         if (!set->announced)
         {
-            waiting_.push_back(set);
+            submit_.waiting.push_back(set);
             return;
         }
 
@@ -203,11 +203,11 @@ void chaser_transaction::enter(const submission_ptr& set) NOEXCEPT
         if (set->stored.at(index))
             continue;
 
-        validating_.emplace(txs.at(index)->get_hash(false), uint64_t{});
+        submit_.holders.emplace(txs.at(index)->get_hash(false), uint64_t{});
         set->reserved.push_back(index);
     }
 
-    set->ctx = pool_;
+    set->ctx = context_.pool;
     PARALLEL(do_validate, set);
 }
 
@@ -261,7 +261,7 @@ void chaser_transaction::do_validated(const submission_ptr& set) NOEXCEPT
 
     if (!is_sufficient(set->ctx))
     {
-        set->ctx = pool_;
+        set->ctx = context_.pool;
         PARALLEL(do_validate, set);
         return;
     }
@@ -275,7 +275,7 @@ void chaser_transaction::do_validated(const submission_ptr& set) NOEXCEPT
     if (!set->retried && is_reparented(*set))
     {
         set->retried = true;
-        set->ctx = pool_;
+        set->ctx = context_.pool;
         PARALLEL(do_validate, set);
         return;
     }
@@ -355,13 +355,13 @@ void chaser_transaction::complete(const submission_ptr& set, const code& ec,
 {
     BC_ASSERT(stranded());
     for (const auto at: set->reserved)
-        validating_.erase(set->txs->at(at)->get_hash(false));
+        submit_.holders.erase(set->txs->at(at)->get_hash(false));
 
     set->reserved.clear();
     set->handler(ec, index);
 
-    auto waiting = std::move(waiting_);
-    waiting_.clear();
+    auto waiting = std::move(submit_.waiting);
+    submit_.waiting.clear();
     for (const auto& next: waiting)
     {
         if (closed())
@@ -402,8 +402,8 @@ void chaser_transaction::mark_holders(const database::tx_link& link,
     const chain::transaction& tx) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto it = validating_.find(tx.get_hash(false));
-    if (it == validating_.end() || is_zero(it->second))
+    const auto it = submit_.holders.find(tx.get_hash(false));
+    if (it == submit_.holders.end() || is_zero(it->second))
         return;
 
     const auto row = archive().to_pool_row(link);
@@ -500,7 +500,7 @@ code chaser_transaction::extend(bool& covered, submission& set,
     covered = false;
     auto& query = archive();
     const auto& tx = *set.txs->at(index);
-    const auto ctx = database::context::from(pool_);
+    const auto ctx = database::context::from(context_.pool);
     if (const auto ec = query.get_pool_candidate(set.graph, tx, ctx))
         return fault(ec);
 
@@ -547,7 +547,7 @@ code chaser_transaction::extend(bool& covered, submission& set,
 code chaser_transaction::restore(submission& set, size_t index) NOEXCEPT
 {
     auto& query = archive();
-    const auto ctx = database::context::from(pool_);
+    const auto ctx = database::context::from(context_.pool);
     set.graph = {};
     set.weight = set.sigops = zero;
     set.running = false;
@@ -595,7 +595,7 @@ code chaser_transaction::clear(size_t& at, submission& set,
         set.cleared = true;
     }
 
-    if (!admitted.empty() && !relay(admitted, set.slot, relaying_))
+    if (!admitted.empty() && !relay(admitted, set.slot, relay_.relaying))
     {
         at = set.first;
         return fault(database::error::integrity);
@@ -645,7 +645,7 @@ code chaser_transaction::admit(database::tx_link& link,
         size_t repooled{};
         const auto start = now();
         const auto admitted = query.set_pooled(repooled, link, tx,
-            database::context::from(pool_), time, sigops, archived);
+            database::context::from(context_.pool), time, sigops, archived);
 
         report(pool_scan::admission, start);
         if (!admitted)
@@ -654,8 +654,8 @@ code chaser_transaction::admit(database::tx_link& link,
         // Spender pooled again keeps its context, and may now pass if failed.
         if (is_nonzero(repooled))
         {
-            due_ = true;
-            unvalidated_ = true;
+            context_.due = true;
+            context_.unvalidated = true;
             if (!sweep())
                 return fault(error::transaction11);
         }
