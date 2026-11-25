@@ -34,10 +34,12 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Independent threadpool and strand (base class strand uses network pool).
+// Independent threadpool and strand (base class strand uses network pool),
+// with validation at network priority so that pool work precedes it.
 chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : chaser(node),
     transaction_threadpool_(one, node.node_settings().pool.thread_priority_()),
+    validation_threadpool_(node.node_settings().threads_()),
     transaction_strand_(transaction_threadpool_.service().get_executor()),
     scan_threadpool_(one, node.node_settings().thread_priority_()),
     revalidation_threadpool_(one, node.node_settings().thread_priority_()),
@@ -99,6 +101,7 @@ void chaser_transaction::stopping(const code& ec) NOEXCEPT
     stopping_.store(true);
     scan_threadpool_.stop();
     revalidation_threadpool_.stop();
+    validation_threadpool_.stop();
     transaction_threadpool_.stop();
     chaser::stopping(ec);
 }
@@ -107,7 +110,7 @@ void chaser_transaction::stopping(const code& ec) NOEXCEPT
 void chaser_transaction::stop() NOEXCEPT
 {
     if (!scan_threadpool_.join() || !revalidation_threadpool_.join() ||
-        !transaction_threadpool_.join())
+        !validation_threadpool_.join() || !transaction_threadpool_.join())
     {
         BC_ASSERT_MSG(false, "failed to join threadpool");
         std::abort();

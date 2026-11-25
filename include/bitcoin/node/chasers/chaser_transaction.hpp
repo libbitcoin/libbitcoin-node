@@ -112,6 +112,14 @@ public:
 protected:
     using chaser::broadcast;
 
+    /// Post a method in base or derived class in parallel (use PARALLEL).
+    template <class Derived, typename Method, typename... Args>
+    inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
+    {
+        return network::io::post(validation_threadpool_.service(),
+            BIND_TO(method, args));
+    }
+
     virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_submit(const system::chain::transactions_cptr& txs,
@@ -198,6 +206,13 @@ private:
         uint32_t time;
         bool test;
         bool announced;
+        submit_handler handler{};
+        system::chain::context ctx{};
+        std::chrono::steady_clock::time_point begin{};
+        std::vector<size_t> reserved{};
+        std::vector<code> accepted{};
+        code checked{};
+        bool retried{};
         std::vector<bool> stored{};
         std::vector<size_t> sigops_of{};
         std::unordered_set<system::hash_digest> held{};
@@ -211,6 +226,7 @@ private:
         bool cleared{};
         code failure{};
     };
+    using submission_ptr = std::shared_ptr<submission>;
 
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
@@ -220,6 +236,14 @@ private:
         size_t height) NOEXCEPT;
 
     /// Submission steps.
+    void enter(const submission_ptr& set) NOEXCEPT;
+    void do_validate(const submission_ptr& set) NOEXCEPT;
+    void do_validated(const submission_ptr& set) NOEXCEPT;
+    void complete(const submission_ptr& set, const code& ec,
+        size_t index) NOEXCEPT;
+    void mark_holders(const database::tx_link& link,
+        const system::chain::transaction& tx) NOEXCEPT;
+    bool is_reparented(const submission& set) const NOEXCEPT;
     void hold(submission& set) NOEXCEPT;
     bool spends_held(const submission& set,
         const system::chain::transaction& tx) const NOEXCEPT;
@@ -232,7 +256,8 @@ private:
     code clear(size_t& at, submission& set, size_t index) NOEXCEPT;
 
     code check(const system::chain::transaction_cptrs& txs,
-        const std::vector<bool>& stored, bool announced) NOEXCEPT;
+        const std::vector<bool>& stored, bool announced,
+        const system::chain::context& ctx) NOEXCEPT;
     code accept(const system::chain::transaction& tx,
         const system::chain::context& ctx) NOEXCEPT;
     code admit(database::tx_link& out, const system::chain::transaction& tx,
@@ -299,8 +324,9 @@ private:
     /// Fire the event with the microseconds since the start.
     void fire_span(events event, const time_point& start) NOEXCEPT;
 
-    // This is not thread safe.
+    // These are not thread safe.
     network::threadpool transaction_threadpool_;
+    network::threadpool validation_threadpool_;
 
     // These are thread safe.
     network::io::strand transaction_strand_;
@@ -338,6 +364,8 @@ private:
     uint64_t owed_{};
     uint64_t swept_{};
     bool sweeping_{};
+    std::unordered_map<system::hash_digest, uint64_t> validating_{};
+    std::vector<submission_ptr> waiting_{};
 };
 
 } // namespace node
