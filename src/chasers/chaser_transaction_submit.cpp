@@ -155,37 +155,18 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 }
 
 // private
-// A tx under validation by another set is held by an announced set's peer,
-// and a package that includes one waits for that validation to complete.
+// A set waits for the validation of another set that it includes or spends.
 void chaser_transaction::enter(const submission_ptr& set) NOEXCEPT
 {
     BC_ASSERT(stranded());
     hold(*set);
-
-    const auto& txs = *set->txs;
-    for (size_t index{}; index < txs.size(); ++index)
+    if (is_dependent(*set))
     {
-        if (set->stored.at(index))
-            continue;
-
-        const auto hash = txs.at(index)->get_hash(false);
-        const auto it = submit_.holders.find(hash);
-        if (it == submit_.holders.end())
-            continue;
-
-        if (!set->announced)
-        {
-            submit_.waiting.push_back(set);
-            return;
-        }
-
-        if (set->slot < relay_slots)
-            set_right_into(it->second, set->slot);
-
-        set->stored.at(index) = true;
-        set->held.insert(hash);
+        submit_.waiting.push_back(set);
+        return;
     }
 
+    const auto& txs = *set->txs;
     if (txs.empty())
     {
         set->handler(error::empty_package, {});
@@ -203,7 +184,7 @@ void chaser_transaction::enter(const submission_ptr& set) NOEXCEPT
         if (set->stored.at(index))
             continue;
 
-        submit_.holders.emplace(txs.at(index)->get_hash(false), uint64_t{});
+        submit_.validating.insert(txs.at(index)->get_hash(false));
         set->reserved.push_back(index);
     }
 
@@ -269,14 +250,6 @@ void chaser_transaction::do_validated(const submission_ptr& set) NOEXCEPT
     if (set->checked)
     {
         complete(set, set->checked, {});
-        return;
-    }
-
-    if (!set->retried && is_reparented(*set))
-    {
-        set->retried = true;
-        set->ctx = context_.pool;
-        PARALLEL(do_validate, set);
         return;
     }
 
@@ -355,7 +328,7 @@ void chaser_transaction::complete(const submission_ptr& set, const code& ec,
 {
     BC_ASSERT(stranded());
     for (const auto at: set->reserved)
-        submit_.holders.erase(set->txs->at(at)->get_hash(false));
+        submit_.validating.erase(set->txs->at(at)->get_hash(false));
 
     set->reserved.clear();
     set->handler(ec, index);
@@ -372,43 +345,28 @@ void chaser_transaction::complete(const submission_ptr& set, const code& ec,
 }
 
 // private
-// A tx missing a parent at validation is validated again, once, when that
-// parent has since been archived by another set.
-bool chaser_transaction::is_reparented(const submission& set) const NOEXCEPT
+// An unstored tx of the set, or a tx that one spends, is under validation.
+bool chaser_transaction::is_dependent(const submission& set) const NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
+    if (submit_.validating.empty())
+        return false;
+
     for (size_t index{}; index < set.txs->size(); ++index)
     {
-        if (set.stored.at(index) ||
-            set.accepted.at(index) != system::error::missing_previous_output)
+        if (set.stored.at(index))
             continue;
 
-        for (const auto& in: *set.txs->at(index)->inputs_ptr())
-        {
-            const auto link = query.to_tx(in->point().hash());
-            if (!link.is_terminal() && (query.is_pooled(link) ||
-                query.is_confirmed_tx(link)))
+        const auto& tx = *set.txs->at(index);
+        if (submit_.validating.contains(tx.get_hash(false)))
+            return true;
+
+        for (const auto& in: *tx.inputs_ptr())
+            if (submit_.validating.contains(in->point().hash()))
                 return true;
-        }
     }
 
     return false;
-}
-
-// private
-// Peers of sets that found the tx under validation hold it.
-void chaser_transaction::mark_holders(const database::tx_link& link,
-    const chain::transaction& tx) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    const auto it = submit_.holders.find(tx.get_hash(false));
-    if (it == submit_.holders.end() || is_zero(it->second))
-        return;
-
-    const auto row = archive().to_pool_row(link);
-    if (!row.is_terminal())
-        marks(row.value) = bit_or(marks(row.value), it->second);
 }
 
 // private
@@ -589,7 +547,6 @@ code chaser_transaction::clear(size_t& at, submission& set,
         if (const auto ec = admit(link, tx, set.time, set.sigops_of.at(at)))
             return ec;
 
-        mark_holders(link, tx);
         admitted.push_back(link);
         set.stored.at(at) = true;
         set.cleared = true;

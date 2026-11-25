@@ -212,7 +212,6 @@ private:
         std::vector<size_t> reserved{};
         std::vector<code> accepted{};
         code checked{};
-        bool retried{};
         std::vector<bool> stored{};
         std::vector<size_t> sigops_of{};
         std::unordered_set<system::hash_digest> held{};
@@ -228,7 +227,7 @@ private:
     };
     using submission_ptr = std::shared_ptr<submission>;
     using submission_ptrs = std::vector<submission_ptr>;
-    using holder_map = std::unordered_map<system::hash_digest, uint64_t>;
+    using hash_set = std::unordered_set<system::hash_digest>;
     using row_marks = std::vector<uint64_t>;
     using rate_slots = std::array<uint64_t, relay_slots>;
     using key_slots = std::array<object_key, relay_slots>;
@@ -246,9 +245,7 @@ private:
     void do_validated(const submission_ptr& set) NOEXCEPT;
     void complete(const submission_ptr& set, const code& ec,
         size_t index) NOEXCEPT;
-    void mark_holders(const database::tx_link& link,
-        const system::chain::transaction& tx) NOEXCEPT;
-    bool is_reparented(const submission& set) const NOEXCEPT;
+    bool is_dependent(const submission& set) const NOEXCEPT;
     void hold(submission& set) NOEXCEPT;
     bool spends_held(const submission& set,
         const system::chain::transaction& tx) const NOEXCEPT;
@@ -365,10 +362,10 @@ private:
         bool sweeping{};
     };
 
-    // Txs under validation with the slots that hold them, and waiting sets.
+    // Txs under validation, and sets waiting on them.
     struct submit_state
     {
-        holder_map holders{};
+        hash_set validating{};
         submission_ptrs waiting{};
     };
 
