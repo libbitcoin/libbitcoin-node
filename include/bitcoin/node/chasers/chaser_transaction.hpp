@@ -202,7 +202,7 @@ private:
         std::vector<size_t> sigops_of{};
         std::unordered_set<system::hash_digest> held{};
         query::pool_graph graph{};
-        uint64_t bytes{};
+        uint64_t weight{};
         uint64_t sigops{};
         size_t given{};
         size_t first{};
@@ -214,6 +214,10 @@ private:
 
     static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
     system::pool::algorithm::totals_t block_limit() const NOEXCEPT;
+
+    /// Chain state of top, the held state advanced by top, else from store.
+    system::chain::chain_state::cptr top_state(const database::header_link& top,
+        size_t height) NOEXCEPT;
 
     /// Submission steps.
     void hold(submission& set) NOEXCEPT;
@@ -313,6 +317,7 @@ private:
     // These are protected by strand.
     pool_subscriber subscriber_{};
     system::chain::context pool_{};
+    system::chain::chain_state::cptr state_{};
     system::hash_digest previous_{};
     database::header_link top_{};
     size_t floor_{};

@@ -96,7 +96,7 @@ static std::string describe_limit(const node::query& query,
             out << "candidate " << at << (ancestry ? " outcomes " :
                 " ancestry ") << "members " << component.count
                 << " contests " << component.contests << " outcomes "
-                << outcomes << " size " << sum.size << " sigops "
+                << outcomes << " weight " << sum.weight << " sigops "
                 << sum.sigops << ":" << members(component);
             return out.str();
         }
@@ -300,7 +300,7 @@ void chaser_transaction::count(submission& set, size_t index) const NOEXCEPT
     using algorithm = pool::algorithm;
     const auto totals = algorithm::from_column(set.graph.totals.back());
     set.sigops_of.at(index) = totals.sigops;
-    set.bytes = ceilinged_add<uint64_t>(set.bytes, totals.size);
+    set.weight = ceilinged_add<uint64_t>(set.weight, totals.weight);
     set.sigops = ceilinged_add<uint64_t>(set.sigops, totals.sigops);
 }
 
@@ -323,7 +323,7 @@ code chaser_transaction::extend(bool& covered, submission& set,
     count(set, index);
 
     const auto limit = block_limit();
-    if (set.bytes > limit.size || set.sigops > limit.sigops)
+    if (set.weight > limit.weight || set.sigops > limit.sigops)
     {
         LOGN("Pool limit [" << encode_hash(tx.get_hash(false))
             << "] running set over a block");
@@ -361,7 +361,7 @@ code chaser_transaction::restore(submission& set, size_t index) NOEXCEPT
     auto& query = archive();
     const auto ctx = database::context::from(pool_);
     set.graph = {};
-    set.bytes = set.sigops = zero;
+    set.weight = set.sigops = zero;
     set.running = false;
     for (auto at = set.first; at < index; ++at)
     {
@@ -426,7 +426,7 @@ code chaser_transaction::clear(size_t& at, submission& set,
     }
 
     set.running = false;
-    set.bytes = set.sigops = zero;
+    set.weight = set.sigops = zero;
     return error::success;
 }
 

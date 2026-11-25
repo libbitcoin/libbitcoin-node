@@ -204,9 +204,7 @@ void chaser_transaction::do_bump() NOEXCEPT
             return;
         }
 
-        const auto state = query.get_confirmed_chain_state(system_settings(),
-            top, height);
-
+        const auto state = top_state(top, height);
         if (!state)
         {
             fault(error::transaction1);
@@ -216,7 +214,7 @@ void chaser_transaction::do_bump() NOEXCEPT
         // The context of the next block, in which a pool tx would confirm.
         const auto previous = pool_;
         pool_ = chain_state{ *state, system_settings() }.context();
-        previous_ = query.get_header_key(top);
+        previous_ = state->hash();
 
         // Row holds unless a flag changes or height or median time past falls.
         due_ = due_ || pool_.flags != previous.flags ||
@@ -263,6 +261,30 @@ void chaser_transaction::do_bump() NOEXCEPT
         start_scan(false);
     else if (unmapped && query.to_coinbase(top) < query.get_latch_tx())
         start_scan(true);
+}
+
+// private
+chain_state::cptr chaser_transaction::top_state(
+    const database::header_link& top, size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+    if (state_ && height == state_->height() &&
+        query.get_header_key(top) == state_->hash())
+        return state_;
+
+    if (state_ && height == add1(state_->height()))
+    {
+        const auto header = query.get_header(top);
+        if (header && header->previous_block_hash() == state_->hash())
+        {
+            state_ = to_shared<chain_state>(*state_, *header, system_settings());
+            return state_;
+        }
+    }
+
+    state_ = query.get_confirmed_chain_state(system_settings(), top, height);
+    return state_;
 }
 
 bool chaser_transaction::is_indexing() const NOEXCEPT
@@ -715,7 +737,7 @@ pool::algorithm::totals_t chaser_transaction::block_limit() const NOEXCEPT
     return
     {
         {},
-        possible_narrow_cast<uint32_t>(weight / light_weight_factor),
+        possible_narrow_cast<uint32_t>(weight),
         possible_narrow_cast<uint32_t>(sigops)
     };
 }
