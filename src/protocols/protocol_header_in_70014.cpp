@@ -564,7 +564,7 @@ void protocol_header_in_70014::do_submit_compact(const code& ec,
         return;
     }
 
-    // The tx chaser marks an identified block with an invalid tx unconfirmable.
+    // The tx chaser marks an identified invalid block unconfirmable.
     if (ec)
     {
         LOGR("Compact block [" << encode_hash(hash) << ":" << height
